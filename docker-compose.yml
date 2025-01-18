@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+
+  antity-pgsql:
+    build: ./
+    container_name: antity-pgsql
+    volumes:
+      - ./:/usr/src/app
+      - antity-pgsql_node_modules:/usr/src/app/node_modules
+
+
+volumes:
+  antity-pgsql_node_modules:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/node_modules

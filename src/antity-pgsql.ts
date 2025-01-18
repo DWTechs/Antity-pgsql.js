@@ -1,11 +1,11 @@
-import pool from "./pool";
 import { log } from "@dwtechs/winstan";
 import { Entity } from "@dwtechs/antity";
 import map from "./map";
-import { checkMatchMode } from "./check";
-import { where, orderBy, limit } from "./clause";
-import  perf from "./perf";
-import type { Type, Filters, Filter } from "./types";
+import check from "./check";
+import { execute } from "./execute";
+import { addContition, where, orderBy, limit } from "./clause";
+import type { Type, Filters, Filter, LogicalOperator } from "./types";
+import type { Property } from "@dwtechs/antity";
 
 // Builds the where clause with given filters
 // Filters should be as follow :
@@ -29,7 +29,7 @@ export class SQLEntity extends Entity {
   private cols: Record<Operation, string[]>;
   private unsafeProps: string[];
   private properties: Property[];
-  private defaultOperator = "AND";
+  private defaultLogicalOperator: LogicalOperator = "AND";
 
   // constructor(table: string, properties: Property[]) {
   //   super(table, properties); // Call the constructor of the base class
@@ -44,7 +44,7 @@ export class SQLEntity extends Entity {
     pagination: boolean
   ): Promise<any> {
 
-    let conditions = "";
+    let conditions: string[] = [];
     let i = 1;
     const args: (Filter["value"])[] = [];
   
@@ -58,61 +58,31 @@ export class SQLEntity extends Entity {
         
         const type = map.type(propType); // transform from entity type to valid sql filter type
         const filter = filters[key];
-        let newCondition: string | null = null;
-        const sqlKey = `\"${key}\"`; // escaped property name for sql query
         const { value, subProps, matchMode } = filter;
         
-        if (matchMode && !checkMatchMode(type, matchMode)) { // check if match mode is compatible with sql type
+        if (matchMode && !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
           log.info(`Skipping invalid match mode: ${matchMode} for type: ${type} at property: ${key}`);
           continue;
         }
 
-        const comparator = map.comparator(matchMode);
-        const mappedIndex = map.index(i, matchMode);
+        conditions.push(addContition(key, i, matchMode));
         args.push(value);
-        newCondition = `${sqlKey} ${comparator} ${mappedIndex}`;
-        conditions += `${newCondition} ${this.defaultOperator}`;
         i++;
       }
     }
 
-    conditions = where(conditions, this.defaultOperator) 
+
+    const select = where(conditions, this.defaultLogicalOperator) 
                + orderBy(sortField, sortOrder) 
                + limit(rows, first);
 
-    const query = `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${conditions}`;
-    return this.execute(query, args, null);
+    const query = `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${select}`;
+    return execute(query, args, null);
 
   }
 
-  private execute(query: string, args: string[], clt: any): Promise<any> {
-    const time = perf.start(query, args);
-    const client = clt || pool;
-    return client
-      .query(query, args)
-      .then((res) => {
-        perf.end(res, time);
-        this.deleteIdleProperties(res);
-        return res;
-      })
-      .catch((err) => {
-        err.msg = `Postgre error: ${err.message}`;
-        throw err;
-      });
-  }
-
-  private getPropertyType(propName: string): Type {
-    return this.properties[propName]?.type || null;
-  }
-
-  private deleteIdleProperties(res: any): void {
-    res.command = undefined;
-    res.oid = undefined;
-    res.fields = undefined;
-    res._parsers = undefined;
-    res._types = undefined;
-    res.RowCtor = undefined;
-    res.rowAsArray = undefined;
+  private getPropertyType(key: string): Type {
+    return this.properties[key]?.type || null;
   }
 
 }

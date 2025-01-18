@@ -8,6 +8,8 @@ export type Filter = {
   matchMode?: MatchMode;
 }
 
+export type LogicalOperator = "AND" | "OR";
+
 export type Comparator = 
   "=" |
   "<" |

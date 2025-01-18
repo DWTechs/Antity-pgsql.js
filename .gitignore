@@ -1,0 +1,8 @@
+
+node_modules/
+build/
+.tscache/
+npm-debug.log
+tests/coverage/
+.size-snapshot.json
+.npmrc

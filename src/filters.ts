@@ -10,10 +10,6 @@ import { mapComparator, mapType } from "./map";
 //   return "";
 // }
 
-function getCondition(propName: string, comparator: Comparator, i: number): string | null {
-    return ` ${propName} ${comparator} $${i}`;
-}
-
 function geometry(geom: Geometry, matchMode: MatchMode | null): string {
   const { lng, lat, radius, bounds } = geom || {};
   if (isObject(bounds) && (!matchMode || matchMode === "st_contains")) {

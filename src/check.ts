@@ -7,10 +7,10 @@ const matchModes = {
   date: ["is", "isNot", "dateAfter"],
 };
 
-function checkMatchMode(type: Type, matchMode: MatchMode): boolean {
+function matchMode(type: Type, matchMode: MatchMode): boolean {
   return isIn(matchMode, matchModes[type]);
 }
 
-export {
-  checkMatchMode,
+export default {
+  matchMode,
 };

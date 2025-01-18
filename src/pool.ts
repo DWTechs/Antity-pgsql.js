@@ -1,5 +1,12 @@
 import Pool from "pg-pool";
-const { DB_HOST, DB_USER, DB_PWD, DB_NAME, DB_PORT, DB_MAX } = process.env;
+const { 
+  DB_HOST, 
+  DB_USER, 
+  DB_PWD, 
+  DB_NAME,
+  DB_PORT,
+  DB_MAX 
+} = process.env;
 
 export default new Pool({
   host: DB_HOST,

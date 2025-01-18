@@ -1,0 +1,56 @@
+{
+  "name": "@dwtechs/antity",
+  "version": "0.5.0",
+  "description": "Open source library for easy entity management",
+  "keywords": [
+    "entities"
+  ],
+  "homepage": "https://github.com/DWTechs/Antity.js",
+  "main": "dist/antity",
+  "types": "dist/antity",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DWTechs/Antity.js"
+  },
+  "bugs": {
+    "url": "https://github.com/DWTechs/Antity.js/issues",
+    "email": ""
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ludovic Cluber",
+    "email": "http://www.lcluber.com/contact",
+    "url": "http://www.lcluber.com"
+  },
+  "contributors": [],
+  "scripts": {
+    "start": "",
+    "build": "node ./scripts/clear && tsc && npm run rollup && node ./scripts/copy && npm run test",
+    "rollup:mjs": "rollup --config rollup.config.mjs",
+    "rollup:cjs": "rollup --config rollup.config.cjs.mjs",
+    "rollup": "npm run rollup:mjs",
+    "test": "jest --coverage"
+  },
+  "files": [
+    "dist/"
+  ],
+  "dependencies": {
+    "@dwtechs/checkard": "2.29.2",
+    "@dwtechs/winstan": "0.3.0",
+    "@dwtechs/antity": "0.5.0",
+    "pg": "8.13.1"
+  },
+  "devDependencies": {
+    "@babel/core": "7.26.0",
+    "@babel/preset-env": "7.26.0",
+    "@rollup/plugin-commonjs": "28.0.1",
+    "@rollup/plugin-node-resolve": "15.3.0",
+    "@types/jest": "29.5.14",
+    "@types/node": "22.10.1",
+    "babel-jest": "29.7.0",
+    "core-js": "3.33.0",
+    "jest": "29.7.0",
+    "rollup": "4.24.0",
+    "typescript": "5.6.3"
+  }
+}
