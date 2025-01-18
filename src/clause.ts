@@ -11,7 +11,7 @@ function addContition(key: string, index: number, matchMode: MatchMode | undefin
 // Builds where clause
 function where(conditions: string[], operator: LogicalOperator): string {
   return conditions
-    ? ` WHERE ${conditions.join(operator).trim()}`
+    ? ` WHERE ${conditions.join(` ${operator} `).trim()}`
     : "";
 }
 

@@ -44,7 +44,7 @@ export class SQLEntity extends Entity {
     pagination: boolean
   ): Promise<any> {
 
-    let conditions: string[] = [];
+    const conditions: string[] = [];
     let i = 1;
     const args: (Filter["value"])[] = [];
   
@@ -71,12 +71,12 @@ export class SQLEntity extends Entity {
       }
     }
 
+    const filterClause = 
+        where(conditions, this.defaultLogicalOperator) 
+      + orderBy(sortField, sortOrder) 
+      + limit(rows, first);
 
-    const select = where(conditions, this.defaultLogicalOperator) 
-               + orderBy(sortField, sortOrder) 
-               + limit(rows, first);
-
-    const query = `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${select}`;
+    const query = `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${filterClause}`;
     return execute(query, args, null);
 
   }
