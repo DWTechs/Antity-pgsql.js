@@ -1,4 +1,4 @@
-import { Entity } from '../dist/antity.js';
+import { Entity } from '../dist/antity-pgsql.js';
 
 describe('Entity', () => {
   let entity;

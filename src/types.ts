@@ -43,7 +43,10 @@ export type MatchMode =
   "st_contains" |
   "st_dwithin";
 
-  export type Type =  
+
+export type MappedType = "string" | "number" | "date";
+
+export type Type =  
   "boolean" | 
   "string" | 
   "number" | 

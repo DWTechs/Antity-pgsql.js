@@ -1,6 +1,6 @@
-import { isString, isNumber, isBoolean, isArray, isObject, isInteger } from "@dwtechs/checkard";
-import type { MatchMode, Geometry, Comparator } from "./types";
-import { mapComparator, mapType } from "./map";
+import { /*isString, isNumber, isBoolean, isArray,*/ isObject/*, isInteger*/ } from "@dwtechs/checkard";
+import type { MatchMode, Geometry/*, Comparator*/ } from "./types";
+// import { mapComparator, mapType } from "./map";
 
 // function nil(prop: string, matchMode: MatchMode): string {
 //   if (matchMode === "equals")
@@ -184,13 +184,5 @@ function geometry(geom: Geometry, matchMode: MatchMode | null): string {
 // }
 
 export {
-  getCondition,
-  string,
-  interval,
-  date,
-  array,
-  arrayAgg,
-  object,
-  jsonAgg,
   geometry,
 };

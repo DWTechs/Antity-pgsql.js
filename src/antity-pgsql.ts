@@ -5,7 +5,6 @@ import check from "./check";
 import { execute } from "./execute";
 import { addContition, where, orderBy, limit } from "./clause";
 import type { Type, Filters, Filter, LogicalOperator } from "./types";
-import type { Property } from "@dwtechs/antity";
 
 // Builds the where clause with given filters
 // Filters should be as follow :
@@ -25,10 +24,6 @@ import type { Property } from "@dwtechs/antity";
 
 
 export class SQLEntity extends Entity {
-  private table: string;
-  private cols: Record<Operation, string[]>;
-  private unsafeProps: string[];
-  private properties: Property[];
   private defaultLogicalOperator: LogicalOperator = "AND";
 
   // constructor(table: string, properties: Property[]) {
@@ -42,7 +37,7 @@ export class SQLEntity extends Entity {
     sortField: string,
     filters: Filters | null,
     pagination: boolean
-  ): Promise<any> {
+  ): string {
 
     const conditions: string[] = [];
     let i = 1;
@@ -58,7 +53,7 @@ export class SQLEntity extends Entity {
         
         const type = map.type(propType); // transform from entity type to valid sql filter type
         const filter = filters[key];
-        const { value, subProps, matchMode } = filter;
+        const { value, /*subProps, */matchMode } = filter;
         
         if (matchMode && !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
           log.info(`Skipping invalid match mode: ${matchMode} for type: ${type} at property: ${key}`);
@@ -76,13 +71,16 @@ export class SQLEntity extends Entity {
       + orderBy(sortField, sortOrder) 
       + limit(rows, first);
 
-    const query = `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${filterClause}`;
-    return execute(query, args, null);
+    return `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${filterClause}`;
 
   }
 
-  private getPropertyType(key: string): Type {
-    return this.properties[key]?.type || null;
+  public execute(query: string, args: any[], client: any) {
+    return execute(query, args, client);
+  }
+
+  private getPropertyType(key: string): Type | null {
+    return this.properties.find(p => p.key === key)?.type || null;
   }
 
 }

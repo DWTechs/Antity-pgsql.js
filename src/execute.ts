@@ -6,12 +6,12 @@ function execute(query: string, args: string[], clt: any): Promise<any> {
   const client = clt || pool;
   return client
     .query(query, args)
-    .then((res) => {
+    .then((res: JSON) => {
       perf.end(res, time);
       deleteIdleProperties(res);
       return res;
     })
-    .catch((err) => {
+    .catch((err: { msg: string; message: string; }) => {
       err.msg = `Postgre error: ${err.message}`;
       throw err;
     });

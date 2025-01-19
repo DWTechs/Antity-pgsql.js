@@ -1,5 +1,5 @@
 import { isIn } from "@dwtechs/checkard";
-import type { MatchMode, Type } from "./types";
+import type { MatchMode, MappedType } from "./types";
 
 const matchModes = {
   string: ["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte"],
@@ -7,7 +7,7 @@ const matchModes = {
   date: ["is", "isNot", "dateAfter"],
 };
 
-function matchMode(type: Type, matchMode: MatchMode): boolean {
+function matchMode(type: MappedType, matchMode: MatchMode): boolean {
   return isIn(matchMode, matchModes[type]);
 }
 
