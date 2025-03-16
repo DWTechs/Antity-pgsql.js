@@ -41,8 +41,7 @@ export class SQLEntity extends Entity {
   //   super(table, properties); // Call the constructor of the base class
   // }
 
-  public get( req: Request, res: Response, next: NextFunction
-  ): void {
+  public get( req: Request, res: Response, next: NextFunction ): void {
 
     const rb = req.body;
     const first = rb?.first ?? 0;
@@ -80,8 +79,56 @@ export class SQLEntity extends Entity {
   }
 
 
+  public add( req: Request, res: Response, next: NextFunction ): void {
+    const chunks = chunk(req.body.rows);
+    const dbClient = req.dbClient || null;
+  
+    log.debug(`addMany(rows=${req.body.rows.length})`);
+    for (const c of chunks) {
+      let query = "";
+      const args = [];
+      for (const r of c) {
+        query += `${this.generateQueryPlaceholders(r.length + 2)}, `;
+        args.push(...r, consumerId, consumerName);
+      }
+      query = `${query.slice(0, -2)}`;
+      let db;
+      try {
+        db = await svc.insert(req.table, req.cols, query, args, "id", dbClient);
+      } catch (err) {
+        return next(err);
+      }
+    }
+  
+    // add new id to new rows
+    const rows = db.rows;
+    for (i = 0; i < c.length; i++) {
+      c[i] = rows[i].id;
+    }
+    next();
+  }
+
+  public update( req: Request, res: Response, next: NextFunction ): void {
+
+  }
+
+  public delete( req: Request, res: Response, next: NextFunction ): void {
+
+  }
+
+  /**
+   * Generates a PostgreSQL query string with placeholders for a given quantity of values.
+   *
+   * @param {number} qty - The quantity of values to generate placeholders for.
+   * @return {string} The generated query string with placeholders.
+   */
+  private generateQueryPlaceholders(qty) {
+    return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
+  }
+
 
 }
+
 
 
 // /**

@@ -11,7 +11,7 @@ function add(table: string, cols: string, values: string, args: (Filter["value"]
   const chunks = chunk(req.body.rows);
   const rtnQuery = rtn ? `RETURNING ${rtn}` : "";
   const query = `INSERT INTO "${table}" (${cols}) VALUES ${values} ${rtnQuery}`;
-  return execute(query, args, client);
+  // return execute(query, args, client);
 }
 
 export {
