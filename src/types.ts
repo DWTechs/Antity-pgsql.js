@@ -76,11 +76,6 @@ export type Type =
   "object" |
   "geometry";
 
-export type Clause = {
-  conditions: string;
-  args: any[];
-}
-
 export type Geometry = { 
   lng: number,
   lat: number,
@@ -91,4 +86,16 @@ export type Geometry = {
     maxLng: number,
     maxLat: number
   } 
+};
+
+export type PGResponse = {
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  command?: string;
+  oid?: number;
+  fields?: unknown[];
+  _parsers?: unknown[];
+  _types?: unknown;
+  RowCtor?: unknown;
+  rowAsArray?: boolean;
 };

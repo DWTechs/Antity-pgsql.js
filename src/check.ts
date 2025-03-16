@@ -8,9 +8,9 @@ const matchModes = {
 };
 
 function matchMode(type: MappedType, matchMode: MatchMode): boolean {
-  return isIn(matchMode, matchModes[type]);
+  return isIn(matchModes[type], matchMode);
 }
 
-export default {
+export {
   matchMode,
 };

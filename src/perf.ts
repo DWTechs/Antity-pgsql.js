@@ -1,6 +1,7 @@
 import { log } from "@dwtechs/winstan";
+import type { Filter } from "./types";
 
-function start(query: string, args: string[]): number {
+function start(query: string, args: (Filter["value"])[]): number {
   log.debug(
     `Pgsql: { Query : '${query
       .replace(/[\n\r]+/g, "")
@@ -9,7 +10,7 @@ function start(query: string, args: string[]): number {
   return Date.now();
 }
 
-function end(res: JSON, time: number): void {
+function end(res: PGRes, time: number): void {
   log.debug(`Pgsql response in ${Date.now() - time}ms : ${JSON.stringify(res)}`);
 }
 

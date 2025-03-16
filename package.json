@@ -1,6 +1,6 @@
 {
   "name": "@dwtechs/antity",
-  "version": "0.5.0",
+  "version": "0.1.0",
   "description": "Open source library for easy entity management",
   "keywords": [
     "entities"
@@ -25,6 +25,7 @@
   "contributors": [],
   "scripts": {
     "start": "",
+    "prebuild": "npm install",
     "build": "node ./scripts/clear && tsc && npm run rollup && node ./scripts/copy && npm run test",
     "rollup:mjs": "rollup --config rollup.config.mjs",
     "rollup:cjs": "rollup --config rollup.config.cjs.mjs",
@@ -35,9 +36,10 @@
     "dist/"
   ],
   "dependencies": {
-    "@dwtechs/checkard": "2.29.2",
-    "@dwtechs/winstan": "0.3.0",
+    "@dwtechs/checkard": "3.2.3",
+    "@dwtechs/winstan": "0.4.0",
     "@dwtechs/antity": "0.5.0",
+    "@dwtechs/sparray": "0.1.1",
     "pg": "8.13.1"
   },
   "devDependencies": {
@@ -47,6 +49,8 @@
     "@rollup/plugin-node-resolve": "15.3.0",
     "@types/jest": "29.5.14",
     "@types/node": "22.10.1",
+    "@types/pg-pool": "2.0.6",
+    "@types/express": "5.0.0",
     "babel-jest": "29.7.0",
     "core-js": "3.33.0",
     "jest": "29.7.0",

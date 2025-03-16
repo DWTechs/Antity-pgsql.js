@@ -1,12 +1,13 @@
 import pool from "./pool";
 import perf from "./perf";
+import type { Filter, PGResponse } from "./types";
 
-function execute(query: string, args: string[], clt: any): Promise<any> {
+function execute(query: string, args: (Filter["value"])[], clt: any): Promise<Record<string, unknown>> {
   const time = perf.start(query, args);
   const client = clt || pool;
   return client
     .query(query, args)
-    .then((res: JSON) => {
+    .then((res: PGResponse) => {
       perf.end(res, time);
       deleteIdleProperties(res);
       return res;
@@ -17,7 +18,7 @@ function execute(query: string, args: string[], clt: any): Promise<any> {
     });
 }
 
-function deleteIdleProperties(res: any): void {
+function deleteIdleProperties(res: PGResponse): void {
   res.command = undefined;
   res.oid = undefined;
   res.fields = undefined;

@@ -13,8 +13,8 @@ export default new Pool({
   user: DB_USER,
   password: DB_PWD,
   database: DB_NAME,
-  port: DB_PORT,
+  port: +(DB_PORT || 5432),
   // idleTimeoutMillis: 31536000,
   // connectionTimeoutMillis: 100000,
-  max: DB_MAX,
+  max: DB_MAX ? +DB_MAX : 10,
 });

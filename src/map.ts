@@ -1,6 +1,13 @@
-import type { MatchMode, Comparator, Type } from "./types";
+import type { MatchMode, Comparator, Type, MappedType } from "./types";
 
-function index(i: number, matchMode: MatchMode | undefined): any {
+/**
+ * Generates a SQL pattern string based on the provided match mode.
+ *
+ * @param i - The index to be used in the pattern string.
+ * @param matchMode - The mode of matching to be applied.
+ * @returns A string representing the SQL pattern based on the provided match mode.
+ */
+function index(i: number, matchMode: MatchMode | undefined): string {
   switch (matchMode) {
     case "startsWith":
       return `$${i}%`;
@@ -15,7 +22,13 @@ function index(i: number, matchMode: MatchMode | undefined): any {
   }
 }
 
-
+/**
+ * Returns the SQL comparator string based on the provided match mode.
+ *
+ * @param matchMode - The match mode to determine the comparator. 
+ *
+ * @returns The corresponding SQL comparator string or null if the match mode is undefined or not recognized.
+ */
 function comparator(matchMode: MatchMode | undefined): Comparator| null {
   switch (matchMode) {
     case "startsWith":
@@ -53,7 +66,15 @@ function comparator(matchMode: MatchMode | undefined): Comparator| null {
   }
 }
 
-function type(type: Type): Type {
+/**
+ * transform from entity type to valid sql filter type
+ *
+ * @param type - The type to be mapped. 
+ *
+ * @returns The corresponding MappedType as a string, number, or date.
+ * - Returns string if it does not match any of the predefined types.
+ */
+function type(type: Type): MappedType {
   const s = "string";
   const n = "number";
   const d = "date";
@@ -105,11 +126,11 @@ function type(type: Type): Type {
     case "object": 
       return s;
     default:
-      return type;
+      return s;
   }
 }
 
-export default {
+export {
   index,
   comparator,
   type,

@@ -1,10 +1,22 @@
 import { log } from "@dwtechs/winstan";
 import { Entity } from "@dwtechs/antity";
-import map from "./map";
-import check from "./check";
+import { chunk, deleteProps } from "@dwtechs/sparray";
+
+import { filter } from "./crud/select";
 import { execute } from "./execute";
-import { addContition, where, orderBy, limit } from "./clause";
-import type { Type, Filters, Filter, LogicalOperator } from "./types";
+import type { Filter, Filters, PGResponse } from "./types";
+import type { Request, Response, NextFunction } from 'express';
+
+export interface AntityGetBody extends Request {
+  body: {
+    first?: number;
+    rows?: number;
+    sortOrder?: string;
+    sortField?: string;
+    filters?: Filters;
+    pagination?: boolean;
+  }
+}
 
 // Builds the where clause with given filters
 // Filters should be as follow :
@@ -24,84 +36,53 @@ import type { Type, Filters, Filter, LogicalOperator } from "./types";
 
 
 export class SQLEntity extends Entity {
-  private defaultLogicalOperator: LogicalOperator = "AND";
-
+  
   // constructor(table: string, properties: Property[]) {
   //   super(table, properties); // Call the constructor of the base class
   // }
 
-  public select( 
-    first: number,
-    rows: number,
-    sortOrder: string,
-    sortField: string,
-    filters: Filters | null,
-    pagination: boolean
-  ): string {
+  public get( req: Request, res: Response, next: NextFunction
+  ): void {
 
-    const conditions: string[] = [];
-    let i = 1;
-    const args: (Filter["value"])[] = [];
+    const rb = req.body;
+    const first = rb?.first ?? 0;
+    const rows = rb.rows ? Math.min(rb.rows, 50) : null;
+    const sortOrder = rb.sortOrder === -1 ? "DESC" : "ASC";
+    const sortField = rb.sortField || null;
+    const filters = req.filters || null;
+    const pagination = rb.pagination || false;
+
+    log.debug(
+      `get(first='${first}', rows='${rows}', 
+      sortOrder='${sortOrder}', sortField='${sortField}', 
+      pagination=${pagination}, filters=${JSON.stringify(filters)}`,
+    );
+
+    const { filterClause, args } = filter(first, rows, sortOrder, sortField, filters);
+    const cols = this.getCols("select", true, pagination);
+    const table = this.getTable();
+    const query = `SELECT ${cols} FROM ${table} ${filterClause}`;
+    execute(query, args, null)
+      .then((r: PGResponse) => {
+        if (!r.rowCount) 
+          return next({ status: 404, msg: "Resource not found" });
   
-    if (filters) {
-      for (const key in filters) {
-        const propType = this.getPropertyType(key);
-        if (!propType) {
-          log.info(`Skipping unknown property: ${key}`);
-          continue;
+        const firstRow = r.rows[0];
+        res.rows = r.rows;
+        if (firstRow.total) {
+          res.total = firstRow.total; // total number of rows without first and rows limits. Useful for pagination. Do not confuse with rowcount
+          res.rows = deleteProps(res.rows, ["total"]);
         }
-        
-        const type = map.type(propType); // transform from entity type to valid sql filter type
-        const filter = filters[key];
-        const { value, /*subProps, */matchMode } = filter;
-        
-        if (matchMode && !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
-          log.info(`Skipping invalid match mode: ${matchMode} for type: ${type} at property: ${key}`);
-          continue;
-        }
-
-        conditions.push(addContition(key, i, matchMode));
-        args.push(value);
-        i++;
-      }
-    }
-
-    const filterClause = 
-        where(conditions, this.defaultLogicalOperator) 
-      + orderBy(sortField, sortOrder) 
-      + limit(rows, first);
-
-    return `SELECT ${this.getCols("select", true, pagination)} FROM ${this.getTable()} ${filterClause}`;
+        next();
+      })
+      .catch((err) => next(err));
 
   }
 
-  public execute(query: string, args: any[], client: any) {
-    return execute(query, args, client);
-  }
 
-  private getPropertyType(key: string): Type | null {
-    return this.properties.find(p => p.key === key)?.type || null;
-  }
 
 }
 
-
-// /**
-//  * Inserts data into a specified table with the given columns, values, and optional return column.
-//  *
-//  * @param {string} table - The name of the table to insert into.
-//  * @param {string} cols - The columns to insert into, separated by commas.
-//  * @param {string} values - The values to insert, separated by commas.
-//  * @param {Array} args - The arguments for the query.
-//  * @param {string} [rtn] - The column to return after the insertion.
-//  * @param {object} [client] - The PostgreSQL client to use for the query.
-//  * @return {Promise} A promise that resolves with the result of the query.
-//  */
-// function insert(table: string, cols: string, values: string, args: string[], rtn: string, client: any): Promise<any> {
-//   const rtnQuery = rtn ? `RETURNING ${rtn}` : "";
-//   const query = `INSERT INTO "${table}" (${cols}) VALUES ${values} ${rtnQuery}`;
-//   return execute(query, args, client);
-// }
 
 // /**
 //  * Updates a table with the given queries and arguments.
