@@ -1,3 +1,5 @@
+export type QueryType = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
+
 export type Filters = {
   [key: string]: Filter;
 }
@@ -91,6 +93,7 @@ export type Geometry = {
 export type PGResponse = {
   rows: Record<string, unknown>[];
   rowCount: number;
+  total?: number;
   command?: string;
   oid?: number;
   fields?: unknown[];
@@ -99,3 +102,8 @@ export type PGResponse = {
   RowCtor?: unknown;
   rowAsArray?: boolean;
 };
+
+// export type Response = {
+//   rows: Record<string, unknown>[];
+//   total?: number;
+// };

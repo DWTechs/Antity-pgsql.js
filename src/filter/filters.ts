@@ -1,5 +1,5 @@
 import { /*isString, isNumber, isBoolean, isArray,*/ isObject/*, isInteger*/ } from "@dwtechs/checkard";
-import type { MatchMode, Geometry/*, Comparator*/ } from "./types";
+import type { MatchMode, Geometry/*, Comparator*/ } from "../types";
 // import { mapComparator, mapType } from "./map";
 
 // function nil(prop: string, matchMode: MatchMode): string {

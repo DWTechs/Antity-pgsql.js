@@ -1,5 +1,5 @@
 import { log } from "@dwtechs/winstan";
-import type { Filter } from "./types";
+import type { Filter } from "../types";
 
 function start(query: string, args: (Filter["value"])[]): number {
   log.debug(

@@ -2,8 +2,8 @@ import { log } from "@dwtechs/winstan";
 import { Entity } from "@dwtechs/antity";
 import { chunk, deleteProps } from "@dwtechs/sparray";
 
-import { filter } from "./crud/select";
-import { execute } from "./execute";
+import { select } from "./crud/crud";
+import { build } from "./crud/query";
 import type { Filter, Filters, PGResponse } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
@@ -57,24 +57,16 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const { filterClause, args } = filter(first, rows, sortOrder, sortField, filters);
     const cols = this.getCols("select", true, pagination);
     const table = this.getTable();
-    const query = `SELECT ${cols} FROM ${table} ${filterClause}`;
-    execute(query, args, null)
+    const { query, args } = build("SELECT", cols, table, first, rows, sortOrder, sortField, filters);
+    select(query, args)
       .then((r: PGResponse) => {
-        if (!r.rowCount) 
-          return next({ status: 404, msg: "Resource not found" });
-  
-        const firstRow = r.rows[0];
         res.rows = r.rows;
-        if (firstRow.total) {
-          res.total = firstRow.total; // total number of rows without first and rows limits. Useful for pagination. Do not confuse with rowcount
-          res.rows = deleteProps(res.rows, ["total"]);
-        }
+        res.total = r.total;
         next();
       })
-      .catch((err) => next(err));
+      .catch((err: Error) => next(err));
 
   }
 
@@ -114,16 +106,6 @@ export class SQLEntity extends Entity {
 
   public delete( req: Request, res: Response, next: NextFunction ): void {
 
-  }
-
-  /**
-   * Generates a PostgreSQL query string with placeholders for a given quantity of values.
-   *
-   * @param {number} qty - The quantity of values to generate placeholders for.
-   * @return {string} The generated query string with placeholders.
-   */
-  private generateQueryPlaceholders(qty) {
-    return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
   }
 
 
