@@ -45,8 +45,8 @@ export class SQLEntity extends Entity {
 
     const rb = req.body;
     const first = rb?.first ?? 0;
-    const rows = rb.rows ? Math.min(rb.rows, 50) : null;
-    const sortOrder = rb.sortOrder === -1 ? "DESC" : "ASC";
+    const rows = rb.rows ? rb.rows : null;
+    const sortOrder = rb.sortOrder;
     const sortField = rb.sortField || null;
     const filters = req.filters || null;
     const pagination = rb.pagination || false;

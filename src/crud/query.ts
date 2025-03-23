@@ -8,8 +8,8 @@ function build(
   table: string,
   first?: number,
   rows?: number,
-  sortOrder?: string,
   sortField?: string,
+  sortOrder?: number,
   filters?: Filters,
   rtn?: string,
 ): { query: string, args: (Filter["value"])[] } {

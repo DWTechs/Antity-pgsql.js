@@ -1,19 +1,15 @@
 import * as condition from "./condition";
 import type { Filters, Filter, LogicalOperator } from "../types";
 
-const defaultOperator: LogicalOperator = "AND";
-
-
 function filter(
-  first: number,
-  rows: number | null | undefined,
-  sortOrder: string,
-  sortField: string | undefined | null,
-  filters: Filters | undefined | null,
+  first: number = 0,
+  rows: number = 0,
+  sortOrder: number = -1,
+  sortField: string = "",
+  filters: Filters | undefined,
 ): { filterClause: string, args: (Filter["value"])[] } {
   
   const { conditions, args } = condition.add(filters);
-
   const filterClause = 
       where(conditions) 
     + orderBy(sortField, sortOrder) 
@@ -24,19 +20,22 @@ function filter(
 }
 
 // Builds where clause
-function where(conditions: string[], operator: LogicalOperator = defaultOperator): string {
+function where(conditions: string[], operator: LogicalOperator = "AND"): string {
   return conditions
     ? ` WHERE ${conditions.join(` ${operator} `).trim()}`
     : "";
 }
 
   // Adds order by clause
-function orderBy(sortField: string | undefined | null, sortOrder: string): string {
-  return sortField ? ` ORDER BY "${sortField}" ${sortOrder}` : "";
+function orderBy(sortField: string, sortOrder: number): string {
+  if (!sortField) 
+    return "";
+  const so = sortOrder === -1 ? "DESC" : "ASC";
+  return ` ORDER BY "${sortField}" ${so}`;
 }
 
   // Adds limit clause
-function limit(rows: number | null | undefined, first: number): string {
+function limit(rows: number, first: number): string {
   return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 
