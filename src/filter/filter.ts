@@ -21,9 +21,8 @@ function filter(
 
 // Builds where clause
 function where(conditions: string[], operator: LogicalOperator = "AND"): string {
-  return conditions
-    ? ` WHERE ${conditions.join(` ${operator} `).trim()}`
-    : "";
+  const c = conditions.join(` ${operator} `).trim();
+  return conditions ? ` WHERE ${c}` : "";
 }
 
   // Adds order by clause

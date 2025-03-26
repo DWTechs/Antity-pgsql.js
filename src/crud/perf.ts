@@ -1,17 +1,17 @@
 import { log } from "@dwtechs/winstan";
-import type { Filter } from "../types";
+import type { Filter, PGResponse } from "../types";
 
 function start(query: string, args: (Filter["value"])[]): number {
-  log.debug(
-    `Pgsql: { Query : '${query
-      .replace(/[\n\r]+/g, "")
-      .replace(/\s{2,}/g, " ")}', Args : '${JSON.stringify(args)}' }`,
-  );
+  const a = JSON.stringify(args);
+  const q = query.replace(/[\n\r]+/g, "").replace(/\s{2,}/g, " ");
+  log.debug(`Pgsql: { Query : '${q}', Args : '${a}' }`);
   return Date.now();
 }
 
-function end(res: PGRes, time: number): void {
-  log.debug(`Pgsql response in ${Date.now() - time}ms : ${JSON.stringify(res)}`);
+function end(res: PGResponse, time: number): void {
+  const r = JSON.stringify(res);
+  const t = Date.now() - time;
+  log.debug(`Pgsql response in ${t}ms : ${r}`);
 }
 
 export default {

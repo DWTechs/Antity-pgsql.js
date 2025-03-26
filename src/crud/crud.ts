@@ -8,9 +8,9 @@ function select( query: string, args: (Filter["value"])[]): Promise<Response> {
     .then((r: PGResponse) => {
       if (!r.rowCount)
         throw { status: 404, msg: "Resource not found" }; 
-      const firstRow = r.rows[0];
-      if (firstRow?.total) {
-        r.total = Number(firstRow.total); // total number of rows without first and rows limits. Useful for pagination. Do not confuse with rowcount
+      const f = r.rows[0];
+      if (f?.total) {
+        r.total = Number(f.total); // total number of rows without first and rows limits. Useful for pagination. Do not confuse with rowcount
         r.rows = deleteProps(r.rows, ["total"]); // delete "total" property from rows
       }
       return r;

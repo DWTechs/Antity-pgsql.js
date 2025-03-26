@@ -103,7 +103,7 @@ export type PGResponse = {
   rowAsArray?: boolean;
 };
 
-// export type Response = {
-//   rows: Record<string, unknown>[];
-//   total?: number;
-// };
+export type Response = {
+  rows: Record<string, unknown>[];
+  total?: number;
+};
