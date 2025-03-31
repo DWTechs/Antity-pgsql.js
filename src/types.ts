@@ -1,4 +1,6 @@
-export type QueryType = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
+import type { Operations } from "./operations";
+
+export type Operation = typeof Operations[number];
 
 export type Filters = {
   [key: string]: Filter;

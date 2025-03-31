@@ -1,4 +1,6 @@
-import type { MatchMode, Comparator, Type, MappedType } from "./types";
+import { Method } from "@dwtechs/antity";
+import type { MatchMode, Comparator, Type, MappedType, Operation } from "./types";
+import { Operations } from "./operations";
 
 /**
  * Generates a SQL pattern string based on the provided match mode.
@@ -130,8 +132,26 @@ function type(type: Type): MappedType {
   }
 }
 
+function method(method: Method): Operation | undefined {
+  switch (method) {
+    case "GET": 
+      return Operations[0];
+    case "PATCH":
+      return Operations[2];
+    case "PUT":
+      return Operations[2];
+    case "POST":
+      return Operations[1];
+    case "DELETE":
+      return Operations[4];
+    default:
+      return undefined;
+  }
+}
+
 export {
   index,
   comparator,
   type,
+  method,
 };

@@ -1,10 +1,12 @@
+import { isString } from '@dwtechs/checkard';
 import { log } from "@dwtechs/winstan";
-import { Entity } from "@dwtechs/antity";
+import { Entity, Property } from "@dwtechs/antity";
 import { chunk, deleteProps } from "@dwtechs/sparray";
+import * as map from "./map";
 
 import { select } from "./crud/crud";
 import { build } from "./crud/query";
-import type { Filter, Filters, PGResponse } from "./types";
+import type { Filters, PGResponse, Operation } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 export interface AntityGetBody extends Request {
@@ -36,10 +38,78 @@ export interface AntityGetBody extends Request {
 
 
 export class SQLEntity extends Entity {
-  
-  // constructor(table: string, properties: Property[]) {
-  //   super(table, properties); // Call the constructor of the base class
-  // }
+  private _table: string;
+  private _cols = {
+    SELECT: [],
+    INSERT: [],
+    UPDATE: [],
+    MERGE: [],
+    DELETE: []
+  };
+
+  constructor(
+    name: string, 
+    properties: Property[], 
+    table: string, 
+  ) {
+    super(name, properties); // Call the constructor of the base class
+    this._table = table;
+    // _cols help to dynamically generates SQL queries.
+    // data is grouped by operation type, making it easy to retrieve and process later.
+    for (const p of properties) {
+      for (const m of p.methods) {
+        const o = map.method(m);
+        if (o) {
+          const c = this._cols[o];
+          if (o === "UPDATE") // The "update" operation requires special formatting (key = $index), while other operations only store the key.
+            c.push(`${p.key} = $${c.length+1}`); 
+          else
+            c.push(p.key);
+        }
+      }
+    }
+  }
+
+  public get table(): string {
+    return this._table;
+  }
+
+  public get cols(): Record<Operation, string[]> {
+    return this._cols;
+  }
+
+  public set table(table: string) {
+    if (!isString(table, "!0"))
+      throw new Error('table must be a string of length > 0');
+    this._table = table;
+  }
+
+
+    /**
+   * Retrieves the columns associated with a specific database operation, with optional
+   * stringification and pagination handling.
+   *
+   * @param {Operation} operation - The database operation (e.g., "select", "insert", etc.)
+   *                                for which to retrieve the columns.
+   * @param {boolean} [stringify] - Optional. If `true`, the columns will be returned as a 
+   *                                comma-separated string. Defaults to `false`.
+   * @param {boolean} [pagination] - Optional. If `true` and the operation is "select", 
+   *                                 adds a "COUNT(*) OVER () AS total" column for pagination.
+   *                                 Defaults to `false`.
+   * @returns {string[] | string} - The columns for the specified operation. Returns an array
+   *                                of column names by default, or a comma-separated string
+   *                                if `stringify` is `true`.
+   */
+  public getColsByOp(
+    operation: Operation, 
+    stringify?: boolean, 
+    pagination?: boolean, 
+  ): string[] | string {
+    const cols = pagination && operation === "SELECT" 
+      ? [...this._cols[operation], "COUNT(*) OVER () AS total"] 
+      : this.cols[operation];
+    return stringify ? cols.join(', ') : cols;
+  }
 
   public get( req: Request, res: Response, next: NextFunction ): void {
 
@@ -48,7 +118,7 @@ export class SQLEntity extends Entity {
     const rows = rb.rows ? rb.rows : null;
     const sortOrder = rb.sortOrder;
     const sortField = rb.sortField || null;
-    const filters = req.filters || null;
+    const filters = rb.filters || null;
     const pagination = rb.pagination || false;
 
     log.debug(
@@ -57,13 +127,13 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const cols = this.getCols("select", true, pagination);
+    const cols = this.getColsByOp("SELECT", true, pagination);
     const table = this.getTable();
-    const { query, args } = build("SELECT", cols, table, first, rows, sortOrder, sortField, filters);
+    const { query, args } = build("SELECT", cols as string, table, first, rows, sortOrder, sortField, filters);
     select(query, args)
       .then((r: PGResponse) => {
-        res.rows = r.rows;
-        res.total = r.total;
+        res.locals.rows = r.rows;
+        res.locals.total = r.total;
         next();
       })
       .catch((err: Error) => next(err));
