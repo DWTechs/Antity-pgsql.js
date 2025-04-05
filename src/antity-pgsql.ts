@@ -1,11 +1,12 @@
 import { isString } from '@dwtechs/checkard';
 import { log } from "@dwtechs/winstan";
 import { Entity, Property } from "@dwtechs/antity";
-import { chunk, deleteProps } from "@dwtechs/sparray";
 import * as map from "./map";
 
-import { select } from "./crud/crud";
-import { build } from "./crud/query";
+import { select } from "./crud/select";
+import { insert } from "./crud/insert";
+import { update } from "./crud/update";
+import { del } from "./crud/delete";
 import type { Filters, PGResponse, Operation } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
@@ -39,11 +40,11 @@ export interface AntityGetBody extends Request {
 
 export class SQLEntity extends Entity {
   private _table: string;
-  private _cols = {
+  private _cols: Record<Operation, string[]> = {
     SELECT: [],
     INSERT: [],
     UPDATE: [],
-    MERGE: [],
+    // MERGE: [],
     DELETE: []
   };
 
@@ -54,20 +55,18 @@ export class SQLEntity extends Entity {
   ) {
     super(name, properties); // Call the constructor of the base class
     this._table = table;
-    // _cols help to dynamically generates SQL queries.
+    // _cols help to dynamically generate SQL queries.
     // data is grouped by operation type, making it easy to retrieve and process later.
     for (const p of properties) {
       for (const m of p.methods) {
         const o = map.method(m);
-        if (o) {
-          const c = this._cols[o];
-          if (o === "UPDATE") // The "update" operation requires special formatting (key = $index), while other operations only store the key.
-            c.push(`${p.key} = $${c.length+1}`); 
-          else
-            c.push(p.key);
-        }
+        if (o)
+          this._cols[o].push(p.key);
       }
     }
+    this._cols.INSERT.push("consumerId", "consumerName");
+    this._cols.UPDATE.push("consumerId", "consumerName");
+    this._cols.DELETE.push("consumerId", "consumerName");
   }
 
   public get table(): string {
@@ -85,7 +84,7 @@ export class SQLEntity extends Entity {
   }
 
 
-    /**
+  /**
    * Retrieves the columns associated with a specific database operation, with optional
    * stringification and pagination handling.
    *
@@ -106,20 +105,21 @@ export class SQLEntity extends Entity {
     pagination?: boolean, 
   ): string[] | string {
     const cols = pagination && operation === "SELECT" 
-      ? [...this._cols[operation], "COUNT(*) OVER () AS total"] 
+      ? [...this._cols[operation], "COUNT(*) OVER () AS total"] // Add total column for pagination
       : this.cols[operation];
     return stringify ? cols.join(', ') : cols;
   }
 
   public get( req: Request, res: Response, next: NextFunction ): void {
-
+    
     const rb = req.body;
     const first = rb?.first ?? 0;
-    const rows = rb.rows ? rb.rows : null;
-    const sortOrder = rb.sortOrder;
+    const rows = rb.rows || null;
     const sortField = rb.sortField || null;
+    const sortOrder = rb.sortOrder === -1 || rb.sortOrder === "DESC" ? "DESC" : "ASC";
     const filters = rb.filters || null;
     const pagination = rb.pagination || false;
+    const operation = "SELECT";
 
     log.debug(
       `get(first='${first}', rows='${rows}', 
@@ -127,11 +127,16 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const cols = this.getColsByOp("SELECT", true, pagination);
-    const table = this.getTable();
-    const { query, args } = build("SELECT", cols as string, table, first, rows, sortOrder, sortField, filters);
-    select(query, args)
-      .then((r: PGResponse) => {
+    const cols = this.getColsByOp(operation, true, pagination);
+    select( 
+      cols as string,
+      this._table,
+      first,
+      rows,
+      sortField,
+      sortOrder,
+      filters
+    ).then((r: PGResponse) => {
         res.locals.rows = r.rows;
         res.locals.total = r.total;
         next();
@@ -142,40 +147,66 @@ export class SQLEntity extends Entity {
 
 
   public add( req: Request, res: Response, next: NextFunction ): void {
-    const chunks = chunk(req.body.rows);
-    const dbClient = req.dbClient || null;
-  
-    log.debug(`addMany(rows=${req.body.rows.length})`);
-    for (const c of chunks) {
-      let query = "";
-      const args = [];
-      for (const r of c) {
-        query += `${this.generateQueryPlaceholders(r.length + 2)}, `;
-        args.push(...r, consumerId, consumerName);
-      }
-      query = `${query.slice(0, -2)}`;
-      let db;
-      try {
-        db = await svc.insert(req.table, req.cols, query, args, "id", dbClient);
-      } catch (err) {
-        return next(err);
-      }
-    }
-  
-    // add new id to new rows
-    const rows = db.rows;
-    for (i = 0; i < c.length; i++) {
-      c[i] = rows[i].id;
-    }
-    next();
+    const rows = req.body.rows;
+    const dbClient = res.locals.dbClient || null;
+    const consumerId = res.locals.consumerId;
+    const consumerName = res.locals.consumerName;
+    const operation = "INSERT";
+    
+    log.debug(`addMany(rows=${req.body.rows.length}, consumerId=${consumerId})`);
+     
+    const cols = this.getColsByOp(operation, true, false);
+    insert( 
+      rows,
+      this._table,
+      cols as string,
+      "id",
+      consumerId,
+      consumerName,
+      dbClient
+    ).then((r: Record<string, any>[]) => {
+        res.locals.rows = r;
+        next();
+      })
+      .catch((err: Error) => next(err));
   }
 
   public update( req: Request, res: Response, next: NextFunction ): void {
+    const rows = req.body.rows;
+    const dbClient = res.locals.dbClient || null;
+    const consumerId = res.locals.consumerId;
+    const consumerName = res.locals.consumerName;
+    const operation = "UPDATE";
+    
+    log.debug(`update ${rows.length} rows`);
+
+    const cols = this.getColsByOp(operation, true, false);
+    update( 
+      rows,
+      this._table,
+      cols as string,
+      consumerId,
+      consumerName,
+      dbClient
+    ).then(() => next())
+     .catch((err: Error) => next(err));
 
   }
 
   public delete( req: Request, res: Response, next: NextFunction ): void {
+    const date = req.body.date;
+    const dbClient = res.locals.dbClient || null;
+    
+    log.debug(`delete archived`);
 
+    del( 
+      date,
+      this._table,
+      // consumerId,
+      // consumerName,
+      dbClient
+    ).then(() => next())
+     .catch((err: Error) => next(err));
   }
 
 
@@ -239,14 +270,4 @@ export class SQLEntity extends Entity {
 // function deleteOld(table: string, date: number, client: any) {
 //   const query = `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
 //   return execute(query, [date], client);
-// }
-
-// /**
-//  * Generates a PostgreSQL query string with placeholders for a given quantity of values.
-//  *
-//  * @param {number} qty - The quantity of values to generate placeholders for.
-//  * @return {string} The generated query string with placeholders.
-//  */
-// function generateQueryPlaceholders(qty: number): string {
-//   return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
 // }

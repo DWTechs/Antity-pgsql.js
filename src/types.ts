@@ -1,6 +1,7 @@
-import type { Operations } from "./operations";
 
-export type Operation = typeof Operations[number];
+export type Operation = "SELECT" | "INSERT" | "UPDATE" | /*"MERGE" | */"DELETE";
+
+export type Sort = "ASC" | "DESC";
 
 export type Filters = {
   [key: string]: Filter;

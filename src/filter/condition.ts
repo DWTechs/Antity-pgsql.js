@@ -1,17 +1,17 @@
 import { log } from "@dwtechs/winstan";
-import { getPropertyType } from "@dwtechs/antity";
+import { getProp } from "@dwtechs/antity";
 import * as map from "../map";
 import * as check from "../check";
 import type { MatchMode, Filters, Filter } from "../types";
 
 
-function add(filters: Filters | undefined ): { conditions: string[], args: (Filter["value"])[] } {
+function add(filters: Filters | null ): { conditions: string[], args: (Filter["value"])[] } {
   const conditions: string[] = [];
   const args: (Filter["value"])[] = [];
   if (filters) {
     let i = 1;
     for (const k in filters) {
-      const propType = getPropertyType(k);
+      const propType = getProp(k);
       if (!propType) {
         log.warn(`Skipping unknown property: ${k}`);
         continue;

@@ -1,6 +1,5 @@
 import { Method } from "@dwtechs/antity";
 import type { MatchMode, Comparator, Type, MappedType, Operation } from "./types";
-import { Operations } from "./operations";
 
 /**
  * Generates a SQL pattern string based on the provided match mode.
@@ -135,15 +134,15 @@ function type(type: Type): MappedType {
 function method(method: Method): Operation | undefined {
   switch (method) {
     case "GET": 
-      return Operations[0];
+      return "SELECT";
     case "PATCH":
-      return Operations[2];
+      return "UPDATE";
     case "PUT":
-      return Operations[2];
+      return "UPDATE";
     case "POST":
-      return Operations[1];
+      return "INSERT";
     case "DELETE":
-      return Operations[4];
+      return "DELETE";
     default:
       return undefined;
   }

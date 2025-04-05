@@ -1,53 +1,61 @@
 import { filter } from "../filter/filter";
-import type { Filters, Filter, QueryType } from "../types";
+import type { Filters, Filter, Sort } from "../types";
 
 
-function build(
-  type: QueryType,
+function selectQuery(
   cols: string,
   table: string,
-  first?: number,
-  rows?: number,
-  sortField?: string,
-  sortOrder?: number,
-  filters?: Filters,
-  rtn?: string,
+  first: number,
+  rows: number | null,
+  sortField: string | null,
+  sortOrder: Sort,
+  filters: Filters | null,
 ): { query: string, args: (Filter["value"])[] } {
   
-  switch (type) {
-    case "SELECT":
-      const { filterClause, args } = filter(first, rows, sortOrder, sortField, filters);
-      return {
-        query: `${type} ${cols} FROM ${table} ${filterClause}`, 
-        args
-      };   
-    case "INSERT":
-      const r = rtn ? `RETURNING ${rtn}` : "";
-      return {
-        query: `INSERT INTO "${table}" (${cols}) VALUES ${$i(args.length)} ${r}`,
-        args
-      };
-    case "UPDATE":
-      let query = "";
-      for (const q of values) {
-        query += `UPDATE "${table}" SET ${q};`;
-      }
-      return {
-        query: "",
-        args
-      };
-    case "DELETE":
-      return {
-        query: `DELETE FROM "${table}" WHERE id IN ${$i(args.length)}`,
-        args
-      };
-    default:
-      return {
-        query: "",
-        args
-      };
-  }
-}
+  const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+  return {
+    query: `SELECT ${cols} FROM ${table} ${filterClause}`, 
+    args
+  }; 
+}  
+
+
+// function build(
+//   type: QueryType,
+//   cols: string,
+//   table: string,
+
+//   rtn?: string,
+// ): { query: string, args: (Filter["value"])[] } {
+  
+//   switch (type) {
+//     case "INSERT":
+//       const r = rtn ? `RETURNING ${rtn}` : "";
+//       return {
+//         query: `INSERT INTO "${table}" (${cols}) VALUES ${$i(args.length)} ${r}`,
+//         args
+//       };
+//     case "UPDATE":
+//       let query = "";
+//       for (const q of values) {
+//         query += `UPDATE "${table}" SET ${q};`;
+//       }
+//       return {
+//         query: "",
+//         args
+//       };
+//     case "DELETE":
+//       return {
+//         query: `DELETE FROM "${table}" WHERE id IN ${$i(args.length)}`,
+//         args
+//       };
+//     default:
+//       return {
+//         query: "",
+//         args
+//       };
+//   }
+// }
 
 
 /**
@@ -62,5 +70,5 @@ function $i(qty: number): string {
 }
 
 export {
-  build,
+  selectQuery,
 };

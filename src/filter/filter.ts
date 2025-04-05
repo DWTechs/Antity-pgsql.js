@@ -1,12 +1,12 @@
 import * as condition from "./condition";
-import type { Filters, Filter, LogicalOperator } from "../types";
+import type { Filters, Filter, Sort, LogicalOperator } from "../types";
 
 function filter(
-  first: number = 0,
-  rows: number = 0,
-  sortOrder: number = -1,
-  sortField: string = "",
-  filters: Filters | undefined,
+  first: number,
+  rows: number | null,
+  sortField: string | null,
+  sortOrder: Sort,
+  filters: Filters | null,
 ): { filterClause: string, args: (Filter["value"])[] } {
   
   const { conditions, args } = condition.add(filters);
@@ -25,16 +25,15 @@ function where(conditions: string[], operator: LogicalOperator = "AND"): string 
   return conditions ? ` WHERE ${c}` : "";
 }
 
-  // Adds order by clause
-function orderBy(sortField: string, sortOrder: number): string {
+// Adds order by clause
+function orderBy(sortField: string | null, sortOrder: Sort): string {
   if (!sortField) 
     return "";
-  const so = sortOrder === -1 ? "DESC" : "ASC";
-  return ` ORDER BY "${sortField}" ${so}`;
+  return ` ORDER BY "${sortField}" ${sortOrder}`;
 }
 
-  // Adds limit clause
-function limit(rows: number, first: number): string {
+// Adds limit clause
+function limit(rows: number | null, first: number): string {
   return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 
