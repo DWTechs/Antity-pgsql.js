@@ -1,21 +1,16 @@
-import { chunk, flatten } from "@dwtechs/sparray";
+import { chunk } from "@dwtechs/sparray";
 import { execute } from "./execute";
-import type { PGResponse, LogicalOperator } from "../types";
+// import type { PGResponse } from "../types";
 
 async function update(
-  rows: Record<string, any>[],
+  rows: Record<string, unknown>[],
   table: string,
-  cols: string,
+  cols: string[],
   consumerId: string,
   consumerName: string,
   client: any): Promise<void> {
   
-  // Add consumerId and consumerName to each row
-  rows = rows.map(row => ({
-    ...row,
-    consumerId,
-    consumerName,
-  }));
+  rows = addConsumer(rows, consumerId, consumerName);
 
   const chunks = chunk(rows);
   let q = `UPDATE "${table}" `;
@@ -32,14 +27,27 @@ async function update(
       v += `END, `;
     }
     q += `${v.slice(0, -2)} WHERE id IN ${extractIds(c)}`;
-    let db: PGResponse;
+    // let db: PGResponse;
     try {
-      db = await execute(q, args, client);
+      await execute(q, args, client);
     } catch (err: unknown) {
       throw err;
     }
   }
   
+}
+
+// Add consumerId and consumerName to each row
+function addConsumer(
+  rows: Record<string, unknown>[],
+  consumerId: string,
+  consumerName: string
+): Record<string, unknown>[] {
+  return rows.map((row: Record<string, unknown>) => ({
+    ...row,
+    consumerId,
+    consumerName,
+  }));
 }
 
 function extractIds(chunk: Record<string, any>[]): string {

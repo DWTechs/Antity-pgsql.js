@@ -2,24 +2,13 @@ import { isString } from '@dwtechs/checkard';
 import { log } from "@dwtechs/winstan";
 import { Entity, Property } from "@dwtechs/antity";
 import * as map from "./map";
-
+import * as check from "./check";
 import { select } from "./crud/select";
 import { insert } from "./crud/insert";
 import { update } from "./crud/update";
 import { del } from "./crud/delete";
-import type { Filters, PGResponse, Operation } from "./types";
+import type { PGResponse, Operation, Filters } from "./types";
 import type { Request, Response, NextFunction } from 'express';
-
-export interface AntityGetBody extends Request {
-  body: {
-    first?: number;
-    rows?: number;
-    sortOrder?: string;
-    sortField?: string;
-    filters?: Filters;
-    pagination?: boolean;
-  }
-}
 
 // Builds the where clause with given filters
 // Filters should be as follow :
@@ -117,7 +106,7 @@ export class SQLEntity extends Entity {
     const rows = rb.rows || null;
     const sortField = rb.sortField || null;
     const sortOrder = rb.sortOrder === -1 || rb.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters = rb.filters || null;
+    const filters = this.cleanFilters(rb.filters) || null;
     const pagination = rb.pagination || false;
     const operation = "SELECT";
 
@@ -144,7 +133,6 @@ export class SQLEntity extends Entity {
       .catch((err: Error) => next(err));
 
   }
-
 
   public add( req: Request, res: Response, next: NextFunction ): void {
     const rows = req.body.rows;
@@ -180,11 +168,39 @@ export class SQLEntity extends Entity {
     
     log.debug(`update ${rows.length} rows`);
 
-    const cols = this.getColsByOp(operation, true, false);
+    const cols = this.getColsByOp(operation, false, false);
     update( 
       rows,
       this._table,
-      cols as string,
+      cols as string[],
+      consumerId,
+      consumerName,
+      dbClient
+    ).then(() => next())
+     .catch((err: Error) => next(err));
+
+  }
+
+  public archive( req: Request, res: Response, next: NextFunction ): void {
+    let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    const dbClient = res.locals.dbClient || null;
+    const consumerId = res.locals.consumerId;
+    const consumerName = res.locals.consumerName;
+    // const operation = "UPDATE";
+    
+    log.debug(`archive ${rows.length} rows`);
+
+    // Add consumerId and consumerName to each row
+    rows = rows.map((row: Record<string, unknown>) => ({
+      ...row,
+      archived: true,
+    }));
+
+    const cols = ["archived", "consumerId", "consumerName"];
+    update( 
+      rows,
+      this._table,
+      cols as string[],
       consumerId,
       consumerName,
       dbClient
@@ -209,7 +225,28 @@ export class SQLEntity extends Entity {
      .catch((err: Error) => next(err));
   }
 
+  private cleanFilters(filters: Filters): Filters {
+    for (const k in filters) {
+      if (filters.hasOwnProperty(k)) {
+        const prop = this.getProp(k);
+        if (!prop) {
+          log.warn(`Filters: skipping unknown property: ${k}`);
+          delete filters[k];
+          continue;
+        }
 
+        const type = map.type(prop.type); // transform from entity type to valid sql filter type
+        const { /*subProps, */matchMode } = filters[k];
+
+        if (!matchMode || !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
+          log.warn(`Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
+          delete filters[k];
+          continue;
+        }
+      }
+    }
+    return filters;
+  }
 }
 
 

@@ -1,30 +1,16 @@
-import { log } from "@dwtechs/winstan";
-import { getProp } from "@dwtechs/antity";
 import * as map from "../map";
-import * as check from "../check";
 import type { MatchMode, Filters, Filter } from "../types";
 
 
-function add(filters: Filters | null ): { conditions: string[], args: (Filter["value"])[] } {
+function add(filters: Filters | null ): 
+  { conditions: string[], args: (Filter["value"])[] } 
+{
   const conditions: string[] = [];
   const args: (Filter["value"])[] = [];
   if (filters) {
     let i = 1;
     for (const k in filters) {
-      const propType = getProp(k);
-      if (!propType) {
-        log.warn(`Skipping unknown property: ${k}`);
-        continue;
-      }
-      
-      const type = map.type(propType); // transform from entity type to valid sql filter type
       const { value, /*subProps, */matchMode } = filters[k];
-      
-      if (!matchMode || !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
-        log.warn(`Skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
-        continue;
-      }
-
       conditions.push(addOne(k, i, matchMode));
       args.push(value);
       i++;

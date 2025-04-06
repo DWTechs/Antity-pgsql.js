@@ -1,6 +1,6 @@
 import { chunk, flatten } from "@dwtechs/sparray";
 import { execute } from "./execute";
-import type { PGResponse, LogicalOperator } from "../types";
+import type { PGResponse } from "../types";
 
 async function insert(
   rows: Record<string, any>[],

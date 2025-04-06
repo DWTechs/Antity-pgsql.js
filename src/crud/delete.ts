@@ -15,7 +15,7 @@ async function del(
   } catch (err: unknown) {
     throw err;
   }
-  return execute(query, [date], client);
+  return db;
   
 }
 

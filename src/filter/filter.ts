@@ -1,4 +1,4 @@
-import * as condition from "./condition";
+import * as condition from "./conditions";
 import type { Filters, Filter, Sort, LogicalOperator } from "../types";
 
 function filter(
