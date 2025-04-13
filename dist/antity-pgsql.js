@@ -24,62 +24,12 @@ SOFTWARE.
 https://github.com/DWTechs/Antity-pgsql.js
 */
 
-import { isIn, isString } from '@dwtechs/checkard';
+import { isIn, isArray, isString } from '@dwtechs/checkard';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
 import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
 import Pool from 'pg-pool';
 
-function index(i, matchMode) {
-    switch (matchMode) {
-        case "startsWith":
-            return `$${i}%`;
-        case "endsWith":
-            return `%$${i}`;
-        case "contains":
-            return `%$${i}%`;
-        case "notContains":
-            return `%$${i}%`;
-        default:
-            return `$${i}`;
-    }
-}
-function comparator(matchMode) {
-    switch (matchMode) {
-        case "startsWith":
-            return "LIKE";
-        case "endsWith":
-            return "LIKE";
-        case "contains":
-            return "LIKE";
-        case "notContains":
-            return "NOT LIKE";
-        case "equals":
-            return "=";
-        case "notEquals":
-            return "<>";
-        case "in":
-            return "IN";
-        case "lt":
-            return "<";
-        case "lte":
-            return "<=";
-        case "gt":
-            return ">";
-        case "gte":
-            return ">=";
-        case "is":
-            return "IS";
-        case "isNot":
-            return "IS NOT";
-        case "before":
-            return "<";
-        case "after":
-            return ">";
-        default:
-            return null;
-    }
-}
 function type(type) {
     const s = "string";
     const n = "number";
@@ -212,6 +162,61 @@ function deleteIdleProperties(res) {
     res.rowAsArray = undefined;
 }
 
+function index(index, matchMode) {
+    const i = index.map((i) => `$${i}`);
+    switch (matchMode) {
+        case "startsWith":
+            return `${i}%`;
+        case "endsWith":
+            return `%${i}`;
+        case "contains":
+            return `%${i}%`;
+        case "notContains":
+            return `%${i}%`;
+        case "in":
+            return `(${i})`;
+        default:
+            return `${i}`;
+    }
+}
+
+function comparator(matchMode) {
+    switch (matchMode) {
+        case "startsWith":
+            return "LIKE";
+        case "endsWith":
+            return "LIKE";
+        case "contains":
+            return "LIKE";
+        case "notContains":
+            return "NOT LIKE";
+        case "equals":
+            return "=";
+        case "notEquals":
+            return "<>";
+        case "in":
+            return "IN";
+        case "lt":
+            return "<";
+        case "lte":
+            return "<=";
+        case "gt":
+            return ">";
+        case "gte":
+            return ">=";
+        case "is":
+            return "IS";
+        case "isNot":
+            return "IS NOT";
+        case "before":
+            return "<";
+        case "after":
+            return ">";
+        default:
+            return null;
+    }
+}
+
 function add(filters) {
     const conditions = [];
     const args = [];
@@ -219,18 +224,24 @@ function add(filters) {
         let i = 1;
         for (const k in filters) {
             const { value, matchMode } = filters[k];
-            conditions.push(addOne(k, i, matchMode));
-            args.push(value);
-            i++;
+            const indexes = isArray(value) ? value.map(() => i++) : [i++];
+            const cond = addOne(k, indexes, matchMode);
+            if (cond) {
+                conditions.push(cond);
+                if (isArray(value))
+                    args.push(...value);
+                else
+                    args.push(value);
+            }
         }
     }
     return { conditions, args };
 }
-function addOne(key, index$1, matchMode) {
+function addOne(key, indexes, matchMode) {
     const sqlKey = `\"${key}\"`;
     const comparator$1 = comparator(matchMode);
-    const mappedIndex = index(index$1, matchMode);
-    return `${sqlKey} ${comparator$1} ${mappedIndex}`;
+    const index$1 = index(indexes, matchMode);
+    return comparator$1 ? `${sqlKey} ${comparator$1} ${index$1}` : "";
 }
 
 function filter(first, rows, sortField, sortOrder, filters) {
@@ -241,8 +252,10 @@ function filter(first, rows, sortField, sortOrder, filters) {
     return { filterClause, args };
 }
 function where(conditions, operator = "AND") {
+    if (!conditions.length)
+        return "";
     const c = conditions.join(` ${operator} `).trim();
-    return conditions ? ` WHERE ${c}` : "";
+    return ` WHERE ${c}`;
 }
 function orderBy(sortField, sortOrder) {
     if (!sortField)
@@ -411,7 +424,7 @@ class SQLEntity extends Entity {
             throw new Error('table must be a string of length > 0');
         this._table = table;
     }
-    getColsByOp(operation, stringify, pagination) {
+    getColsByOp(operation, stringify = false, pagination = false) {
         const cols = pagination && operation === "SELECT"
             ? [...this._cols[operation], "COUNT(*) OVER () AS total"]
             : this.cols[operation];
@@ -503,4 +516,4 @@ class SQLEntity extends Entity {
     }
 }
 
-export { SQLEntity };
+export { SQLEntity, filter };

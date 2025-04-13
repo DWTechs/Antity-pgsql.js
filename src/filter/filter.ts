@@ -1,4 +1,4 @@
-import * as condition from "./conditions";
+import { addConditions } from "./condition";
 import type { Filters, Filter, Sort, LogicalOperator } from "../types";
 
 function filter(
@@ -9,7 +9,7 @@ function filter(
   filters: Filters | null,
 ): { filterClause: string, args: (Filter["value"])[] } {
   
-  const { conditions, args } = condition.add(filters);
+  const { conditions, args } = addConditions(filters);
   const filterClause = 
       where(conditions) 
     + orderBy(sortField, sortOrder) 
@@ -21,8 +21,12 @@ function filter(
 
 // Builds where clause
 function where(conditions: string[], operator: LogicalOperator = "AND"): string {
+  if (!conditions.length) 
+    return "";
+  // Join conditions with the operator
+  // and trim any extra spaces
   const c = conditions.join(` ${operator} `).trim();
-  return conditions ? ` WHERE ${c}` : "";
+  return ` WHERE ${c}`;
 }
 
 // Adds order by clause

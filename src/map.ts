@@ -1,71 +1,6 @@
 import { Method } from "@dwtechs/antity";
-import type { MatchMode, Comparator, Type, MappedType, Operation } from "./types";
+import type { Type, MappedType, Operation } from "./types";
 
-/**
- * Generates a SQL pattern string based on the provided match mode.
- *
- * @param i - The index to be used in the pattern string.
- * @param matchMode - The mode of matching to be applied.
- * @returns A string representing the SQL pattern based on the provided match mode.
- */
-function index(i: number, matchMode: MatchMode | undefined): string {
-  switch (matchMode) {
-    case "startsWith":
-      return `$${i}%`;
-    case "endsWith":
-      return `%$${i}`;
-    case "contains":
-      return `%$${i}%`;
-    case "notContains":
-      return `%$${i}%`;
-    default:
-      return `$${i}`;
-  }
-}
-
-/**
- * Returns the SQL comparator string based on the provided match mode.
- *
- * @param matchMode - The match mode to determine the comparator. 
- *
- * @returns The corresponding SQL comparator string or null if the match mode is undefined or not recognized.
- */
-function comparator(matchMode: MatchMode | undefined): Comparator| null {
-  switch (matchMode) {
-    case "startsWith":
-      return "LIKE";
-    case "endsWith":
-      return "LIKE";
-    case "contains":
-      return "LIKE";
-    case "notContains":
-      return "NOT LIKE";
-    case "equals": 
-      return "=";
-    case "notEquals":
-      return "<>";
-    case "in":
-      return "IN";
-    case "lt":
-      return "<";
-    case "lte":
-      return "<=";
-    case "gt":
-      return ">";
-    case "gte":
-      return ">=";
-    case "is":
-      return "IS";
-    case "isNot":
-      return "IS NOT";
-    case "before":
-      return "<";
-    case "after":
-      return ">";
-    default:
-      return null;
-  }
-}
 
 /**
  * transform from entity type to valid sql filter type
@@ -149,8 +84,6 @@ function method(method: Method): Operation | undefined {
 }
 
 export {
-  index,
-  comparator,
   type,
   method,
 };
