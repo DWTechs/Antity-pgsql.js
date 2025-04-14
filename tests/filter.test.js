@@ -265,4 +265,18 @@ describe('filter', () => {
         expect(filterClause).toBe(' ORDER BY "name" ASC LIMIT 10 OFFSET 0');
         expect(args).toEqual([]);
     });
+
+    it('should handle other limit and offset', () => {
+        const first = 20;
+        const rows = 100;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = null;
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' ORDER BY "name" ASC LIMIT 100 OFFSET 20');
+        expect(args).toEqual([]);
+    });
+
 });
