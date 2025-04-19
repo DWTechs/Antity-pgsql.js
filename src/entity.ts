@@ -1,52 +1,36 @@
 import { isString } from '@dwtechs/checkard';
 import { log } from "@dwtechs/winstan";
-import { Entity, Property } from "@dwtechs/antity";
+import { Entity, Property, Method } from "@dwtechs/antity";
 import * as map from "./map";
 import * as check from "./check";
-import { select } from "./crud/select";
-import { insert } from "./crud/insert";
-import { update } from "./crud/update";
-import { del } from "./crud/delete";
-import type { PGResponse, Operation, Filters } from "./types";
+import { Select } from "./crud/select";
+import { Insert } from "./crud/insert";
+import { Update } from "./crud/update";
+import * as del from "./crud/delete";
+import { filter } from "./filter/filter";
+import type { PGResponse, Filters } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 export class SQLEntity extends Entity {
   private _table: string;
-  private _cols: Record<Operation, string[]> = {
-    SELECT: [],
-    INSERT: [],
-    UPDATE: [],
-    // MERGE: [],
-    DELETE: []
-  };
+  private sel: Select = new Select();
+  private ins: Insert = new Insert();
+  private upd: Update = new Update();
 
   constructor(
     name: string, 
     properties: Property[], 
-    table: string, 
   ) {
     super(name, properties); // Call the constructor of the base class
-    this._table = table;
-    // _cols help to dynamically generate SQL queries.
-    // data is grouped by operation type, making it easy to retrieve and process later.
+    this._table = name;
+    // properties is grouped by operation type, making it easy to retrieve and process later.
     for (const p of properties) {
-      for (const m of p.methods) {
-        const o = map.method(m);
-        if (o)
-          this._cols[o].push(p.key);
-      }
+      this.mapProps(p.methods, p.key);
     }
-    this._cols.INSERT.push("consumerId", "consumerName");
-    this._cols.UPDATE.push("consumerId", "consumerName");
-    this._cols.DELETE.push("consumerId", "consumerName");
   }
 
   public get table(): string {
     return this._table;
-  }
-
-  public get cols(): Record<Operation, string[]> {
-    return this._cols;
   }
 
   public set table(table: string) {
@@ -55,43 +39,34 @@ export class SQLEntity extends Entity {
     this._table = table;
   }
 
-
-  /**
-   * Retrieves the columns associated with a specific database operation, with optional
-   * stringification and pagination handling.
-   *
-   * @param {Operation} operation - The database operation (e.g., "select", "insert", etc.)
-   *                                for which to retrieve the columns.
-   * @param {boolean} [stringify] - Optional. If `true`, the columns will be returned as a 
-   *                                comma-separated string. Defaults to `false`.
-   * @param {boolean} [pagination] - Optional. If `true` and the operation is "select", 
-   *                                 adds a "COUNT(*) OVER () AS total" column for pagination.
-   *                                 Defaults to `false`.
-   * @returns {string[] | string} - The columns for the specified operation. Returns an array
-   *                                of column names by default, or a comma-separated string
-   *                                if `stringify` is `true`.
-   */
-  public getColsByOp(
-    operation: Operation, 
-    stringify: boolean = false, 
-    pagination: boolean = false, 
-  ): string[] | string {
-    const cols = pagination && operation === "SELECT" 
-      ? [...this._cols[operation], "COUNT(*) OVER () AS total"] // Add total column for pagination
-      : this.cols[operation];
-    return stringify ? cols.join(', ') : cols;
+  public query = { 
+    select: (paginate: boolean): string => {
+      return this.sel.query(this.table, paginate);
+    },
+    update: (): string => {
+      return this.upd.query(this.table);
+    },
+    insert: (): string => {
+      return this.ins.query(this.table);
+    },
+    delete: (): string => {
+      return del.query(this.table);
+    },
+    return: (prop: string): string => {
+      return this.ins.rtn(prop);
+    }
   }
 
   public get( req: Request, res: Response, next: NextFunction ): void {
-    
-    const rb = req.body;
-    const first = rb?.first ?? 0;
-    const rows = rb.rows || null;
-    const sortField = rb.sortField || null;
-    const sortOrder = rb.sortOrder === -1 || rb.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters = this.cleanFilters(rb.filters) || null;
-    const pagination = rb.pagination || false;
-    const operation = "SELECT";
+    const l = res.locals;
+    const b = req.body;
+    const first = b?.first ?? 0;
+    const rows = b.rows || null;
+    const sortField = b.sortField || null;
+    const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
+    const filters = this.cleanFilters(b.filters) || null;
+    const pagination = b.pagination || false;
+    const dbClient = l.dbClient || null;
 
     log.debug(
       `get(first='${first}', rows='${rows}', 
@@ -99,18 +74,12 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const cols = this.getColsByOp(operation, true, pagination);
-    select( 
-      cols as string,
-      this._table,
-      first,
-      rows,
-      sortField,
-      sortOrder,
-      filters
-    ).then((r: PGResponse) => {
-        res.locals.rows = r.rows;
-        res.locals.total = r.total;
+    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+    const q = this.sel.query(this._table, pagination) + filterClause;
+    this.sel.execute( q, args, dbClient)
+      .then((r: PGResponse) => {
+        l.rows = r.rows;
+        l.total = r.total;
         next();
       })
       .catch((err: Error) => next(err));
@@ -118,77 +87,59 @@ export class SQLEntity extends Entity {
   }
 
   public add( req: Request, res: Response, next: NextFunction ): void {
+    const l = res.locals;
     const rows = req.body.rows;
-    const dbClient = res.locals.dbClient || null;
-    const consumerId = res.locals.consumerId;
-    const consumerName = res.locals.consumerName;
-    const operation = "INSERT";
+    const dbClient = l.dbClient || null;
+    const cId = l.consumerId;
+    const cName = l.consumerName;
     
-    log.debug(`addMany(rows=${req.body.rows.length}, consumerId=${consumerId})`);
+    log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
      
-    const cols = this.getColsByOp(operation, true, false);
-    insert( 
-      rows,
-      this._table,
-      cols as string,
-      "id",
-      consumerId,
-      consumerName,
-      dbClient
-    ).then((r: Record<string, any>[]) => {
-        res.locals.rows = r;
+    const rq = this.ins.rtn("id");
+    const q = this.ins.query(this._table);
+    this.ins.execute( rows, q, rq, cId, cName, dbClient)
+      .then((r: Record<string, any>[]) => {
+        l.rows = r;
         next();
       })
       .catch((err: Error) => next(err));
   }
 
   public update( req: Request, res: Response, next: NextFunction ): void {
+    const l = res.locals;
     const rows = req.body.rows;
-    const dbClient = res.locals.dbClient || null;
-    const consumerId = res.locals.consumerId;
-    const consumerName = res.locals.consumerName;
-    const operation = "UPDATE";
+    const dbClient = l.dbClient || null;
+    const cId = l.consumerId;
+    const cName = l.consumerName;
     
     log.debug(`update ${rows.length} rows`);
 
-    const cols = this.getColsByOp(operation, false, false);
-    update( 
-      rows,
-      this._table,
-      cols as string[],
-      consumerId,
-      consumerName,
-      dbClient
-    ).then(() => next())
-     .catch((err: Error) => next(err));
+    const q = this.upd.query(this._table);
+    this.upd.execute( rows, q, cId, cName, dbClient)
+      .then(() => next())
+      .catch((err: Error) => next(err));
 
   }
 
   public archive( req: Request, res: Response, next: NextFunction ): void {
+    const l = res.locals;
     let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
-    const dbClient = res.locals.dbClient || null;
-    const consumerId = res.locals.consumerId;
-    const consumerName = res.locals.consumerName;
-    // const operation = "UPDATE";
+    const dbClient = l.dbClient || null;
+    const cId = l.consumerId;
+    const cName = l.consumerName;
     
     log.debug(`archive ${rows.length} rows`);
 
-    // Add consumerId and consumerName to each row
-    rows = rows.map((row: Record<string, unknown>) => ({
-      ...row,
+    // Add archived value
+    rows = rows.map((id: Record<string, unknown>) => ({
+      ...id,
       archived: true,
     }));
 
-    const cols = ["archived", "consumerId", "consumerName"];
-    update( 
-      rows,
-      this._table,
-      cols as string[],
-      consumerId,
-      consumerName,
-      dbClient
-    ).then(() => next())
-     .catch((err: Error) => next(err));
+    const q = this.upd.query(this._table);
+    this.upd.execute( rows, q, cId, cName, dbClient)
+      .then(() => next())
+      .catch((err: Error) => next(err));
 
   }
 
@@ -197,15 +148,10 @@ export class SQLEntity extends Entity {
     const dbClient = res.locals.dbClient || null;
     
     log.debug(`delete archived`);
-
-    del( 
-      date,
-      this._table,
-      // consumerId,
-      // consumerName,
-      dbClient
-    ).then(() => next())
-     .catch((err: Error) => next(err));
+    const q = del.query(this._table);
+    del.execute( date, q, dbClient)
+      .then(() => next())
+      .catch((err: Error) => next(err));
   }
 
   private cleanFilters(filters: Filters): Filters {
@@ -229,6 +175,27 @@ export class SQLEntity extends Entity {
       }
     }
     return filters;
+  }
+
+  private mapProps(methods: Method[], key: string): void {
+    for (const m of methods) {
+      switch (m) {
+        case "GET":
+          this.sel.addProp(key);
+          break;
+        case "PATCH":
+          this.upd.addProp(key);
+          break;
+        case "PUT":
+          this.upd.addProp(key);
+          break;
+        case "POST":
+          this.ins.addProp(key);
+          break;
+        default:
+          break;
+      }
+    }
   }
 }
 

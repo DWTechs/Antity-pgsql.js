@@ -14,9 +14,8 @@ function add(filters: Filters | null ):
       const { value, /*subProps, */matchMode } = filters[k];
       const indexes: number[] = isArray(value) ? value.map(() => i++) : [i++];
       const cond = addOne(k, indexes, matchMode);
-      if (cond){
+      if (cond) {
         conditions.push(cond);
-        // Add indexes to args
         if (isArray(value))
           args.push(...value);  
         else

@@ -1,24 +1,25 @@
-import { execute } from "./execute";
+import { execute as exe } from "./execute";
 import type { PGResponse } from "../types";
 
-async function del(
+function query(table: string): string {
+  return `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
+}
+
+async function execute(
   date: Date,
-  table: string,
-  // consumerId: string,
-  // consumerName: string,
+  query: string,
   client: any): Promise<PGResponse> {
   
-  const query = `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
   let db: PGResponse;
   try {
-    db = await execute(query, [date], client);
+    db = await exe(query, [date], client);
   } catch (err: unknown) {
     throw err;
   }
-  return db;
-  
+  return db; 
 }
 
 export {
-  del,
+  query,
+  execute,
 };

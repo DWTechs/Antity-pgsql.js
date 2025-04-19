@@ -1,6 +1,4 @@
-import { Method } from "@dwtechs/antity";
-import type { Type, MappedType, Operation } from "./types";
-
+import type { Type, MappedType } from "./types";
 
 /**
  * transform from entity type to valid sql filter type
@@ -66,24 +64,6 @@ function type(type: Type): MappedType {
   }
 }
 
-function method(method: Method): Operation | undefined {
-  switch (method) {
-    case "GET": 
-      return "SELECT";
-    case "PATCH":
-      return "UPDATE";
-    case "PUT":
-      return "UPDATE";
-    case "POST":
-      return "INSERT";
-    case "DELETE":
-      return "DELETE";
-    default:
-      return undefined;
-  }
-}
-
 export {
   type,
-  method,
 };

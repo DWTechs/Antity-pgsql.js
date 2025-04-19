@@ -85,22 +85,6 @@ function type(type) {
             return s;
     }
 }
-function method(method) {
-    switch (method) {
-        case "GET":
-            return "SELECT";
-        case "PATCH":
-            return "UPDATE";
-        case "PUT":
-            return "UPDATE";
-        case "POST":
-            return "INSERT";
-        case "DELETE":
-            return "DELETE";
-        default:
-            return undefined;
-    }
-}
 
 const matchModes = {
     string: ["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte"],
@@ -137,7 +121,7 @@ var perf = {
     end,
 };
 
-function execute(query, args, clt) {
+function execute$1(query, args, clt) {
     const time = perf.start(query, args);
     const client = clt || pool;
     return client
@@ -160,6 +144,177 @@ function deleteIdleProperties(res) {
     res._types = undefined;
     res.RowCtor = undefined;
     res.rowAsArray = undefined;
+}
+
+class Select {
+    constructor() {
+        this._props = [];
+        this._cols = "";
+        this._count = ", COUNT(*) OVER () AS total";
+    }
+    addProp(prop) {
+        this._props.push(prop);
+        this._cols = this._props.join(", ");
+    }
+    get props() {
+        return this._cols;
+    }
+    query(table, paginate) {
+        const p = paginate ? this._count : '';
+        const c = this._cols ? this._cols : '*';
+        return `SELECT ${c}${p} FROM "${table}"`;
+    }
+    execute(query, args, client) {
+        return execute$1(query, args, client)
+            .then((r) => {
+            if (!r.rowCount)
+                throw { status: 404, msg: "Resource not found" };
+            const f = r.rows[0];
+            if (f.total) {
+                r.total = Number(f.total);
+                r.rows = deleteProps(r.rows, ["total"]);
+            }
+            return r;
+        });
+    }
+}
+
+var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+class Insert {
+    constructor() {
+        this._props = ["consumerId", "consumerName"];
+        this._cols = "*";
+    }
+    addProp(prop) {
+        this._props.splice(this._props.length - 2, 0, prop);
+        this._cols = this._props.join(", ");
+    }
+    query(table) {
+        return `INSERT INTO "${table}" (${this._cols}) VALUES `;
+    }
+    rtn(prop) {
+        return ` RETURNING "${prop}"`;
+    }
+    execute(rows, query, rtn, consumerId, consumerName, client) {
+        return __awaiter$2(this, void 0, void 0, function* () {
+            const chunks = chunk(rows);
+            for (const c of chunks) {
+                let values = "";
+                const args = [];
+                for (const row of c) {
+                    values += `${this.$i(row.length + 2)}, `;
+                    args.push(...row, consumerId, consumerName);
+                }
+                values = `${values.slice(0, -2)}`;
+                let db;
+                const q = `${query}${values}${rtn}`;
+                try {
+                    db = yield execute$1(q, args, client);
+                }
+                catch (err) {
+                    throw err;
+                }
+                const r = db.rows;
+                for (let i = 0; i < c.length; i++) {
+                    c[i] = r[i].id;
+                }
+            }
+            return flatten(chunks);
+        });
+    }
+    $i(qty) {
+        return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
+    }
+}
+
+var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+class Update {
+    constructor() {
+        this._props = ["consumerId", "consumerName"];
+        this._cols = "*";
+    }
+    addProp(prop) {
+        this._props.splice(this._props.length - 2, 0, prop);
+        this._cols = this._props.join(", ");
+    }
+    query(table) {
+        return `UPDATE "${table}" `;
+    }
+    execute(rows, query, consumerId, consumerName, client) {
+        return __awaiter$1(this, void 0, void 0, function* () {
+            rows = this.addConsumer(rows, consumerId, consumerName);
+            const chunks = chunk(rows);
+            let i = 0;
+            for (const c of chunks) {
+                let v = "SET ";
+                const args = [];
+                for (const p of this._cols) {
+                    v += `${p} = CASE `;
+                    for (const row of c) {
+                        v += `WHEN id = ${row.id} THEN $${i++} `;
+                        args.push(row[p]);
+                    }
+                    v += `END, `;
+                }
+                query += `${v.slice(0, -2)} WHERE id IN ${this.extractIds(c)}`;
+                try {
+                    yield execute$1(query, args, client);
+                }
+                catch (err) {
+                    throw err;
+                }
+            }
+        });
+    }
+    addConsumer(rows, consumerId, consumerName) {
+        return rows.map((row) => (Object.assign(Object.assign({}, row), { consumerId,
+            consumerName })));
+    }
+    extractIds(chunk) {
+        const ids = chunk.map(row => row.id);
+        return `(${ids.join(",")})`;
+    }
+}
+
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+function query(table) {
+    return `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
+}
+function execute(date, query, client) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let db;
+        try {
+            db = yield execute$1(query, [date], client);
+        }
+        catch (err) {
+            throw err;
+        }
+        return db;
+    });
 }
 
 function index(index, matchMode) {
@@ -266,232 +421,114 @@ function limit(rows, first) {
     return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 
-function select(cols, table, first, rows, sortField, sortOrder, filters) {
-    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-    const query = `SELECT ${cols} FROM ${table} ${filterClause}`;
-    return execute(query, args, null)
-        .then((r) => {
-        if (!r.rowCount)
-            throw { status: 404, msg: "Resource not found" };
-        const f = r.rows[0];
-        if (f.total) {
-            r.total = Number(f.total);
-            r.rows = deleteProps(r.rows, ["total"]);
-        }
-        return r;
-    });
-}
-
-var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-function insert(rows, table, cols, rtn, consumerId, consumerName, client) {
-    return __awaiter$2(this, void 0, void 0, function* () {
-        const chunks = chunk(rows);
-        const q = `INSERT INTO "${table}" (${cols}) VALUES `;
-        const rq = ` RETURNING ${rtn}` ;
-        for (const c of chunks) {
-            let values = "";
-            const args = [];
-            for (const row of c) {
-                values += `${$i(row.length + 2)}, `;
-                args.push(...row, consumerId, consumerName);
-            }
-            values = `${values.slice(0, -2)}`;
-            let db;
-            const query = `${q}${values}${rq}`;
-            try {
-                db = yield execute(query, args, client);
-            }
-            catch (err) {
-                throw err;
-            }
-            const r = db.rows;
-            for (let i = 0; i < c.length; i++) {
-                c[i] = r[i].id;
-            }
-        }
-        return flatten(chunks);
-    });
-}
-function $i(qty) {
-    return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
-}
-
-var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-function update(rows, table, cols, consumerId, consumerName, client) {
-    return __awaiter$1(this, void 0, void 0, function* () {
-        rows = addConsumer(rows, consumerId, consumerName);
-        const chunks = chunk(rows);
-        let q = `UPDATE "${table}" `;
-        let i = 0;
-        for (const c of chunks) {
-            let v = "SET ";
-            const args = [];
-            for (const p of cols) {
-                v += `${p} = CASE `;
-                for (const row of c) {
-                    v += `WHEN id = ${i++} THEN $${i++} `;
-                    args.push(row.id, row[p]);
-                }
-                v += `END, `;
-            }
-            q += `${v.slice(0, -2)} WHERE id IN ${extractIds(c)}`;
-            try {
-                yield execute(q, args, client);
-            }
-            catch (err) {
-                throw err;
-            }
-        }
-    });
-}
-function addConsumer(rows, consumerId, consumerName) {
-    return rows.map((row) => (Object.assign(Object.assign({}, row), { consumerId,
-        consumerName })));
-}
-function extractIds(chunk) {
-    const ids = chunk.map(row => row.id);
-    return `(${ids.join(",")})`;
-}
-
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-function del(date, table, client) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const query = `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
-        let db;
-        try {
-            db = yield execute(query, [date], client);
-        }
-        catch (err) {
-            throw err;
-        }
-        return db;
-    });
-}
-
 class SQLEntity extends Entity {
-    constructor(name, properties, table) {
+    constructor(name, properties) {
         super(name, properties);
-        this._cols = {
-            SELECT: [],
-            INSERT: [],
-            UPDATE: [],
-            DELETE: []
-        };
-        this._table = table;
-        for (const p of properties) {
-            for (const m of p.methods) {
-                const o = method(m);
-                if (o)
-                    this._cols[o].push(p.key);
+        this.sel = new Select();
+        this.ins = new Insert();
+        this.upd = new Update();
+        this.query = {
+            select: (paginate) => {
+                return this.sel.query(this.table, paginate);
+            },
+            update: () => {
+                return this.upd.query(this.table);
+            },
+            insert: () => {
+                return this.ins.query(this.table);
+            },
+            delete: () => {
+                return query(this.table);
+            },
+            return: (prop) => {
+                return this.ins.rtn(prop);
             }
+        };
+        this._table = name;
+        for (const p of properties) {
+            this.mapProps(p.methods, p.key);
         }
-        this._cols.INSERT.push("consumerId", "consumerName");
-        this._cols.UPDATE.push("consumerId", "consumerName");
-        this._cols.DELETE.push("consumerId", "consumerName");
     }
     get table() {
         return this._table;
-    }
-    get cols() {
-        return this._cols;
     }
     set table(table) {
         if (!isString(table, "!0"))
             throw new Error('table must be a string of length > 0');
         this._table = table;
     }
-    getColsByOp(operation, stringify = false, pagination = false) {
-        const cols = pagination && operation === "SELECT"
-            ? [...this._cols[operation], "COUNT(*) OVER () AS total"]
-            : this.cols[operation];
-        return stringify ? cols.join(', ') : cols;
-    }
     get(req, res, next) {
         var _a;
-        const rb = req.body;
-        const first = (_a = rb === null || rb === void 0 ? void 0 : rb.first) !== null && _a !== void 0 ? _a : 0;
-        const rows = rb.rows || null;
-        const sortField = rb.sortField || null;
-        const sortOrder = rb.sortOrder === -1 || rb.sortOrder === "DESC" ? "DESC" : "ASC";
-        const filters = this.cleanFilters(rb.filters) || null;
-        const pagination = rb.pagination || false;
-        const operation = "SELECT";
+        const l = res.locals;
+        const b = req.body;
+        const first = (_a = b === null || b === void 0 ? void 0 : b.first) !== null && _a !== void 0 ? _a : 0;
+        const rows = b.rows || null;
+        const sortField = b.sortField || null;
+        const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
+        const filters = this.cleanFilters(b.filters) || null;
+        const pagination = b.pagination || false;
+        const dbClient = l.dbClient || null;
         log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-        const cols = this.getColsByOp(operation, true, pagination);
-        select(cols, this._table, first, rows, sortField, sortOrder, filters).then((r) => {
-            res.locals.rows = r.rows;
-            res.locals.total = r.total;
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        const q = this.sel.query(this._table, pagination) + filterClause;
+        this.sel.execute(q, args, dbClient)
+            .then((r) => {
+            l.rows = r.rows;
+            l.total = r.total;
             next();
         })
             .catch((err) => next(err));
     }
     add(req, res, next) {
+        const l = res.locals;
         const rows = req.body.rows;
-        const dbClient = res.locals.dbClient || null;
-        const consumerId = res.locals.consumerId;
-        const consumerName = res.locals.consumerName;
-        const operation = "INSERT";
-        log.debug(`addMany(rows=${req.body.rows.length}, consumerId=${consumerId})`);
-        const cols = this.getColsByOp(operation, true, false);
-        insert(rows, this._table, cols, "id", consumerId, consumerName, dbClient).then((r) => {
-            res.locals.rows = r;
+        const dbClient = l.dbClient || null;
+        const cId = l.consumerId;
+        const cName = l.consumerName;
+        log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
+        const rq = this.ins.rtn("id");
+        const q = this.ins.query(this._table);
+        this.ins.execute(rows, q, rq, cId, cName, dbClient)
+            .then((r) => {
+            l.rows = r;
             next();
         })
             .catch((err) => next(err));
     }
     update(req, res, next) {
+        const l = res.locals;
         const rows = req.body.rows;
-        const dbClient = res.locals.dbClient || null;
-        const consumerId = res.locals.consumerId;
-        const consumerName = res.locals.consumerName;
-        const operation = "UPDATE";
+        const dbClient = l.dbClient || null;
+        const cId = l.consumerId;
+        const cName = l.consumerName;
         log.debug(`update ${rows.length} rows`);
-        const cols = this.getColsByOp(operation, false, false);
-        update(rows, this._table, cols, consumerId, consumerName, dbClient).then(() => next())
+        const q = this.upd.query(this._table);
+        this.upd.execute(rows, q, cId, cName, dbClient)
+            .then(() => next())
             .catch((err) => next(err));
     }
     archive(req, res, next) {
+        const l = res.locals;
         let rows = req.body.rows;
-        const dbClient = res.locals.dbClient || null;
-        const consumerId = res.locals.consumerId;
-        const consumerName = res.locals.consumerName;
+        const dbClient = l.dbClient || null;
+        const cId = l.consumerId;
+        const cName = l.consumerName;
         log.debug(`archive ${rows.length} rows`);
-        rows = rows.map((row) => (Object.assign(Object.assign({}, row), { archived: true })));
-        const cols = ["archived", "consumerId", "consumerName"];
-        update(rows, this._table, cols, consumerId, consumerName, dbClient).then(() => next())
+        rows = rows.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
+        const q = this.upd.query(this._table);
+        this.upd.execute(rows, q, cId, cName, dbClient)
+            .then(() => next())
             .catch((err) => next(err));
     }
     delete(req, res, next) {
         const date = req.body.date;
         const dbClient = res.locals.dbClient || null;
         log.debug(`delete archived`);
-        del(date, this._table, dbClient).then(() => next())
+        const q = query(this._table);
+        execute(date, q, dbClient)
+            .then(() => next())
             .catch((err) => next(err));
     }
     cleanFilters(filters) {
@@ -513,6 +550,24 @@ class SQLEntity extends Entity {
             }
         }
         return filters;
+    }
+    mapProps(methods, key) {
+        for (const m of methods) {
+            switch (m) {
+                case "GET":
+                    this.sel.addProp(key);
+                    break;
+                case "PATCH":
+                    this.upd.addProp(key);
+                    break;
+                case "PUT":
+                    this.upd.addProp(key);
+                    break;
+                case "POST":
+                    this.ins.addProp(key);
+                    break;
+            }
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 
-import { filter } from '../dist/antity-pgsql.js';
+import { filter } from '../../dist/antity-pgsql.js';
 
 // Builds the where clause with given filters
 // Filters should be as follow :
