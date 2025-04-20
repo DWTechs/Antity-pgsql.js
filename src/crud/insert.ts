@@ -1,67 +1,66 @@
-import { chunk, flatten } from "@dwtechs/sparray";
 import { execute as exe  } from "./execute";
-import type { PGResponse } from "../types";
+import { $i } from "./i";
+import type { PGResponse, Filter } from "../types";
 
 export class Insert {
 
   private _props: string[] = ["consumerId", "consumerName"];
   private _cols: string = "*";
+  private _nbProps: number = 2;
 
   public addProp(prop: string): void {
     this._props.splice(this._props.length - 2, 0, prop);
     this._cols = this._props.join(", ");
-  }
-
-  public query(table: string): string {
-    return `INSERT INTO "${table}" (${this._cols}) VALUES `;
-  } 
-
-  public rtn(prop: string): string {
-    return ` RETURNING "${prop}"`;
-  }
-
-  public async execute(
-    rows: Record<string, any>[],
-    query: string,
-    rtn: string,
-    consumerId: string,
-    consumerName: string,
-    client: any): Promise<Record<string, any>[]> {
-    
-    const chunks = chunk(rows);
-
-    for (const c of chunks) {
-      let values = "";
-      const args = [];
-      for (const row of c) {
-        values += `${this.$i(row.length + 2)}, `;
-        args.push(...row, consumerId, consumerName);
-      }
-      values = `${values.slice(0, -2)}`;
-      let db: PGResponse;
-      const q = `${query}${values}${rtn}`;
-      try {
-        db = await exe(q, args, client);
-      } catch (err: unknown) {
-        throw err;
-      }
-      // add new id to new rows
-      const r = db.rows;
-      for (let i = 0; i < c.length; i++) {
-        c[i] = r[i].id;
-      }
-    }
-    return flatten(chunks);
-
+    this._nbProps++;
   }
 
   /**
-  * Generates a PostgreSQL query string with placeholders for a given quantity of values.
-  *
-  * @param {number} qty - The quantity of values to generate placeholders for.
-  * @return {string} The generated query string with placeholders.
-  */
-  private $i(qty: number): string {
-    return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
+   * Generates an SQL INSERT query string and its corresponding arguments for a given table and data chunk.
+   *
+   * @param {string} table - The name of the table where the data will be inserted.
+   * @param {Record<string, any>[]} chunk - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
+   * @param {string | number} consumerId - The ID of the consumer to be added to each row.
+   * @param {string} consumerName - The name of the consumer to be added to each row.
+   * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
+   * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
+   * 
+   */
+  public query(
+    table: string, 
+    chunk: Record<string, any>[], 
+    consumerId: string | number,
+    consumerName: string,
+    rtn: string = "",
+  ): { query: string, args: (Filter["value"])[] } {
+    let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
+    const args: (Filter["value"])[] = [];
+    let i = 0;
+    for (const row of chunk) {
+      row.consumerId = consumerId;
+      row.consumerName = consumerName;
+      query += `${$i(this._nbProps, i)}, `;
+      for (const prop of this._props) {
+        args.push(row[prop]);
+      }
+      i += this._nbProps;
+    }
+    query = query.slice(0, -2);
+    if (rtn) 
+      query += ` ${rtn}`;
+    return { query, args };
+  } 
+
+  public rtn(prop: string): string {
+    return `RETURNING "${prop}"`;
   }
+
+  public execute(
+    query: string,
+    args: (Filter["value"])[],
+    client: any): Promise<PGResponse> {
+    
+    return exe( query, args, client );
+
+  }
+
 };

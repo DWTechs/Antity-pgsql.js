@@ -1,4 +1,5 @@
 import { isString } from '@dwtechs/checkard';
+import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity, Property, Method } from "@dwtechs/antity";
 import * as map from "./map";
@@ -8,6 +9,7 @@ import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
 import * as del from "./crud/delete";
 import { filter } from "./filter/filter";
+import { execute } from "./crud/execute";
 import type { PGResponse, Filters } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
@@ -43,11 +45,20 @@ export class SQLEntity extends Entity {
     select: (paginate: boolean): string => {
       return this.sel.query(this.table, paginate);
     },
-    update: (): string => {
-      return this.upd.query(this.table);
+    update: (
+      chunk: Record<string, unknown>[], 
+      consumerId: number | string, 
+      consumerName: string,
+    ): { query: string, args: unknown[] } => {
+      return this.upd.query(this.table, chunk, consumerId, consumerName);
     },
-    insert: (): string => {
-      return this.ins.query(this.table);
+    insert: (
+      chunk: Record<string, unknown>[], 
+      consumerId: number | string, 
+      consumerName: string,
+      rtn: string = ""
+    ): { query: string, args: unknown[] } => {
+      return this.ins.query(this.table, chunk, consumerId, consumerName, rtn);
     },
     delete: (): string => {
       return del.query(this.table);
@@ -86,7 +97,7 @@ export class SQLEntity extends Entity {
 
   }
 
-  public add( req: Request, res: Response, next: NextFunction ): void {
+  public async add( req: Request, res: Response, next: NextFunction ): Promise<void> {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
@@ -95,53 +106,68 @@ export class SQLEntity extends Entity {
     
     log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
      
-    const rq = this.ins.rtn("id");
-    const q = this.ins.query(this._table);
-    this.ins.execute( rows, q, rq, cId, cName, dbClient)
-      .then((r: Record<string, any>[]) => {
-        l.rows = r;
-        next();
-      })
-      .catch((err: Error) => next(err));
+    const rtn = this.ins.rtn("id");
+    const chunks = chunk(rows);
+    for (const c of chunks) {
+      const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
+      let db: PGResponse;
+      try {
+        db = await execute(query, args, dbClient);
+      } catch (err: unknown) {
+        return next(err);
+      }
+      // add new id to new rows
+      const r = db.rows;
+      for (let i = 0; i < c.length; i++) {
+        c[i].id = r[i].id;
+      }
+    }
+    l.rows = flatten(chunks);
+    next();
   }
 
-  public update( req: Request, res: Response, next: NextFunction ): void {
+  public async update( req: Request, res: Response, next: NextFunction ): Promise<void> {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
     const cId = l.consumerId;
     const cName = l.consumerName;
     
-    log.debug(`update ${rows.length} rows`);
+    log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
 
-    const q = this.upd.query(this._table);
-    this.upd.execute( rows, q, cId, cName, dbClient)
-      .then(() => next())
-      .catch((err: Error) => next(err));
-
+    const chunks = chunk(rows);
+    for (const c of chunks) {
+      const { query, args } = this.upd.query(this._table, c, cId, cName);
+      try {
+        await execute(query, args, dbClient);
+      } catch (err: unknown) {
+        return next(err);
+      }
+    }
+    next();
   }
 
-  public archive( req: Request, res: Response, next: NextFunction ): void {
-    const l = res.locals;
-    let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
-    const dbClient = l.dbClient || null;
-    const cId = l.consumerId;
-    const cName = l.consumerName;
+  // public archive( req: Request, res: Response, next: NextFunction ): void {
+  //   const l = res.locals;
+  //   let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+  //   const dbClient = l.dbClient || null;
+  //   const cId = l.consumerId;
+  //   const cName = l.consumerName;
     
-    log.debug(`archive ${rows.length} rows`);
+  //   log.debug(`archive ${rows.length} rows`);
 
-    // Add archived value
-    rows = rows.map((id: Record<string, unknown>) => ({
-      ...id,
-      archived: true,
-    }));
+  //   // Add archived value
+  //   rows = rows.map((id: Record<string, unknown>) => ({
+  //     ...id,
+  //     archived: true,
+  //   }));
 
-    const q = this.upd.query(this._table);
-    this.upd.execute( rows, q, cId, cName, dbClient)
-      .then(() => next())
-      .catch((err: Error) => next(err));
+  //   const q = this.upd.query(this._table);
+  //   this.upd.execute( rows, q, cId, cName, dbClient)
+  //     .then(() => next())
+  //     .catch((err: Error) => next(err));
 
-  }
+  // }
 
   public delete( req: Request, res: Response, next: NextFunction ): void {
     const date = req.body.date;

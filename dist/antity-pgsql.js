@@ -25,9 +25,9 @@ https://github.com/DWTechs/Antity-pgsql.js
 */
 
 import { isIn, isArray, isString } from '@dwtechs/checkard';
+import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
-import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
 import Pool from 'pg-pool';
 
 function type(type) {
@@ -179,6 +179,47 @@ class Select {
     }
 }
 
+function $i(qty, start) {
+    return `(${Array.from({ length: qty }, (_, i) => `$${start + i + 1}`).join(", ")})`;
+}
+
+class Insert {
+    constructor() {
+        this._props = ["consumerId", "consumerName"];
+        this._cols = "*";
+        this._nbProps = 2;
+    }
+    addProp(prop) {
+        this._props.splice(this._props.length - 2, 0, prop);
+        this._cols = this._props.join(", ");
+        this._nbProps++;
+    }
+    query(table, chunk, consumerId, consumerName, rtn = "") {
+        let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
+        const args = [];
+        let i = 0;
+        for (const row of chunk) {
+            row.consumerId = consumerId;
+            row.consumerName = consumerName;
+            query += `${$i(this._nbProps, i)}, `;
+            for (const prop of this._props) {
+                args.push(row[prop]);
+            }
+            i += this._nbProps;
+        }
+        query = query.slice(0, -2);
+        if (rtn)
+            query += ` ${rtn}`;
+        return { query, args };
+    }
+    rtn(prop) {
+        return `RETURNING "${prop}"`;
+    }
+    execute(query, args, client) {
+        return execute$1(query, args, client);
+    }
+}
+
 var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -188,50 +229,39 @@ var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _argu
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-class Insert {
+class Update {
     constructor() {
         this._props = ["consumerId", "consumerName"];
-        this._cols = "*";
     }
     addProp(prop) {
         this._props.splice(this._props.length - 2, 0, prop);
-        this._cols = this._props.join(", ");
     }
-    query(table) {
-        return `INSERT INTO "${table}" (${this._cols}) VALUES `;
-    }
-    rtn(prop) {
-        return ` RETURNING "${prop}"`;
-    }
-    execute(rows, query, rtn, consumerId, consumerName, client) {
-        return __awaiter$2(this, void 0, void 0, function* () {
-            const chunks = chunk(rows);
-            for (const c of chunks) {
-                let values = "";
-                const args = [];
-                for (const row of c) {
-                    values += `${this.$i(row.length + 2)}, `;
-                    args.push(...row, consumerId, consumerName);
-                }
-                values = `${values.slice(0, -2)}`;
-                let db;
-                const q = `${query}${values}${rtn}`;
-                try {
-                    db = yield execute$1(q, args, client);
-                }
-                catch (err) {
-                    throw err;
-                }
-                const r = db.rows;
-                for (let i = 0; i < c.length; i++) {
-                    c[i] = r[i].id;
-                }
+    query(table, chunk, consumerId, consumerName) {
+        chunk = this.addConsumer(chunk, consumerId, consumerName);
+        const args = chunk.map(row => row.id);
+        let query = `UPDATE "${table}" SET `;
+        let i = args.length + 1;
+        for (const p of this._props) {
+            query += `${p} = CASE `;
+            for (let j = 0; j < chunk.length; j++) {
+                const row = chunk[j];
+                query += `WHEN id = $${j + 1} THEN $${i++} `;
+                args.push(row[p]);
             }
-            return flatten(chunks);
+            query += `END, `;
+        }
+        query = `${query.slice(0, -2)} WHERE id IN ${$i(chunk.length, 0)}`;
+        console.log("args", args);
+        return { query, args };
+    }
+    execute(query, args, client) {
+        return __awaiter$2(this, void 0, void 0, function* () {
+            return execute$1(query, args, client);
         });
     }
-    $i(qty) {
-        return `(${Array.from({ length: qty }, (_, i) => `$${i + 1}`).join(", ")})`;
+    addConsumer(rows, consumerId, consumerName) {
+        return rows.map((row) => (Object.assign(Object.assign({}, row), { consumerId,
+            consumerName })));
     }
 }
 
@@ -244,68 +274,11 @@ var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _argu
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-class Update {
-    constructor() {
-        this._props = ["consumerId", "consumerName"];
-        this._cols = "*";
-    }
-    addProp(prop) {
-        this._props.splice(this._props.length - 2, 0, prop);
-        this._cols = this._props.join(", ");
-    }
-    query(table) {
-        return `UPDATE "${table}" `;
-    }
-    execute(rows, query, consumerId, consumerName, client) {
-        return __awaiter$1(this, void 0, void 0, function* () {
-            rows = this.addConsumer(rows, consumerId, consumerName);
-            const chunks = chunk(rows);
-            let i = 0;
-            for (const c of chunks) {
-                let v = "SET ";
-                const args = [];
-                for (const p of this._cols) {
-                    v += `${p} = CASE `;
-                    for (const row of c) {
-                        v += `WHEN id = ${row.id} THEN $${i++} `;
-                        args.push(row[p]);
-                    }
-                    v += `END, `;
-                }
-                query += `${v.slice(0, -2)} WHERE id IN ${this.extractIds(c)}`;
-                try {
-                    yield execute$1(query, args, client);
-                }
-                catch (err) {
-                    throw err;
-                }
-            }
-        });
-    }
-    addConsumer(rows, consumerId, consumerName) {
-        return rows.map((row) => (Object.assign(Object.assign({}, row), { consumerId,
-            consumerName })));
-    }
-    extractIds(chunk) {
-        const ids = chunk.map(row => row.id);
-        return `(${ids.join(",")})`;
-    }
-}
-
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 function query(table) {
     return `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
 }
 function execute(date, query, client) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return __awaiter$1(this, void 0, void 0, function* () {
         let db;
         try {
             db = yield execute$1(query, [date], client);
@@ -421,6 +394,15 @@ function limit(rows, first) {
     return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 class SQLEntity extends Entity {
     constructor(name, properties) {
         super(name, properties);
@@ -431,11 +413,11 @@ class SQLEntity extends Entity {
             select: (paginate) => {
                 return this.sel.query(this.table, paginate);
             },
-            update: () => {
-                return this.upd.query(this.table);
+            update: (chunk, consumerId, consumerName) => {
+                return this.upd.query(this.table, chunk, consumerId, consumerName);
             },
-            insert: () => {
-                return this.ins.query(this.table);
+            insert: (chunk, consumerId, consumerName, rtn = "") => {
+                return this.ins.query(this.table, chunk, consumerId, consumerName, rtn);
             },
             delete: () => {
                 return query(this.table);
@@ -482,45 +464,53 @@ class SQLEntity extends Entity {
             .catch((err) => next(err));
     }
     add(req, res, next) {
-        const l = res.locals;
-        const rows = req.body.rows;
-        const dbClient = l.dbClient || null;
-        const cId = l.consumerId;
-        const cName = l.consumerName;
-        log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
-        const rq = this.ins.rtn("id");
-        const q = this.ins.query(this._table);
-        this.ins.execute(rows, q, rq, cId, cName, dbClient)
-            .then((r) => {
-            l.rows = r;
+        return __awaiter(this, void 0, void 0, function* () {
+            const l = res.locals;
+            const rows = req.body.rows;
+            const dbClient = l.dbClient || null;
+            const cId = l.consumerId;
+            const cName = l.consumerName;
+            log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
+            const rtn = this.ins.rtn("id");
+            const chunks = chunk(rows);
+            for (const c of chunks) {
+                const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
+                let db;
+                try {
+                    db = yield execute$1(query, args, dbClient);
+                }
+                catch (err) {
+                    return next(err);
+                }
+                const r = db.rows;
+                for (let i = 0; i < c.length; i++) {
+                    c[i].id = r[i].id;
+                }
+            }
+            l.rows = flatten(chunks);
             next();
-        })
-            .catch((err) => next(err));
+        });
     }
     update(req, res, next) {
-        const l = res.locals;
-        const rows = req.body.rows;
-        const dbClient = l.dbClient || null;
-        const cId = l.consumerId;
-        const cName = l.consumerName;
-        log.debug(`update ${rows.length} rows`);
-        const q = this.upd.query(this._table);
-        this.upd.execute(rows, q, cId, cName, dbClient)
-            .then(() => next())
-            .catch((err) => next(err));
-    }
-    archive(req, res, next) {
-        const l = res.locals;
-        let rows = req.body.rows;
-        const dbClient = l.dbClient || null;
-        const cId = l.consumerId;
-        const cName = l.consumerName;
-        log.debug(`archive ${rows.length} rows`);
-        rows = rows.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
-        const q = this.upd.query(this._table);
-        this.upd.execute(rows, q, cId, cName, dbClient)
-            .then(() => next())
-            .catch((err) => next(err));
+        return __awaiter(this, void 0, void 0, function* () {
+            const l = res.locals;
+            const rows = req.body.rows;
+            const dbClient = l.dbClient || null;
+            const cId = l.consumerId;
+            const cName = l.consumerName;
+            log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
+            const chunks = chunk(rows);
+            for (const c of chunks) {
+                const { query, args } = this.upd.query(this._table, c, cId, cName);
+                try {
+                    yield execute$1(query, args, dbClient);
+                }
+                catch (err) {
+                    return next(err);
+                }
+            }
+            next();
+        });
     }
     delete(req, res, next) {
         const date = req.body.date;

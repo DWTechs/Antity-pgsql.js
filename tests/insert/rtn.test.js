@@ -38,7 +38,7 @@ describe("query function", () => {
   
   it("should generate a valid SQL RETURN query with given prop", () => {
     const result = entity.query.return("id");
-    expect(result).toBe(" RETURNING \"id\"");
+    expect(result).toBe("RETURNING \"id\"");
   });
 
 });
