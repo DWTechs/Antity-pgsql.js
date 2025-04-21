@@ -242,6 +242,8 @@ class Update {
         let query = `UPDATE "${table}" SET `;
         let i = args.length + 1;
         for (const p of this._props) {
+            if (chunk[0][p] === undefined)
+                continue;
             query += `${p} = CASE `;
             for (let j = 0; j < chunk.length; j++) {
                 const row = chunk[j];
@@ -251,7 +253,6 @@ class Update {
             query += `END, `;
         }
         query = `${query.slice(0, -2)} WHERE id IN ${$i(chunk.length, 0)}`;
-        console.log("args", args);
         return { query, args };
     }
     execute(query, args, client) {
@@ -499,6 +500,28 @@ class SQLEntity extends Entity {
             const cId = l.consumerId;
             const cName = l.consumerName;
             log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
+            const chunks = chunk(rows);
+            for (const c of chunks) {
+                const { query, args } = this.upd.query(this._table, c, cId, cName);
+                try {
+                    yield execute$1(query, args, dbClient);
+                }
+                catch (err) {
+                    return next(err);
+                }
+            }
+            next();
+        });
+    }
+    archive(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const l = res.locals;
+            let rows = req.body.rows;
+            const dbClient = l.dbClient || null;
+            const cId = l.consumerId;
+            const cName = l.consumerName;
+            log.debug(`archive(rows=${rows.length}, consumerId=${cId})`);
+            rows = rows.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
             const chunks = chunk(rows);
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._table, c, cId, cName);

@@ -11,7 +11,7 @@ export class Update {
 
   public query(
     table: string, 
-    chunk: Record<string, any>[], 
+    chunk: Record<string, any>[],
     consumerId: string | number,
     consumerName: string
   ): { query: string, args: (Filter["value"])[] } {
@@ -20,6 +20,8 @@ export class Update {
     let query = `UPDATE "${table}" SET `;
     let i = args.length+1;
     for (const p of this._props) {
+      if (chunk[0][p] === undefined) // do not create case if prop is not in the first row
+        continue;
       query += `${p} = CASE `;
       for (let j = 0; j < chunk.length; j++) {
         const row = chunk[j];

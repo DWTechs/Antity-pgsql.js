@@ -1,3 +1,172 @@
+
+[![License: MIT](https://img.shields.io/npm/l/@dwtechs/antity-pgsql.svg?color=brightgreen)](https://opensource.org/licenses/MIT)
+[![npm version](https://badge.fury.io/js/%40dwtechs%2Fantity.svg)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
+[![last version release date](https://img.shields.io/github/release-date/DWTechs/Antity-pgsql.js)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
+![Jest:coverage](https://img.shields.io/badge/Jest:coverage-100%25-brightgreen.svg)
+[![minified size](https://img.shields.io/bundlephobia/min/@dwtechs/antity-pgsql?color=brightgreen)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
+
+- [Synopsis](#synopsis)
+- [Support](#support)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [ES6](#es6)
+- [API Reference](#api-reference)
+- [Contributors](#contributors)
+- [Stack](#stack)
+
+
+## Synopsis
+
+**[Antity-pgsql.js](https://github.com/DWTechs/Antity-pgsql.js)** adds PostgreSQL features to **Antity.js** library.
+
+- Very lightweight
+- Thoroughly tested
+- Works in Javascript, Typescript
+- Can be used as EcmaScrypt module
+- Written in Typescript
+
+
+## Support
+
+- node: 22
+
+This is the oldest targeted versions. The library should work properly on older versions of Node.js but we do not support it officially.  
+
+
+## Installation
+
+```bash
+$ npm i @dwtechs/antity-pgsql
+```
+
+
+## Usage
+
+
+### ES6 / TypeScript
+
+```javascript
+
+import { SQLEntity } from "@dwtechs/antity-pgsql";
+import { normalizeName, normalizeNickname } from "@dwtechs/checkard";
+
+const entity = new Entity("consumers", [
+  {
+    key: "id",
+    type: "integer",
+    min: 0,
+    max: 120,
+    typeCheck: true,
+    methods: ["GET", "PUT", "DELETE"],
+    required: true,
+    safe: true,
+    sanitize: true,
+    normalize: true,
+    validate: true,
+    sanitizer: null,
+    normalizer: null,
+    validator: null,
+  },
+  {
+    key: "firstName",
+    type: "string",
+    min: 0,
+    max: 255,
+    typeCheck: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    required: true,
+    safe: true,
+    sanitize: true,
+    normalize: true,
+    validate: true,
+    sanitizer: null,
+    normalizer: normalizeName,
+    validator: null,
+  },
+  {
+    key: "lastName",
+    type: "string",
+    min: 0,
+    max: 255,
+    typeCheck: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    required: true,
+    safe: true,
+    sanitize: true,
+    normalize: true,
+    validate: true,
+    sanitizer: null,
+    normalizer: normalizeName,
+    validator: null,
+  },
+  {
+    key: "nickname",
+    type: "string",
+    min: 0,
+    max: 255,
+    typeCheck: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    required: true,
+    safe: true,
+    sanitize: true,
+    normalize: true,
+    validate: true,
+    sanitizer: null,
+    normalizer: normalizeNickname,
+    validator: null,
+  },
+]);
+
+// add a consumer. Used when loggin in from user service
+router.gett("/", ..., entity.get);
+router.post("/", entity.normalize, entity.validate, ..., entity.add);
+router.put("/", entity.normalize, entity.validate, ..., entity.update);
+router.put("/", ..., entity.archive);
+
+```
+
+## API Reference
+
+
+```javascript
+
+type Operation = "select" | "insert" | "update" | "merge" | "delete";
+
+class SQLEntity {
+  constructor(name: string, properties: Property[]);
+  get name(): string;
+  get table(): string;
+  get unsafeProps(): string[];
+  get properties(): Property[];
+  set name(name: string);
+  set table(table: string);
+
+  query: {
+    select: (paginate: boolean) => string;
+    update: (chunk: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
+        query: string;
+        args: unknown[];
+    };
+    insert: (chunk: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
+        query: string;
+        args: unknown[];
+    };
+    delete: () => string;
+    return: (prop: string) => string;
+  };
+  get(req: Request, res: Response, next: NextFunction): void;
+  add(req: Request, res: Response, next: NextFunction): Promise<void>;
+  update(req: Request, res: Response, next: NextFunction): Promise<void>;
+  archive(req: Request, res: Response, next: NextFunction): Promise<void>;
+  delete(req: Request, res: Response, next: NextFunction): void;
+
+}
+
+```
+get(), add(), update(), archive() and delete() methods are made to be used as Express.js middlewares.
+Each method will look for data to work on in the **req.body.rows** parameter.
+
+
 ## Match modes
 
 List of possible match modes :  
@@ -66,3 +235,19 @@ List of secondary types :
 | node               | string     |
 | json               | object     |
 | object             | object     |
+
+## Contributors
+
+Antity.js is still in development and we would be glad to get all the help you can provide.
+To contribute please read **[contributor.md](https://github.com/DWTechs/Antity.js/blob/main/contributor.md)** for detailed installation guide.
+
+
+## Stack
+
+| Purpose         |                    Choice                    |                                                     Motivation |
+| :-------------- | :------------------------------------------: | -------------------------------------------------------------: |
+| repository      |        [Github](https://github.com/)         |     hosting for software development version control using Git |
+| package manager |     [npm](https://www.npmjs.com/get-npm)     |                                default node.js package manager |
+| language        | [TypeScript](https://www.typescriptlang.org) | static type checking along with the latest ECMAScript features |
+| module bundler  |      [Rollup](https://rollupjs.org)          |                        advanced module bundler for ES6 modules |
+| unit testing    |          [Jest](https://jestjs.io/)          |                  delightful testing with a focus on simplicity |

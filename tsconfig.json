@@ -17,7 +17,7 @@
     "suppressImplicitAnyIndexErrors": false,
     "allowJs": false,
     "removeComments": true,
-    "declaration": false,
+    "declaration": true,
     "outDir": "build/es6/",
     "rootDir": "src/"
   },

@@ -147,27 +147,33 @@ export class SQLEntity extends Entity {
     next();
   }
 
-  // public archive( req: Request, res: Response, next: NextFunction ): void {
-  //   const l = res.locals;
-  //   let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
-  //   const dbClient = l.dbClient || null;
-  //   const cId = l.consumerId;
-  //   const cName = l.consumerName;
+  public async archive( req: Request, res: Response, next: NextFunction ): Promise<void> { // Changed to Promise<void>
+    const l = res.locals;
+    let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    const dbClient = l.dbClient || null;
+    const cId = l.consumerId;
+    const cName = l.consumerName;
     
-  //   log.debug(`archive ${rows.length} rows`);
+    log.debug(`archive(rows=${rows.length}, consumerId=${cId})`);
 
-  //   // Add archived value
-  //   rows = rows.map((id: Record<string, unknown>) => ({
-  //     ...id,
-  //     archived: true,
-  //   }));
+    // Add archived value
+    rows = rows.map((id: Record<string, unknown>) => ({
+      ...id,
+      archived: true,
+    }));
 
-  //   const q = this.upd.query(this._table);
-  //   this.upd.execute( rows, q, cId, cName, dbClient)
-  //     .then(() => next())
-  //     .catch((err: Error) => next(err));
+    const chunks = chunk(rows);
+    for (const c of chunks) {
+      const { query, args } = this.upd.query(this._table, c, cId, cName);
+      try {
+        await execute(query, args, dbClient);
+      } catch (err: unknown) {
+        return next(err);
+      }
+    }
+    next();
 
-  // }
+  }
 
   public delete( req: Request, res: Response, next: NextFunction ): void {
     const date = req.body.date;
