@@ -44,14 +44,6 @@ export type Response = {
     total?: number;
 };
 
-declare const Types: Record<Type, {
-  validate: (v: any, min: number | Date, max: number | Date, typeCheck: boolean) => boolean;
-}>;
-
-declare const Required: {
-  validate: (v: any) => boolean;
-};
-
 declare class SQLEntity extends Entity {
     private _table;
     private sel;
@@ -62,11 +54,11 @@ declare class SQLEntity extends Entity {
     set table(table: string);
     query: {
         select: (paginate: boolean) => string;
-        update: (chunk: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
+        update: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
             query: string;
             args: unknown[];
         };
-        insert: (chunk: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
+        insert: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
             query: string;
             args: unknown[];
         };
@@ -82,16 +74,18 @@ declare class SQLEntity extends Entity {
     private mapProps;
 }
 
-declare const Messages: {
-    missing: (key: string) => string;
-    invalid: (key: string, type: Type) => string;
-};
+declare filter(
+    first: number,
+    rows: number | null,
+    sortField: string | null,
+    sortOrder: Sort,
+    filters: Filters | null,
+  ): { filterClause: string, args: (Filter["value"])[] } {]
+  
 
 export { 
   SQLEntity,
   Property,
-  Messages,
-  Types,
-  Required,
+  filter,
 };
 

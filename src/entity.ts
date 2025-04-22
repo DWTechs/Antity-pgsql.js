@@ -1,5 +1,5 @@
 import { isString } from '@dwtechs/checkard';
-import { chunk, flatten } from "@dwtechs/sparray";
+import { arrayChunk, arrayFlatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity, Property, Method } from "@dwtechs/antity";
 import * as map from "./map";
@@ -46,19 +46,19 @@ export class SQLEntity extends Entity {
       return this.sel.query(this.table, paginate);
     },
     update: (
-      chunk: Record<string, unknown>[], 
+      rows: Record<string, unknown>[], 
       consumerId: number | string, 
       consumerName: string,
     ): { query: string, args: unknown[] } => {
-      return this.upd.query(this.table, chunk, consumerId, consumerName);
+      return this.upd.query(this.table, rows, consumerId, consumerName);
     },
     insert: (
-      chunk: Record<string, unknown>[], 
+      rows: Record<string, unknown>[], 
       consumerId: number | string, 
       consumerName: string,
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
-      return this.ins.query(this.table, chunk, consumerId, consumerName, rtn);
+      return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
     },
     delete: (): string => {
       return del.query(this.table);
@@ -107,7 +107,7 @@ export class SQLEntity extends Entity {
     log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
      
     const rtn = this.ins.rtn("id");
-    const chunks = chunk(rows);
+    const chunks = arrayChunk(rows);
     for (const c of chunks) {
       const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
       let db: PGResponse;
@@ -122,7 +122,7 @@ export class SQLEntity extends Entity {
         c[i].id = r[i].id;
       }
     }
-    l.rows = flatten(chunks);
+    l.rows = arrayFlatten(chunks);
     next();
   }
 
@@ -135,7 +135,7 @@ export class SQLEntity extends Entity {
     
     log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
 
-    const chunks = chunk(rows);
+    const chunks = arrayChunk(rows);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._table, c, cId, cName);
       try {
@@ -162,7 +162,7 @@ export class SQLEntity extends Entity {
       archived: true,
     }));
 
-    const chunks = chunk(rows);
+    const chunks = arrayChunk(rows);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._table, c, cId, cName);
       try {

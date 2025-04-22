@@ -1,3 +1,4 @@
+import { arrayAdd } from "@dwtechs/sparray";
 import { execute as exe  } from "./execute";
 import { $i } from "./i";
 import type { PGResponse, Filter } from "../types";
@@ -9,16 +10,17 @@ export class Insert {
   private _nbProps: number = 2;
 
   public addProp(prop: string): void {
-    this._props.splice(this._props.length - 2, 0, prop);
+    this._props = arrayAdd(prop, this._props.length - 2);
+    // this._props.splice(this._props.length - 2, 0, prop);
     this._cols = this._props.join(", ");
     this._nbProps++;
   }
 
   /**
-   * Generates an SQL INSERT query string and its corresponding arguments for a given table and data chunk.
+   * Generates an SQL INSERT query string and its corresponding arguments for a given table and data rows.
    *
    * @param {string} table - The name of the table where the data will be inserted.
-   * @param {Record<string, any>[]} chunk - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
+   * @param {Record<string, any>[]} rows - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
    * @param {string | number} consumerId - The ID of the consumer to be added to each row.
    * @param {string} consumerName - The name of the consumer to be added to each row.
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
@@ -27,7 +29,7 @@ export class Insert {
    */
   public query(
     table: string, 
-    chunk: Record<string, any>[], 
+    rows: Record<string, any>[], 
     consumerId: string | number,
     consumerName: string,
     rtn: string = "",
@@ -35,7 +37,7 @@ export class Insert {
     let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
     const args: (Filter["value"])[] = [];
     let i = 0;
-    for (const row of chunk) {
+    for (const row of rows) {
       row.consumerId = consumerId;
       row.consumerName = consumerName;
       query += `${$i(this._nbProps, i)}, `;

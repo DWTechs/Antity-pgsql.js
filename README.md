@@ -132,6 +132,33 @@ router.put("/", ..., entity.archive);
 
 type Operation = "select" | "insert" | "update" | "merge" | "delete";
 
+type MatchMode =  
+  "startsWith" | 
+  "endsWith" |
+  "contains" |
+  "notContains" |
+  "equals" |
+  "notEquals" |
+  "between" |
+  "in" |
+  "lt" |
+  "lte" |
+  "gt" |
+  "gte" |
+  "is" |
+  "isNot" |
+  "before" |
+  "after" |
+  "st_contains" |
+  "st_dwithin";
+
+
+type Filter = {
+  value: string | number | boolean | Date | number[];
+  subProps?: string[];
+  matchMode?: MatchMode;
+}
+
 class SQLEntity {
   constructor(name: string, properties: Property[]);
   get name(): string;
@@ -161,6 +188,15 @@ class SQLEntity {
   delete(req: Request, res: Response, next: NextFunction): void;
 
 }
+
+filter(
+  first: number,
+  rows: number | null,
+  sortField: string | null,
+  sortOrder: Sort,
+  filters: Filters | null,
+): { filterClause: string, args: (Filter["value"])[] } {
+
 
 ```
 get(), add(), update(), archive() and delete() methods are made to be used as Express.js middlewares.
