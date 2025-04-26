@@ -1,5 +1,5 @@
 {
-  "name": "@dwtechs/antity",
+  "name": "@dwtechs/antity-pgsql",
   "version": "0.1.0",
   "description": "Open source library for easy entity management",
   "keywords": [
