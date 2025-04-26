@@ -170,11 +170,11 @@ class SQLEntity {
 
   query: {
     select: (paginate: boolean) => string;
-    update: (chunk: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
+    update: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
         query: string;
         args: unknown[];
     };
-    insert: (chunk: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
+    insert: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
         query: string;
         args: unknown[];
     };
