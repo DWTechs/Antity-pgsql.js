@@ -1,4 +1,4 @@
-import { arrayAdd } from "@dwtechs/sparray";
+import { add as spAdd } from "@dwtechs/sparray";
 import { execute as exe  } from "./execute";
 import { $i } from "./i";
 import type { PGResponse, Filter } from "../types";
@@ -10,8 +10,7 @@ export class Insert {
   private _nbProps: number = 2;
 
   public addProp(prop: string): void {
-    this._props = arrayAdd(prop, this._props.length - 2);
-    // this._props.splice(this._props.length - 2, 0, prop);
+    this._props = spAdd(this._props, prop, this._props.length - 2) as string[];
     this._cols = this._props.join(", ");
     this._nbProps++;
   }

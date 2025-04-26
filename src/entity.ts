@@ -1,5 +1,5 @@
 import { isString } from '@dwtechs/checkard';
-import { arrayChunk, arrayFlatten } from "@dwtechs/sparray";
+import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity, Property, Method } from "@dwtechs/antity";
 import * as map from "./map";
@@ -107,7 +107,7 @@ export class SQLEntity extends Entity {
     log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
      
     const rtn = this.ins.rtn("id");
-    const chunks = arrayChunk(rows);
+    const chunks = chunk(rows);
     for (const c of chunks) {
       const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
       let db: PGResponse;
@@ -122,7 +122,7 @@ export class SQLEntity extends Entity {
         c[i].id = r[i].id;
       }
     }
-    l.rows = arrayFlatten(chunks);
+    l.rows = flatten(chunks);
     next();
   }
 
@@ -135,7 +135,7 @@ export class SQLEntity extends Entity {
     
     log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
 
-    const chunks = arrayChunk(rows);
+    const chunks = chunk(rows);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._table, c, cId, cName);
       try {
@@ -162,7 +162,7 @@ export class SQLEntity extends Entity {
       archived: true,
     }));
 
-    const chunks = arrayChunk(rows);
+    const chunks = chunk(rows);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._table, c, cId, cName);
       try {

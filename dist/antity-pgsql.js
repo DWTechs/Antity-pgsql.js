@@ -25,7 +25,7 @@ https://github.com/DWTechs/Antity-pgsql.js
 */
 
 import { isIn, isArray, isString } from '@dwtechs/checkard';
-import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
+import { deleteProps, add as add$1, chunk, flatten } from '@dwtechs/sparray';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
 import Pool from 'pg-pool';
@@ -190,15 +190,15 @@ class Insert {
         this._nbProps = 2;
     }
     addProp(prop) {
-        this._props.splice(this._props.length - 2, 0, prop);
+        this._props = add$1(this._props, prop, this._props.length - 2);
         this._cols = this._props.join(", ");
         this._nbProps++;
     }
-    query(table, chunk, consumerId, consumerName, rtn = "") {
+    query(table, rows, consumerId, consumerName, rtn = "") {
         let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
         const args = [];
         let i = 0;
-        for (const row of chunk) {
+        for (const row of rows) {
             row.consumerId = consumerId;
             row.consumerName = consumerName;
             query += `${$i(this._nbProps, i)}, `;
@@ -234,25 +234,26 @@ class Update {
         this._props = ["consumerId", "consumerName"];
     }
     addProp(prop) {
-        this._props.splice(this._props.length - 2, 0, prop);
+        this._props = add$1(this._props, prop, this._props.length - 2);
     }
-    query(table, chunk, consumerId, consumerName) {
-        chunk = this.addConsumer(chunk, consumerId, consumerName);
-        const args = chunk.map(row => row.id);
+    query(table, rows, consumerId, consumerName) {
+        rows = this.addConsumer(rows, consumerId, consumerName);
+        const l = rows.length;
+        const args = rows.map(row => row.id);
         let query = `UPDATE "${table}" SET `;
         let i = args.length + 1;
         for (const p of this._props) {
-            if (chunk[0][p] === undefined)
+            if (rows[0][p] === undefined)
                 continue;
             query += `${p} = CASE `;
-            for (let j = 0; j < chunk.length; j++) {
-                const row = chunk[j];
+            for (let j = 0; j < l; j++) {
+                const row = rows[j];
                 query += `WHEN id = $${j + 1} THEN $${i++} `;
                 args.push(row[p]);
             }
             query += `END, `;
         }
-        query = `${query.slice(0, -2)} WHERE id IN ${$i(chunk.length, 0)}`;
+        query = `${query.slice(0, -2)} WHERE id IN ${$i(l, 0)}`;
         return { query, args };
     }
     execute(query, args, client) {
@@ -414,11 +415,11 @@ class SQLEntity extends Entity {
             select: (paginate) => {
                 return this.sel.query(this.table, paginate);
             },
-            update: (chunk, consumerId, consumerName) => {
-                return this.upd.query(this.table, chunk, consumerId, consumerName);
+            update: (rows, consumerId, consumerName) => {
+                return this.upd.query(this.table, rows, consumerId, consumerName);
             },
-            insert: (chunk, consumerId, consumerName, rtn = "") => {
-                return this.ins.query(this.table, chunk, consumerId, consumerName, rtn);
+            insert: (rows, consumerId, consumerName, rtn = "") => {
+                return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
             },
             delete: () => {
                 return query(this.table);
