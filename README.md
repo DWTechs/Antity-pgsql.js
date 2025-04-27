@@ -200,7 +200,7 @@ function filter(
 function execute(
   query: string, 
   args: (string | number | boolean | Date | number[])[], 
-  client: any
+  client: any,
 ): Promise<PGResponse>;
 
 
