@@ -20,7 +20,7 @@ export class Update {
     rows = this.addConsumer(rows, consumerId, consumerName);
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row;
-    let query = `UPDATE "${table}" SET `;
+    let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
     let i = args.length+1;
     for (const p of this._props) {
       if (rows[0][p] === undefined) // do not create case if prop is not in the first row

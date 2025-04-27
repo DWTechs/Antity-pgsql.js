@@ -21,7 +21,7 @@ export class Select {
   public query(table: string, paginate: boolean): string {
     const p = paginate ? this._count : '';
     const c = this._cols ? this._cols : '*';
-    return `SELECT ${c}${p} FROM "${table}"`;
+    return `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
   }
 
   public execute(

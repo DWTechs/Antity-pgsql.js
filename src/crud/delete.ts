@@ -1,8 +1,9 @@
 import { execute as exe } from "./execute";
+import { quoteIfUppercase } from "./quote";
 import type { PGResponse } from "../types";
 
 function query(table: string): string {
-  return `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
+  return `DELETE FROM ${quoteIfUppercase(table)} WHERE "archivedAt" < $1`;
 }
 
 async function execute(

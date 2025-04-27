@@ -34,7 +34,7 @@ export class Insert {
     consumerName: string,
     rtn: string = "",
   ): { query: string, args: (Filter["value"])[] } {
-    let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
+    let query = `INSERT INTO ${quoteIfUppercase(table)} (${this._cols}) VALUES `;
     const args: (Filter["value"])[] = [];
     let i = 0;
     for (const row of rows) {
