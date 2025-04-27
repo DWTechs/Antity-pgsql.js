@@ -1,11 +1,12 @@
 import { addConditions } from "./condition";
+import { quoteIfUppercase } from "../crud/quote";
 import type { Filters, Filter, Sort, LogicalOperator } from "../types";
 
 function filter(
   first: number,
-  rows: number | null,
+  rows: number,
   sortField: string | null,
-  sortOrder: Sort,
+  sortOrder: Sort | null,
   filters: Filters | null,
 ): { filterClause: string, args: (Filter["value"])[] } {
   
@@ -30,14 +31,15 @@ function where(conditions: string[], operator: LogicalOperator = "AND"): string 
 }
 
 // Adds order by clause
-function orderBy(sortField: string | null, sortOrder: Sort): string {
+function orderBy(sortField: string | null, sortOrder: Sort | null): string {
   if (!sortField) 
     return "";
-  return ` ORDER BY "${sortField}" ${sortOrder}`;
+  const o = sortOrder || "ASC";
+  return ` ORDER BY ${quoteIfUppercase(sortField)} ${o}`;
 }
 
 // Adds limit clause
-function limit(rows: number | null, first: number): string {
+function limit(rows: number, first: number): string {
   return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 

@@ -25,17 +25,17 @@ https://github.com/DWTechs/Antity-pgsql.js
 */
 
 import { Entity, Property } from "@dwtechs/antity";
-import type { Request, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 export type Operation = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
 export type Sort = "ASC" | "DESC";
 export type Filters = {
-    [key: string]: Filter;
+  [key: string]: Filter;
 };
 export type Filter = {
-    value: string | number | boolean | Date | number[];
-    subProps?: string[];
-    matchMode?: MatchMode;
+  value: string | number | boolean | Date | number[];
+  subProps?: string[];
+  matchMode?: MatchMode;
 };
 export type LogicalOperator = "AND" | "OR";
 export type Comparator = "=" | "<" | ">" | "<=" | ">=" | "<>" | "IS" | "IS NOT" | "IN" | "LIKE" | "NOT LIKE";
@@ -43,75 +43,77 @@ export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" |
 export type MappedType = "string" | "number" | "date";
 export type Type = "boolean" | "string" | "number" | "integer" | "float" | "even" | "odd" | "positive" | "negative" | "powerOfTwo" | "ascii" | "array" | "jwt" | "symbol" | "email" | "regex" | "json" | "ipAddress" | "slug" | "hexadecimal" | "date" | "timestamp" | "function" | "htmlElement" | "htmlEventAttribute" | "node" | "object" | "geometry";
 export type Geometry = {
-    lng: number;
-    lat: number;
-    radius: number;
-    bounds: {
-        minLng: number;
-        minLat: number;
-        maxLng: number;
-        maxLat: number;
-    };
+  lng: number;
+  lat: number;
+  radius: number;
+  bounds: {
+    minLng: number;
+    minLat: number;
+    maxLng: number;
+    maxLat: number;
+  };
 };
 export type PGResponse = {
-    rows: Record<string, unknown>[];
-    rowCount: number;
-    total?: number;
-    command?: string;
-    oid?: number;
-    fields?: unknown[];
-    _parsers?: unknown[];
-    _types?: unknown;
-    RowCtor?: unknown;
-    rowAsArray?: boolean;
-};
-export type Response = {
-    rows: Record<string, unknown>[];
-    total?: number;
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  total?: number;
+  command?: string;
+  oid?: number;
+  fields?: unknown[];
+  _parsers?: unknown[];
+  _types?: unknown;
+  RowCtor?: unknown;
+  rowAsArray?: boolean;
 };
 
 declare class SQLEntity extends Entity {
-    private _table;
-    private sel;
-    private ins;
-    private upd;
-    constructor(name: string, properties: Property[]);
-    get table(): string;
-    set table(table: string);
-    query: {
-        select: (paginate: boolean) => string;
-        update: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
-            query: string;
-            args: unknown[];
-        };
-        insert: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
-            query: string;
-            args: unknown[];
-        };
-        delete: () => string;
-        return: (prop: string) => string;
+  private _table;
+  private sel;
+  private ins;
+  private upd;
+  constructor(name: string, properties: Property[]);
+  get table(): string;
+  set table(table: string);
+  query: {
+    select: (paginate: boolean) => string;
+    update: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
+      query: string;
+      args: unknown[];
     };
-    get(req: Request, res: Response, next: NextFunction): void;
-    add(req: Request, res: Response, next: NextFunction): Promise<void>;
-    update(req: Request, res: Response, next: NextFunction): Promise<void>;
-    archive(req: Request, res: Response, next: NextFunction): Promise<void>;
-    delete(req: Request, res: Response, next: NextFunction): void;
-    private cleanFilters;
-    private mapProps;
+    insert: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
+      query: string;
+      args: unknown[];
+    };
+    delete: () => string;
+    return: (prop: string) => string;
+  };
+  get(req: Request, res: Response, next: NextFunction): void;
+  add(req: Request, res: Response, next: NextFunction): Promise<void>;
+  update(req: Request, res: Response, next: NextFunction): Promise<void>;
+  archive(req: Request, res: Response, next: NextFunction): Promise<void>;
+  delete(req: Request, res: Response, next: NextFunction): void;
+  private cleanFilters;
+  private mapProps;
 }
 
-declare filter(
-    first: number,
-    rows: number | null,
-    sortField: string | null,
-    sortOrder: Sort,
-    filters: Filters | null,
-  ): { filterClause: string, args: (Filter["value"])[] } {]
+declare function filter(
+  first: number,
+  rows: number | null,
+  sortField: string | null,
+  sortOrder: Sort | null,
+  filters: Filters | null,
+): { filterClause: string, args: (Filter["value"])[] };
   
+declare function execute(
+  query: string, 
+  args: (string | number | boolean | Date | number[])[], 
+  client: any
+): Promise<PGResponse>;
 
 export { 
   SQLEntity,
   Property,
   filter,
+  execute,
 };
 

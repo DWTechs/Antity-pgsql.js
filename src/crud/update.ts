@@ -1,13 +1,14 @@
 import { add as spAdd } from "@dwtechs/sparray";
 import { execute as exe } from "./execute";
 import { $i } from "./i";
+import { quoteIfUppercase } from "./quote";
 import type { PGResponse, Filter } from "../types";
 
 export class Update {
   private _props: string[] = ["consumerId", "consumerName"];
 
   public addProp(prop: string): void {
-    this._props = spAdd(this._props, prop, this._props.length - 2) as string[];
+    this._props = spAdd(this._props, quoteIfUppercase(prop), this._props.length - 2) as string[];
   }
 
   public query(

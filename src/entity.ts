@@ -66,7 +66,7 @@ export class SQLEntity extends Entity {
     return: (prop: string): string => {
       return this.ins.rtn(prop);
     }
-  }
+  };
 
   public get( req: Request, res: Response, next: NextFunction ): void {
     const l = res.locals;

@@ -104,9 +104,10 @@ export type PGResponse = {
   _types?: unknown;
   RowCtor?: unknown;
   rowAsArray?: boolean;
+  _prebuiltEmptyResultObject?: Record<string, unknown>;
 };
 
-export type Response = {
+export type SelectResponse = {
   rows: Record<string, unknown>[];
   total?: number;
 };

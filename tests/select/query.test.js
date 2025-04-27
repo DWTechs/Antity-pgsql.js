@@ -52,6 +52,24 @@ describe("query function", () => {
       validator: null
     }]);
   const entity3 = new SQLEntity('products', []);
+  const entity4 = new SQLEntity('products', [
+    {
+      key: 'maxLevel',
+      type: 'integer',
+      min: 0,
+      max: 120,
+      typeCheck: true,
+      methods: ['GET', 'PUT'],
+      required: true,
+      safe: true,
+      sanitize: true,
+      normalize: false,
+      validate: true,
+      sanitizer: null,
+      normalizer: null,
+      validator: null
+    }
+  ]);
   it("should generate a valid SQL SELECT query with given columns and table", () => {
     const result = entity.query.select(false);
     expect(result).toBe("SELECT name, age FROM \"persons\"");
@@ -70,6 +88,16 @@ describe("query function", () => {
   it("should generate a valid SQL SELECT query without columns with pagination", () => {
     const result = entity3.query.select(true);
     expect(result).toBe("SELECT *, COUNT(*) OVER () AS total FROM \"products\"");
+  });
+
+  it("should generate a valid SQL SELECT query without columns with pagination", () => {
+    const result = entity3.query.select(true);
+    expect(result).toBe("SELECT *, COUNT(*) OVER () AS total FROM \"products\"");
+  });
+
+  it("should generate a valid SQL SELECT query with uppercase property", () => {
+    const result = entity4.query.select(false);
+    expect(result).toBe("SELECT \"maxLevel\" FROM \"products\"");
   });
 
 });

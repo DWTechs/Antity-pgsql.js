@@ -127,8 +127,8 @@ function execute$1(query, args, clt) {
     return client
         .query(query, args)
         .then((res) => {
-        perf.end(res, time);
         deleteIdleProperties(res);
+        perf.end(res, time);
         return res;
     })
         .catch((err) => {
@@ -144,6 +144,13 @@ function deleteIdleProperties(res) {
     res._types = undefined;
     res.RowCtor = undefined;
     res.rowAsArray = undefined;
+    res._prebuiltEmptyResultObject = undefined;
+}
+
+function quoteIfUppercase(word) {
+    if (/[A-Z]/.test(word))
+        return `"${word}"`;
+    return word;
 }
 
 class Select {
@@ -153,7 +160,7 @@ class Select {
         this._count = ", COUNT(*) OVER () AS total";
     }
     addProp(prop) {
-        this._props.push(prop);
+        this._props.push(quoteIfUppercase(prop));
         this._cols = this._props.join(", ");
     }
     get props() {
@@ -190,7 +197,7 @@ class Insert {
         this._nbProps = 2;
     }
     addProp(prop) {
-        this._props = add$1(this._props, prop, this._props.length - 2);
+        this._props = add$1(this._props, quoteIfUppercase(prop), this._props.length - 2);
         this._cols = this._props.join(", ");
         this._nbProps++;
     }
@@ -234,7 +241,7 @@ class Update {
         this._props = ["consumerId", "consumerName"];
     }
     addProp(prop) {
-        this._props = add$1(this._props, prop, this._props.length - 2);
+        this._props = add$1(this._props, quoteIfUppercase(prop), this._props.length - 2);
     }
     query(table, rows, consumerId, consumerName) {
         rows = this.addConsumer(rows, consumerId, consumerName);
@@ -368,7 +375,7 @@ function add(filters) {
     return { conditions, args };
 }
 function addOne(key, indexes, matchMode) {
-    const sqlKey = `\"${key}\"`;
+    const sqlKey = `${quoteIfUppercase(key)}`;
     const comparator$1 = comparator(matchMode);
     const index$1 = index(indexes, matchMode);
     return comparator$1 ? `${sqlKey} ${comparator$1} ${index$1}` : "";
@@ -390,7 +397,8 @@ function where(conditions, operator = "AND") {
 function orderBy(sortField, sortOrder) {
     if (!sortField)
         return "";
-    return ` ORDER BY "${sortField}" ${sortOrder}`;
+    const o = sortOrder || "ASC";
+    return ` ORDER BY ${quoteIfUppercase(sortField)} ${o}`;
 }
 function limit(rows, first) {
     return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
@@ -585,4 +593,4 @@ class SQLEntity extends Entity {
     }
 }
 
-export { SQLEntity, filter };
+export { SQLEntity, execute$1 as execute, filter };

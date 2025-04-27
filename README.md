@@ -189,13 +189,19 @@ class SQLEntity {
 
 }
 
-filter(
+function filter(
   first: number,
-  rows: number | null,
+  rows: number,
   sortField: string | null,
-  sortOrder: Sort,
+  sortOrder: Sort = "ASC",
   filters: Filters | null,
-): { filterClause: string, args: (Filter["value"])[] } {
+): { filterClause: string, args: (Filter["value"])[] };
+
+function execute(
+  query: string, 
+  args: (string | number | boolean | Date | number[])[], 
+  client: any
+): Promise<PGResponse>;
 
 
 ```
