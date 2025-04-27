@@ -1,6 +1,6 @@
 # 0.2.1 (Apr 26th 2025)
 
-- 
+- Add proper quote handling for table names
 
 
 # 0.2.0 (Apr 25th 2025)

@@ -169,7 +169,7 @@ class Select {
     query(table, paginate) {
         const p = paginate ? this._count : '';
         const c = this._cols ? this._cols : '*';
-        return `SELECT ${c}${p} FROM "${table}"`;
+        return `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
     }
     execute(query, args, client) {
         return execute$1(query, args, client)
@@ -202,7 +202,7 @@ class Insert {
         this._nbProps++;
     }
     query(table, rows, consumerId, consumerName, rtn = "") {
-        let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
+        let query = `INSERT INTO ${quoteIfUppercase(table)} (${this._cols}) VALUES `;
         const args = [];
         let i = 0;
         for (const row of rows) {
@@ -247,7 +247,7 @@ class Update {
         rows = this.addConsumer(rows, consumerId, consumerName);
         const l = rows.length;
         const args = rows.map(row => row.id);
-        let query = `UPDATE "${table}" SET `;
+        let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
         let i = args.length + 1;
         for (const p of this._props) {
             if (rows[0][p] === undefined)
@@ -284,7 +284,7 @@ var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _argu
     });
 };
 function query(table) {
-    return `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
+    return `DELETE FROM ${quoteIfUppercase(table)} WHERE "archivedAt" < $1`;
 }
 function execute(date, query, client) {
     return __awaiter$1(this, void 0, void 0, function* () {
