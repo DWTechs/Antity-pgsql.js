@@ -1,6 +1,6 @@
 # 0.2.0 (Apr 25th 2025)
 
-- Add execute method to the library
+- Add execute() method to the library
 - Add quotes around property names with uppercases
 
 
