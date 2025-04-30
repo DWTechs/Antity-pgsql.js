@@ -1,3 +1,8 @@
+# 0.3.0 (Apr 27th 2025)
+
+- Enhance quote handling for reserved keywords
+
+
 # 0.2.1 (Apr 26th 2025)
 
 - Add proper quote handling for table names
