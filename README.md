@@ -181,11 +181,11 @@ class SQLEntity {
     delete: () => string;
     return: (prop: string) => string;
   };
-  get(req: Request, res: Response, next: NextFunction): void;
-  add(req: Request, res: Response, next: NextFunction): Promise<void>;
-  update(req: Request, res: Response, next: NextFunction): Promise<void>;
-  archive(req: Request, res: Response, next: NextFunction): Promise<void>;
-  delete(req: Request, res: Response, next: NextFunction): void;
+  get: (req: Request, res: Response, next: NextFunction) => void;
+  add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  delete: (req: Request, res: Response, next: NextFunction) => void;
 
 }
 
