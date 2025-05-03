@@ -1,3 +1,8 @@
+# 0.3.1 (May 1st 2025)
+
+- Upgrade @dwtechs/antity dependency to 0.9.2
+
+
 # 0.3.0 (Apr 27th 2025)
 
 - Enhance quote handling for reserved keywords

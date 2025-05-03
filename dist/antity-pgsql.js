@@ -450,45 +450,31 @@ class SQLEntity extends Entity {
                 return this.ins.rtn(prop);
             }
         };
-        this._table = name;
-        for (const p of properties) {
-            this.mapProps(p.methods, p.key);
-        }
-    }
-    get table() {
-        return this._table;
-    }
-    set table(table) {
-        if (!isString(table, "!0"))
-            throw new Error('table must be a string of length > 0');
-        this._table = table;
-    }
-    get(req, res, next) {
-        var _a;
-        const l = res.locals;
-        const b = req.body;
-        const first = (_a = b === null || b === void 0 ? void 0 : b.first) !== null && _a !== void 0 ? _a : 0;
-        const rows = b.rows || null;
-        const sortField = b.sortField || null;
-        const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-        const filters = this.cleanFilters(b.filters) || null;
-        const pagination = b.pagination || false;
-        const dbClient = l.dbClient || null;
-        log.debug(`get(first='${first}', rows='${rows}', 
+        this.get = (req, res, next) => {
+            var _a;
+            const l = res.locals;
+            const b = req.body;
+            const first = (_a = b === null || b === void 0 ? void 0 : b.first) !== null && _a !== void 0 ? _a : 0;
+            const rows = b.rows || null;
+            const sortField = b.sortField || null;
+            const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
+            const filters = this.cleanFilters(b.filters) || null;
+            const pagination = b.pagination || false;
+            const dbClient = l.dbClient || null;
+            log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-        const q = this.sel.query(this._table, pagination) + filterClause;
-        this.sel.execute(q, args, dbClient)
-            .then((r) => {
-            l.rows = r.rows;
-            l.total = r.total;
-            next();
-        })
-            .catch((err) => next(err));
-    }
-    add(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
+            const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+            const q = this.sel.query(this._table, pagination) + filterClause;
+            this.sel.execute(q, args, dbClient)
+                .then((r) => {
+                l.rows = r.rows;
+                l.total = r.total;
+                next();
+            })
+                .catch((err) => next(err));
+        };
+        this.add = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
             const rows = req.body.rows;
             const dbClient = l.dbClient || null;
@@ -514,9 +500,7 @@ class SQLEntity extends Entity {
             l.rows = flatten(chunks);
             next();
         });
-    }
-    update(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.update = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
             const rows = req.body.rows;
             const dbClient = l.dbClient || null;
@@ -535,9 +519,7 @@ class SQLEntity extends Entity {
             }
             next();
         });
-    }
-    archive(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.archive = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
             let rows = req.body.rows;
             const dbClient = l.dbClient || null;
@@ -557,15 +539,27 @@ class SQLEntity extends Entity {
             }
             next();
         });
+        this.delete = (req, res, next) => {
+            const date = req.body.date;
+            const dbClient = res.locals.dbClient || null;
+            log.debug(`delete archived`);
+            const q = query(this._table);
+            execute(date, q, dbClient)
+                .then(() => next())
+                .catch((err) => next(err));
+        };
+        this._table = name;
+        for (const p of properties) {
+            this.mapProps(p.methods, p.key);
+        }
     }
-    delete(req, res, next) {
-        const date = req.body.date;
-        const dbClient = res.locals.dbClient || null;
-        log.debug(`delete archived`);
-        const q = query(this._table);
-        execute(date, q, dbClient)
-            .then(() => next())
-            .catch((err) => next(err));
+    get table() {
+        return this._table;
+    }
+    set table(table) {
+        if (!isString(table, "!0"))
+            throw new Error('table must be a string of length > 0');
+        this._table = table;
     }
     cleanFilters(filters) {
         for (const k in filters) {

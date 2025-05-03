@@ -68,7 +68,7 @@ export class SQLEntity extends Entity {
     }
   };
 
-  public get( req: Request, res: Response, next: NextFunction ): void {
+  public get = ( req: Request, res: Response, next: NextFunction ): void => {
     const l = res.locals;
     const b = req.body;
     const first = b?.first ?? 0;
@@ -97,7 +97,7 @@ export class SQLEntity extends Entity {
 
   }
 
-  public async add( req: Request, res: Response, next: NextFunction ): Promise<void> {
+  public add = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
@@ -126,7 +126,7 @@ export class SQLEntity extends Entity {
     next();
   }
 
-  public async update( req: Request, res: Response, next: NextFunction ): Promise<void> {
+  public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
@@ -147,7 +147,7 @@ export class SQLEntity extends Entity {
     next();
   }
 
-  public async archive( req: Request, res: Response, next: NextFunction ): Promise<void> { // Changed to Promise<void>
+  public archive = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => { 
     const l = res.locals;
     let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
@@ -175,7 +175,7 @@ export class SQLEntity extends Entity {
 
   }
 
-  public delete( req: Request, res: Response, next: NextFunction ): void {
+  public delete = ( req: Request, res: Response, next: NextFunction ): void => {
     const date = req.body.date;
     const dbClient = res.locals.dbClient || null;
     

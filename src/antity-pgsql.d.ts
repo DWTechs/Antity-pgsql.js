@@ -61,13 +61,11 @@ declare class SQLEntity extends Entity {
     delete: () => string;
     return: (prop: string) => string;
   };
-  get(req: Request, res: Response, next: NextFunction): void;
-  add(req: Request, res: Response, next: NextFunction): Promise<void>;
-  update(req: Request, res: Response, next: NextFunction): Promise<void>;
-  archive(req: Request, res: Response, next: NextFunction): Promise<void>;
-  delete(req: Request, res: Response, next: NextFunction): void;
-  private cleanFilters;
-  private mapProps;
+  get: (req: Request, res: Response, next: NextFunction) => void;
+  add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  delete: (req: Request, res: Response, next: NextFunction) => void;
 }
 
 declare function filter(
