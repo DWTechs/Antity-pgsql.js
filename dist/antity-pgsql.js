@@ -55,6 +55,8 @@ function type(type) {
             return s;
         case "symbol":
             return s;
+        case "password":
+            return s;
         case "email":
             return s;
         case "regex":

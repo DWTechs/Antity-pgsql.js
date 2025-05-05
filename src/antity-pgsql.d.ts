@@ -1,4 +1,5 @@
 import { Entity, Property } from "@dwtechs/antity";
+import { Type } from "@dwtechs/antity";
 import type { Request, Response, NextFunction } from 'express';
 
 export type Operation = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
@@ -11,11 +12,11 @@ export type Filter = {
   subProps?: string[];
   matchMode?: MatchMode;
 };
+export { Type };
 export type LogicalOperator = "AND" | "OR";
 export type Comparator = "=" | "<" | ">" | "<=" | ">=" | "<>" | "IS" | "IS NOT" | "IN" | "LIKE" | "NOT LIKE";
 export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" | "equals" | "notEquals" | "between" | "in" | "lt" | "lte" | "gt" | "gte" | "is" | "isNot" | "before" | "after" | "st_contains" | "st_dwithin";
 export type MappedType = "string" | "number" | "date";
-export type Type = "boolean" | "string" | "number" | "integer" | "float" | "even" | "odd" | "positive" | "negative" | "powerOfTwo" | "ascii" | "array" | "jwt" | "symbol" | "email" | "regex" | "json" | "ipAddress" | "slug" | "hexadecimal" | "date" | "timestamp" | "function" | "htmlElement" | "htmlEventAttribute" | "node" | "object" | "geometry";
 export type Geometry = {
   lng: number;
   lat: number;

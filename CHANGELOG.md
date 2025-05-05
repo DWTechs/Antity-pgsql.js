@@ -1,3 +1,8 @@
+# 0.3.2 (May 2nd 2025)
+
+- Upgrade @dwtechs/antity dependency to 0.10.0
+
+
 # 0.3.1 (May 1st 2025)
 
 - Upgrade @dwtechs/antity dependency to 0.9.2

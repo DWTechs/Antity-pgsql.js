@@ -1,4 +1,5 @@
-import type { Type, MappedType } from "./types";
+import type { Type } from "@dwtechs/antity";
+import type { MappedType } from "./types";
 
 /**
  * transform from entity type to valid sql filter type
@@ -32,6 +33,8 @@ function type(type: Type): MappedType {
     case "jwt": 
       return s;
     case "symbol": 
+      return s;
+    case "password": 
       return s;
     case "email": 
       return s;
