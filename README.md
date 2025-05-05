@@ -265,6 +265,7 @@ List of secondary types :
 | jwt                | string     |
 | symbol             | string     |
 | email              | string     |
+| password           | string     |
 | regex              | string     |
 | ipAddress          | string     |
 | slug               | string     |
