@@ -4,7 +4,7 @@ import type { Filters, Filter, Sort, LogicalOperator } from "../types";
 
 function filter(
   first: number,
-  rows: number,
+  rows: number | null,
   sortField: string | null,
   sortOrder: Sort | null,
   filters: Filters | null,
@@ -39,7 +39,7 @@ function orderBy(sortField: string | null, sortOrder: Sort | null): string {
 }
 
 // Adds limit clause
-function limit(rows: number, first: number): string {
+function limit(rows: number | null, first: number): string {
   return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 

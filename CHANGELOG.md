@@ -1,3 +1,15 @@
+
+# 0.4.1 (Aug 15th 2025)
+
+- Improved error handling in entity operations
+- Update Antity.js tio version 0.11.1
+
+
+# 0.4.0 (May 2nd 2025)
+
+- Upgrade @dwtechs/antity dependency to 0.11.0
+
+
 # 0.3.2 (May 2nd 2025)
 
 - Upgrade @dwtechs/antity dependency to 0.10.0

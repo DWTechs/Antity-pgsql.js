@@ -3,13 +3,11 @@
 [![npm version](https://badge.fury.io/js/%40dwtechs%2Fantity-pgsql.svg)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
 [![last version release date](https://img.shields.io/github/release-date/DWTechs/Antity-pgsql.js)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
 ![Jest:coverage](https://img.shields.io/badge/Jest:coverage-100%25-brightgreen.svg)
-[![minified size](https://img.shields.io/bundlephobia/min/@dwtechs/antity-pgsql?color=brightgreen)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
 
 - [Synopsis](#synopsis)
 - [Support](#support)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [ES6](#es6)
 - [API Reference](#api-reference)
 - [Contributors](#contributors)
 - [Stack](#stack)
@@ -19,11 +17,10 @@
 
 **[Antity-pgsql.js](https://github.com/DWTechs/Antity-pgsql.js)** adds PostgreSQL features to **Antity.js** library.
 
-- Very lightweight
-- Thoroughly tested
-- Works in Javascript, Typescript
-- Can be used as EcmaScrypt module
-- Written in Typescript
+- 🪶 Very lightweight
+- 🧪 Thoroughly tested
+- 🚚 Shipped as EcmaScrypt module
+- 📝 Written in Typescript
 
 
 ## Support
@@ -42,8 +39,6 @@ $ npm i @dwtechs/antity-pgsql
 
 ## Usage
 
-
-### ES6 / TypeScript
 
 ```javascript
 
@@ -117,8 +112,7 @@ const entity = new Entity("consumers", [
   },
 ]);
 
-// add a consumer. Used when loggin in from user service
-router.gett("/", ..., entity.get);
+router.get("/", ..., entity.get);
 router.post("/", entity.normalize, entity.validate, ..., entity.add);
 router.put("/", entity.normalize, entity.validate, ..., entity.update);
 router.put("/", ..., entity.archive);
@@ -191,9 +185,9 @@ class SQLEntity {
 
 function filter(
   first: number,
-  rows: number,
+  rows: number | null,
   sortField: string | null,
-  sortOrder: Sort = "ASC",
+  sortOrder: Sort | null,
   filters: Filters | null,
 ): { filterClause: string, args: (Filter["value"])[] };
 
