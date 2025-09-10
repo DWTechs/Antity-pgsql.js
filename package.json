@@ -1,6 +1,6 @@
 {
   "name": "@dwtechs/antity",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Open source library for easy entity management",
   "keywords": [
     "entities"
@@ -36,10 +36,10 @@
     "dist/"
   ],
   "dependencies": {
-    "@dwtechs/checkard": "3.2.3",
+    "@dwtechs/checkard": "3.5.1",
     "@dwtechs/winstan": "0.4.0",
-    "@dwtechs/antity": "0.9.0",
-    "@dwtechs/sparray": "0.2.0",
+    "@dwtechs/antity": "0.11.2",
+    "@dwtechs/sparray": "0.2.1",
     "pg": "8.13.1"
   },
   "devDependencies": {

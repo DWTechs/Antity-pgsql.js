@@ -5,6 +5,7 @@ import type { Filter, PGResponse } from "../types";
 function execute(query: string, args: (Filter["value"])[], clt: any): Promise<PGResponse> {
   const time = perf.start(query, args);
   const client = clt || pool;
+  
   return client
     .query(query, args)
     .then((res: PGResponse) => {
