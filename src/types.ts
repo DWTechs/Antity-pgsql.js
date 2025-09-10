@@ -51,36 +51,6 @@ export type MatchMode =
 
 export type MappedType = "string" | "number" | "date";
 
-export type Type =  
-  "boolean" | 
-  "string" | 
-  "number" | 
-  "integer" | 
-  "float" |
-  "even" |
-  "odd" |
-  "positive" |
-  "negative" |
-  "powerOfTwo" |
-  "ascii" |
-  "array" |
-  "jwt" |
-  "symbol" |
-  "email" |
-  "regex" |
-  "json" |
-  "ipAddress" |
-  "slug" |
-  "hexadecimal" |
-  "date" |
-  "timestamp" |
-  "function" |
-  "htmlElement" |
-  "htmlEventAttribute" |
-  "node" |
-  "object" |
-  "geometry";
-
 export type Geometry = { 
   lng: number,
   lat: number,
@@ -104,9 +74,10 @@ export type PGResponse = {
   _types?: unknown;
   RowCtor?: unknown;
   rowAsArray?: boolean;
+  _prebuiltEmptyResultObject?: Record<string, unknown>;
 };
 
-export type Response = {
+export type SelectResponse = {
   rows: Record<string, unknown>[];
   total?: number;
 };

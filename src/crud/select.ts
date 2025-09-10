@@ -1,6 +1,7 @@
 import { deleteProps } from "@dwtechs/sparray";
 import { execute as exe } from "./execute";
-import type { PGResponse, Response, Filter } from "../types";
+import { quoteIfUppercase } from "./quote";
+import type { PGResponse, SelectResponse, Filter } from "../types";
 
 export class Select {
   
@@ -9,7 +10,7 @@ export class Select {
   private _count: string = ", COUNT(*) OVER () AS total";
 
   public addProp(prop: string): void {
-    this._props.push(prop);
+    this._props.push(quoteIfUppercase(prop));
     this._cols = this._props.join(", ");
   }
 
@@ -20,14 +21,14 @@ export class Select {
   public query(table: string, paginate: boolean): string {
     const p = paginate ? this._count : '';
     const c = this._cols ? this._cols : '*';
-    return `SELECT ${c}${p} FROM "${table}"`;
+    return `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
   }
 
   public execute(
     query: string,
     args: (Filter["value"])[],
     client: any,
-  ): Promise<Response> {
+  ): Promise<SelectResponse> {
 
     return exe(query, args, client)
       .then((r: PGResponse) => {

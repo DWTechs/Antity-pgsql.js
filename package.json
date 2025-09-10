@@ -1,19 +1,19 @@
 {
-  "name": "@dwtechs/antity",
-  "version": "0.1.1",
+  "name": "@dwtechs/antity-pgsql",
+  "version": "0.3.4",
   "description": "Open source library for easy entity management",
   "keywords": [
     "entities"
   ],
-  "homepage": "https://github.com/DWTechs/Antity.js",
-  "main": "dist/antity",
-  "types": "dist/antity",
+  "homepage": "https://github.com/DWTechs/Antity-pgsql.js",
+  "main": "dist/antity-pgsql",
+  "types": "dist/antity-pgsql",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DWTechs/Antity.js"
+    "url": "https://github.com/DWTechs/Antity-pgsql.js" 
   },
   "bugs": {
-    "url": "https://github.com/DWTechs/Antity.js/issues",
+    "url": "https://github.com/DWTechs/Antity-pgsql.js/issues",
     "email": ""
   },
   "license": "MIT",

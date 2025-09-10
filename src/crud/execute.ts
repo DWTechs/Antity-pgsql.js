@@ -9,8 +9,8 @@ function execute(query: string, args: (Filter["value"])[], clt: any): Promise<PG
   return client
     .query(query, args)
     .then((res: PGResponse) => {
-      perf.end(res, time);
       deleteIdleProperties(res);
+      perf.end(res, time);
       return res;
     })
     .catch((err: { msg: string; message: string; }) => {
@@ -27,6 +27,7 @@ function deleteIdleProperties(res: PGResponse): void {
   res._types = undefined;
   res.RowCtor = undefined;
   res.rowAsArray = undefined;
+  res._prebuiltEmptyResultObject = undefined;
 }
 
 export {

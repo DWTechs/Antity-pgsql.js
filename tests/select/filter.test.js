@@ -38,7 +38,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" LIKE $1% AND "age" >= $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE $1% AND age >= $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -56,7 +56,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" LIKE %$1 AND "age" <= $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE %$1 AND age <= $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -74,7 +74,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" LIKE %$1% AND "age" > $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE %$1% AND age > $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 29]);
     });
@@ -92,7 +92,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" NOT LIKE %$1% AND "age" < $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE %$1% AND age < $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 31]);
     });
@@ -110,7 +110,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" NOT LIKE %$1% AND "age" = $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE %$1% AND age = $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -128,7 +128,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" NOT LIKE %$1% AND "age" <> $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE %$1% AND age <> $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 31]);
     });
@@ -146,7 +146,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" NOT LIKE %$1% AND "age" IN ($2,$3,$4) ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE %$1% AND age IN ($2,$3,$4) ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30, 31, 32]);
     });
@@ -164,7 +164,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" IS $1 AND "age" IS $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name IS $1 AND age IS $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -182,7 +182,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" IS NOT $1 AND "age" IS NOT $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name IS NOT $1 AND age IS NOT $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -200,7 +200,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" IS NOT $1 AND "age" < $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name IS NOT $1 AND age < $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -218,7 +218,7 @@ describe('filter', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "name" IS NOT $1 AND "age" > $2 ORDER BY "name" ASC LIMIT 10 OFFSET 0'
+            ' WHERE name IS NOT $1 AND age > $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
         expect(args).toEqual(['John', 30]);
     });
@@ -247,7 +247,7 @@ describe('filter', () => {
 
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
-        expect(filterClause).toBe(' WHERE "status" = $1');
+        expect(filterClause).toBe(' WHERE status = $1');
         expect(args).toEqual(['active']);
     });
 
@@ -262,7 +262,7 @@ describe('filter', () => {
 
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
-        expect(filterClause).toBe(' ORDER BY "name" ASC LIMIT 10 OFFSET 0');
+        expect(filterClause).toBe(' ORDER BY name ASC LIMIT 10 OFFSET 0');
         expect(args).toEqual([]);
     });
 
@@ -275,7 +275,20 @@ describe('filter', () => {
 
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
-        expect(filterClause).toBe(' ORDER BY "name" ASC LIMIT 100 OFFSET 20');
+        expect(filterClause).toBe(' ORDER BY name ASC LIMIT 100 OFFSET 20');
+        expect(args).toEqual([]);
+    });
+
+    it('should handle order by only', () => {
+        const first = 0;
+        const rows = 0;
+        const sortField = 'name';
+        const sortOrder = null;
+        const filters = null;
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' ORDER BY name ASC');
         expect(args).toEqual([]);
     });
 

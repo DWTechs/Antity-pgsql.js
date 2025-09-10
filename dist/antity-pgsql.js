@@ -25,7 +25,7 @@ https://github.com/DWTechs/Antity-pgsql.js
 */
 
 import { isIn, isArray, isString } from '@dwtechs/checkard';
-import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
+import { deleteProps, add as add$1, chunk, flatten } from '@dwtechs/sparray';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
 import Pool from 'pg-pool';
@@ -54,6 +54,8 @@ function type(type) {
         case "jwt":
             return s;
         case "symbol":
+            return s;
+        case "password":
             return s;
         case "email":
             return s;
@@ -127,8 +129,8 @@ function execute$1(query, args, clt) {
     return client
         .query(query, args)
         .then((res) => {
-        perf.end(res, time);
         deleteIdleProperties(res);
+        perf.end(res, time);
         return res;
     })
         .catch((err) => {
@@ -144,6 +146,27 @@ function deleteIdleProperties(res) {
     res._types = undefined;
     res.RowCtor = undefined;
     res.rowAsArray = undefined;
+    res._prebuiltEmptyResultObject = undefined;
+}
+
+const reserved = [
+    'all', 'analyse', 'analyze', 'and', 'any', 'array', 'as', 'asc', 'asymmetric',
+    'authorization', 'between', 'binary', 'both', 'case', 'cast', 'check', 'collate',
+    'column', 'constraint', 'create', 'cross', 'current_catalog', 'current_date',
+    'current_role', 'current_schema', 'current_time', 'current_timestamp', 'current_user',
+    'default', 'deferrable', 'desc', 'distinct', 'do', 'else', 'end', 'except', 'false',
+    'fetch', 'for', 'foreign', 'from', 'full', 'grant', 'group', 'having', 'ilike', 'in',
+    'initially', 'inner', 'intersect', 'into', 'is', 'isnull', 'join', 'lateral', 'leading',
+    'left', 'like', 'limit', 'localtime', 'localtimestamp', 'natural', 'not', 'notnull',
+    'null', 'offset', 'on', 'only', 'or', 'order', 'outer', 'overlaps', 'placing', 'primary',
+    'references', 'returning', 'right', 'select', 'session_user', 'similar', 'some', 'symmetric',
+    'table', 'tablesample', 'then', 'to', 'trailing', 'true', 'union', 'unique', 'user', 'using',
+    'variadic', 'verbose', 'when', 'where', 'window', 'with'
+];
+function quoteIfUppercase(word) {
+    if (/[A-Z]/.test(word) || reserved.includes(word.toLowerCase()))
+        return `"${word}"`;
+    return word;
 }
 
 class Select {
@@ -153,7 +176,7 @@ class Select {
         this._count = ", COUNT(*) OVER () AS total";
     }
     addProp(prop) {
-        this._props.push(prop);
+        this._props.push(quoteIfUppercase(prop));
         this._cols = this._props.join(", ");
     }
     get props() {
@@ -162,7 +185,7 @@ class Select {
     query(table, paginate) {
         const p = paginate ? this._count : '';
         const c = this._cols ? this._cols : '*';
-        return `SELECT ${c}${p} FROM "${table}"`;
+        return `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
     }
     execute(query, args, client) {
         return execute$1(query, args, client)
@@ -190,15 +213,15 @@ class Insert {
         this._nbProps = 2;
     }
     addProp(prop) {
-        this._props.splice(this._props.length - 2, 0, prop);
+        this._props = add$1(this._props, quoteIfUppercase(prop), this._props.length - 2);
         this._cols = this._props.join(", ");
         this._nbProps++;
     }
-    query(table, chunk, consumerId, consumerName, rtn = "") {
-        let query = `INSERT INTO "${table}" (${this._cols}) VALUES `;
+    query(table, rows, consumerId, consumerName, rtn = "") {
+        let query = `INSERT INTO ${quoteIfUppercase(table)} (${this._cols}) VALUES `;
         const args = [];
         let i = 0;
-        for (const row of chunk) {
+        for (const row of rows) {
             row.consumerId = consumerId;
             row.consumerName = consumerName;
             query += `${$i(this._nbProps, i)}, `;
@@ -234,25 +257,26 @@ class Update {
         this._props = ["consumerId", "consumerName"];
     }
     addProp(prop) {
-        this._props.splice(this._props.length - 2, 0, prop);
+        this._props = add$1(this._props, quoteIfUppercase(prop), this._props.length - 2);
     }
-    query(table, chunk, consumerId, consumerName) {
-        chunk = this.addConsumer(chunk, consumerId, consumerName);
-        const args = chunk.map(row => row.id);
-        let query = `UPDATE "${table}" SET `;
+    query(table, rows, consumerId, consumerName) {
+        rows = this.addConsumer(rows, consumerId, consumerName);
+        const l = rows.length;
+        const args = rows.map(row => row.id);
+        let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
         let i = args.length + 1;
         for (const p of this._props) {
-            if (chunk[0][p] === undefined)
+            if (rows[0][p] === undefined)
                 continue;
             query += `${p} = CASE `;
-            for (let j = 0; j < chunk.length; j++) {
-                const row = chunk[j];
+            for (let j = 0; j < l; j++) {
+                const row = rows[j];
                 query += `WHEN id = $${j + 1} THEN $${i++} `;
                 args.push(row[p]);
             }
             query += `END, `;
         }
-        query = `${query.slice(0, -2)} WHERE id IN ${$i(chunk.length, 0)}`;
+        query = `${query.slice(0, -2)} WHERE id IN ${$i(l, 0)}`;
         return { query, args };
     }
     execute(query, args, client) {
@@ -276,7 +300,7 @@ var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _argu
     });
 };
 function query(table) {
-    return `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
+    return `DELETE FROM ${quoteIfUppercase(table)} WHERE "archivedAt" < $1`;
 }
 function execute(date, query, client) {
     return __awaiter$1(this, void 0, void 0, function* () {
@@ -367,7 +391,7 @@ function add(filters) {
     return { conditions, args };
 }
 function addOne(key, indexes, matchMode) {
-    const sqlKey = `\"${key}\"`;
+    const sqlKey = `${quoteIfUppercase(key)}`;
     const comparator$1 = comparator(matchMode);
     const index$1 = index(indexes, matchMode);
     return comparator$1 ? `${sqlKey} ${comparator$1} ${index$1}` : "";
@@ -389,7 +413,8 @@ function where(conditions, operator = "AND") {
 function orderBy(sortField, sortOrder) {
     if (!sortField)
         return "";
-    return ` ORDER BY "${sortField}" ${sortOrder}`;
+    const o = sortOrder || "ASC";
+    return ` ORDER BY ${quoteIfUppercase(sortField)} ${o}`;
 }
 function limit(rows, first) {
     return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
@@ -414,11 +439,11 @@ class SQLEntity extends Entity {
             select: (paginate) => {
                 return this.sel.query(this.table, paginate);
             },
-            update: (chunk, consumerId, consumerName) => {
-                return this.upd.query(this.table, chunk, consumerId, consumerName);
+            update: (rows, consumerId, consumerName) => {
+                return this.upd.query(this.table, rows, consumerId, consumerName);
             },
-            insert: (chunk, consumerId, consumerName, rtn = "") => {
-                return this.ins.query(this.table, chunk, consumerId, consumerName, rtn);
+            insert: (rows, consumerId, consumerName, rtn = "") => {
+                return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
             },
             delete: () => {
                 return query(this.table);
@@ -427,45 +452,31 @@ class SQLEntity extends Entity {
                 return this.ins.rtn(prop);
             }
         };
-        this._table = name;
-        for (const p of properties) {
-            this.mapProps(p.methods, p.key);
-        }
-    }
-    get table() {
-        return this._table;
-    }
-    set table(table) {
-        if (!isString(table, "!0"))
-            throw new Error('table must be a string of length > 0');
-        this._table = table;
-    }
-    get(req, res, next) {
-        var _a;
-        const l = res.locals;
-        const b = req.body;
-        const first = (_a = b === null || b === void 0 ? void 0 : b.first) !== null && _a !== void 0 ? _a : 0;
-        const rows = b.rows || null;
-        const sortField = b.sortField || null;
-        const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-        const filters = this.cleanFilters(b.filters) || null;
-        const pagination = b.pagination || false;
-        const dbClient = l.dbClient || null;
-        log.debug(`get(first='${first}', rows='${rows}', 
+        this.get = (req, res, next) => {
+            var _a;
+            const l = res.locals;
+            const b = req.body;
+            const first = (_a = b === null || b === void 0 ? void 0 : b.first) !== null && _a !== void 0 ? _a : 0;
+            const rows = b.rows || null;
+            const sortField = b.sortField || null;
+            const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
+            const filters = this.cleanFilters(b.filters) || null;
+            const pagination = b.pagination || false;
+            const dbClient = l.dbClient || null;
+            log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-        const q = this.sel.query(this._table, pagination) + filterClause;
-        this.sel.execute(q, args, dbClient)
-            .then((r) => {
-            l.rows = r.rows;
-            l.total = r.total;
-            next();
-        })
-            .catch((err) => next(err));
-    }
-    add(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
+            const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+            const q = this.sel.query(this._table, pagination) + filterClause;
+            this.sel.execute(q, args, dbClient)
+                .then((r) => {
+                l.rows = r.rows;
+                l.total = r.total;
+                next();
+            })
+                .catch((err) => next(err));
+        };
+        this.add = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
             const rows = req.body.rows;
             const dbClient = l.dbClient || null;
@@ -491,9 +502,7 @@ class SQLEntity extends Entity {
             l.rows = flatten(chunks);
             next();
         });
-    }
-    update(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.update = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
             const rows = req.body.rows;
             const dbClient = l.dbClient || null;
@@ -512,9 +521,7 @@ class SQLEntity extends Entity {
             }
             next();
         });
-    }
-    archive(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.archive = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
             let rows = req.body.rows;
             const dbClient = l.dbClient || null;
@@ -534,15 +541,27 @@ class SQLEntity extends Entity {
             }
             next();
         });
+        this.delete = (req, res, next) => {
+            const date = req.body.date;
+            const dbClient = res.locals.dbClient || null;
+            log.debug(`delete archived`);
+            const q = query(this._table);
+            execute(date, q, dbClient)
+                .then(() => next())
+                .catch((err) => next(err));
+        };
+        this._table = name;
+        for (const p of properties) {
+            this.mapProps(p.methods, p.key);
+        }
     }
-    delete(req, res, next) {
-        const date = req.body.date;
-        const dbClient = res.locals.dbClient || null;
-        log.debug(`delete archived`);
-        const q = query(this._table);
-        execute(date, q, dbClient)
-            .then(() => next())
-            .catch((err) => next(err));
+    get table() {
+        return this._table;
+    }
+    set table(table) {
+        if (!isString(table, "!0"))
+            throw new Error('table must be a string of length > 0');
+        this._table = table;
     }
     cleanFilters(filters) {
         for (const k in filters) {
@@ -584,4 +603,4 @@ class SQLEntity extends Entity {
     }
 }
 
-export { SQLEntity, filter };
+export { SQLEntity, execute$1 as execute, filter };

@@ -38,7 +38,7 @@ describe("query function", () => {
 
   it("should generate a valid SQL DELETE query with given table", () => {
     const result = entity.query.delete(); // Changed from update() to delete()
-    expect(result).toBe("DELETE FROM \"persons\" WHERE \"archivedAt\" < $1");
+    expect(result).toBe("DELETE FROM persons WHERE \"archivedAt\" < $1");
   });
 
 });

@@ -1,5 +1,6 @@
 import { mapIndexes } from "./map/index";
 import { mapComparator } from "./map/comparator";
+import { quoteIfUppercase } from "../crud/quote";
 import type { MatchMode, Filters, Filter } from "../types";
 import { isArray } from "@dwtechs/checkard";
 
@@ -32,7 +33,7 @@ function addOne(
   indexes: number[],
   matchMode: MatchMode | undefined 
 ): string { 
-  const sqlKey = `\"${key}\"`; // escaped property name for sql query
+  const sqlKey = `${quoteIfUppercase(key)}`; // escaped property name for sql query
   const comparator = mapComparator(matchMode);
   const index = mapIndexes(indexes, matchMode);
   return comparator ? `${sqlKey} ${comparator} ${index}` : "";

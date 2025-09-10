@@ -1,5 +1,5 @@
 import { isString } from '@dwtechs/checkard';
-import { arrayChunk, arrayFlatten } from "@dwtechs/sparray";
+import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity, Property, Method } from "@dwtechs/antity";
 import * as map from "./map";
@@ -66,17 +66,17 @@ export class SQLEntity extends Entity {
     return: (prop: string): string => {
       return this.ins.rtn(prop);
     }
-  }
+  };
 
-  public get( req: Request, res: Response, next: NextFunction ): void {
+  public get = ( req: Request, res: Response, next: NextFunction ): void => {
     const l = res.locals;
     const b = req.body;
-    const first = b?.first ?? 0;
-    const rows = b.rows || null;
-    const sortField = b.sortField || null;
-    const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters = this.cleanFilters(b.filters) || null;
-    const pagination = b.pagination || false;
+    const first: number = b?.first ?? 0;
+    const rows: number | null = b.rows || null;
+    const sortField: string | null = b.sortField || null;
+    const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
+    const filters: Filters | null = this.cleanFilters(b.filters) || null;
+    const pagination: boolean = b.pagination || false;
     const dbClient = l.dbClient || null;
 
     log.debug(
@@ -94,10 +94,9 @@ export class SQLEntity extends Entity {
         next();
       })
       .catch((err: Error) => next(err));
-
   }
 
-  public async add( req: Request, res: Response, next: NextFunction ): Promise<void> {
+  public add = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
@@ -107,7 +106,7 @@ export class SQLEntity extends Entity {
     log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
      
     const rtn = this.ins.rtn("id");
-    const chunks = arrayChunk(rows);
+    const chunks = chunk(rows);
     for (const c of chunks) {
       const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
       let db: PGResponse;
@@ -122,11 +121,11 @@ export class SQLEntity extends Entity {
         c[i].id = r[i].id;
       }
     }
-    l.rows = arrayFlatten(chunks);
+    l.rows = flatten(chunks);
     next();
   }
 
-  public async update( req: Request, res: Response, next: NextFunction ): Promise<void> {
+  public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
@@ -135,7 +134,7 @@ export class SQLEntity extends Entity {
     
     log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
 
-    const chunks = arrayChunk(rows);
+    const chunks = chunk(rows);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._table, c, cId, cName);
       try {
@@ -147,7 +146,7 @@ export class SQLEntity extends Entity {
     next();
   }
 
-  public async archive( req: Request, res: Response, next: NextFunction ): Promise<void> { // Changed to Promise<void>
+  public archive = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => { 
     const l = res.locals;
     let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
@@ -162,7 +161,7 @@ export class SQLEntity extends Entity {
       archived: true,
     }));
 
-    const chunks = arrayChunk(rows);
+    const chunks = chunk(rows);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._table, c, cId, cName);
       try {
@@ -175,7 +174,7 @@ export class SQLEntity extends Entity {
 
   }
 
-  public delete( req: Request, res: Response, next: NextFunction ): void {
+  public delete = ( req: Request, res: Response, next: NextFunction ): void => {
     const date = req.body.date;
     const dbClient = res.locals.dbClient || null;
     
@@ -186,6 +185,36 @@ export class SQLEntity extends Entity {
       .catch((err: Error) => next(err));
   }
 
+  /**
+ * Validates and sanitizes filter criteria by removing invalid properties and incompatible match modes.
+ * 
+ * This method performs the following validations:
+ * - Checks if each filter property exists in the entity's property definitions
+ * - Verifies that the match mode is compatible with the SQL data type of the property
+ * - Removes any filters that fail validation and logs warnings
+ * 
+ * @private
+ * @param {Filters} filters - The filter object containing property names as keys and filter criteria as values
+ * @returns {Filters} A sanitized filter object with only valid filters remaining
+ * 
+ * @example
+ * ```typescript
+ * const filters = {
+ *   name: { matchMode: 'contains', value: 'John' },
+ *   age: { matchMode: 'equals', value: 25 },
+ *   invalidProp: { matchMode: 'contains', value: 'test' } // Will be removed
+ * };
+ * 
+ * const cleanedFilters = this.cleanFilters(filters);
+ * // Result: { name: { matchMode: 'contains', value: 'John' }, age: { matchMode: 'equals', value: 25 } }
+ * ```
+ * 
+ * @throws {void} Does not throw errors but logs warnings for invalid filters
+ * 
+ * @see {@link map.type} - For SQL type mapping
+ * @see {@link check.matchMode} - For match mode validation
+ * @see {@link Entity.getProp} - For property retrieval from parent class
+ */
   private cleanFilters(filters: Filters): Filters {
     for (const k in filters) {
       if (filters.hasOwnProperty(k)) {
@@ -230,63 +259,3 @@ export class SQLEntity extends Entity {
     }
   }
 }
-
-
-
-// /**
-//  * Updates a table with the given queries and arguments.
-//  *
-//  * @param {string} table - The name of the table to update.
-//  * @param {Array<string>} queries - An array of update queries to execute.
-//  * @param {Array} args - The arguments for the update queries.
-//  * @param {Object} client - The PostgreSQL client object (optional).
-//  * @return {Promise} A promise that resolves with the result of the update queries.
-//  */
-// function update(table: string, queries: string[], args: string[], client: any): Promise<any> {
-//   let query = "";
-//   for (const q of queries) {
-//     query += `UPDATE "${table}" SET ${q};`;
-//   }
-//   return execute(query, args, client);
-// }
-
-// /**
-//  * Deletes rows from a table based on the provided IDs.
-//  *
-//  * @param {string} table - The name of the table from which to delete rows.
-//  * @param {Array} args - An array of IDs used to identify rows to delete.
-//  * @param {Object} client - The PostgreSQL client object (optional).
-//  * @return {Promise} A promise that resolves with the result of the delete operation.
-//  */
-// function deleteIds(table: string, args: string[], client: any): Promise<any> {
-//   const query = `DELETE FROM "${table}" WHERE id IN ${generateQueryPlaceholders(
-//     args.length,
-//   )}`;
-//   return execute(query, args, client);
-// }
-
-// /**
-//  * Deletes item from the specified table based on the provided id.
-//  *
-//  * @param {string} table - The name of the table from which to delete rows.
-//  * @param {integer} id - The id used to identify rows to delete.
-//  * @param {Object} client - The PostgreSQL client object (optional).
-//  * @return {Promise} A promise that resolves with the result of the delete operation.
-//  */
-// function deleteOne(table: string, id: number, client: any) {
-//   const query = `DELETE FROM "${table}" WHERE id = $1`;
-//   return execute(query, [id], client);
-// }
-
-// /**
-//  * Deletes old items from the specified table based on the provided date.
-//  *
-//  * @param {string} table - The name of the table from which to delete rows.
-//  * @param {Date} date - The date used to identify old items to delete.
-//  * @param {Object} client - The PostgreSQL client object (optional).
-//  * @return {Promise} A promise that resolves with the result of the delete operation.
-//  */
-// function deleteOld(table: string, date: number, client: any) {
-//   const query = `DELETE FROM "${table}" WHERE "archivedAt" < $1`;
-//   return execute(query, [date], client);
-// }
