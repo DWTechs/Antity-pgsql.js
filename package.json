@@ -38,7 +38,7 @@
   "dependencies": {
     "@dwtechs/checkard": "3.5.1",
     "@dwtechs/winstan": "0.4.0",
-    "@dwtechs/antity": "0.11.2",
+    "@dwtechs/antity": "0.12.0",
     "@dwtechs/sparray": "0.2.1",
     "pg": "8.13.1"
   },
