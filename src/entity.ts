@@ -10,6 +10,7 @@ import { Update } from "./crud/update";
 import * as del from "./crud/delete";
 import { filter } from "./filter/filter";
 import { execute } from "./crud/execute";
+import { LOGS_PREFIX } from './constants';  
 import type { PGResponse, Filters } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
@@ -37,7 +38,7 @@ export class SQLEntity extends Entity {
 
   public set table(table: string) {
     if (!isString(table, "!0"))
-      throw new Error('table must be a string of length > 0');
+      throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
     this._table = table;
   }
 
@@ -103,7 +104,7 @@ export class SQLEntity extends Entity {
     const cId = l.consumerId;
     const cName = l.consumerName;
     
-    log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(`${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
      
     const rtn = this.ins.rtn("id");
     const chunks = chunk(rows);
@@ -132,7 +133,7 @@ export class SQLEntity extends Entity {
     const cId = l.consumerId;
     const cName = l.consumerName;
     
-    log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(`${LOGS_PREFIX}update(rows=${rows.length}, consumerId=${cId})`);
 
     const chunks = chunk(rows);
     for (const c of chunks) {
@@ -153,7 +154,7 @@ export class SQLEntity extends Entity {
     const cId = l.consumerId;
     const cName = l.consumerName;
     
-    log.debug(`archive(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(`${LOGS_PREFIX}archive(rows=${rows.length}, consumerId=${cId})`);
 
     // Add archived value
     rows = rows.map((id: Record<string, unknown>) => ({
@@ -178,7 +179,7 @@ export class SQLEntity extends Entity {
     const date = req.body.date;
     const dbClient = res.locals.dbClient || null;
     
-    log.debug(`delete archived`);
+    log.debug(`${LOGS_PREFIX}delete archived`);
     const q = del.query(this._table);
     del.execute( date, q, dbClient)
       .then(() => next())
@@ -220,7 +221,7 @@ export class SQLEntity extends Entity {
       if (filters.hasOwnProperty(k)) {
         const prop = this.getProp(k);
         if (!prop) {
-          log.warn(`Filters: skipping unknown property: ${k}`);
+          log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
           delete filters[k];
           continue;
         }
@@ -229,7 +230,7 @@ export class SQLEntity extends Entity {
         const { /*subProps, */matchMode } = filters[k];
 
         if (!matchMode || !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
-          log.warn(`Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
+          log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
           delete filters[k];
           continue;
         }
