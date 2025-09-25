@@ -1,7 +1,8 @@
 import { isString } from '@dwtechs/checkard';
 import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
-import { Entity, Property, Method } from "@dwtechs/antity";
+import { Entity, Method } from "@dwtechs/antity";
+import { Property } from './property';
 import * as map from "./map";
 import * as check from "./check";
 import { Select } from "./crud/select";

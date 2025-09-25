@@ -1,6 +1,6 @@
+import type { OPERATIONS } from "./constants";
 
-export type Operation = "SELECT" | "INSERT" | "UPDATE" | /*"MERGE" | */"DELETE";
-
+export type Operation = typeof OPERATIONS[number];
 export type Sort = "ASC" | "DESC";
 
 export type Filters = {

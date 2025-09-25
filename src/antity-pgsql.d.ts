@@ -1,5 +1,6 @@
-import { Entity, Property } from "@dwtechs/antity";
+import { Entity } from "@dwtechs/antity";
 import { Type } from "@dwtechs/antity";
+import { Property } from './property';
 import type { Request, Response, NextFunction } from 'express';
 
 export type Operation = "SELECT" | "INSERT" | "UPDATE" | "DELETE";

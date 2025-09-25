@@ -1,5 +1,5 @@
 import { log } from "@dwtechs/winstan";
-import { LOGS_PREFIX } from "../constant";
+import { LOGS_PREFIX } from "../constants";
 import type { Filter, PGResponse } from "../types";
 
 function start(query: string, args: (Filter["value"])[]): number {

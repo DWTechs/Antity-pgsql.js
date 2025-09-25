@@ -53,6 +53,7 @@ const entity = new Entity("consumers", [
     max: 120,
     typeCheck: true,
     methods: ["GET", "PUT", "DELETE"],
+    operations: ["select", "update", "delete"],
     required: true,
     safe: true,
     sanitize: true,
@@ -69,6 +70,7 @@ const entity = new Entity("consumers", [
     max: 255,
     typeCheck: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
+    operations: ["select", "update", "delete"],
     required: true,
     safe: true,
     sanitize: true,
@@ -85,6 +87,7 @@ const entity = new Entity("consumers", [
     max: 255,
     typeCheck: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
+    operations: ["select", "update", "delete"],
     required: true,
     safe: true,
     sanitize: true,
@@ -101,6 +104,7 @@ const entity = new Entity("consumers", [
     max: 255,
     typeCheck: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
+    operations: ["select", "update", "delete"],
     required: true,
     safe: true,
     sanitize: true,
@@ -272,6 +276,33 @@ List of secondary types :
 | node               | string     |
 | json               | object     |
 | object             | object     |
+
+
+## Available options for a property
+
+Any of these can be passed into the options object for each function.
+
+| Name            | Type                      |               Description                         |  Default value  |  
+| :-------------- | :------------------------ | :------------------------------------------------ | :-------------- |
+| key             |  string                   | Name of the property                              |
+| type            |  Type                     | Type of the property                              |
+| min             |  number \| Date           | Minimum value                                     | 0 \| 1900-01-01
+| max             |  number \| Date           | Maximum value                                     | 999999999 \| 2200-12-31
+| required        |  boolean                  | Is this property required on insert               | false
+| safe            |  boolean                  | Is this property safe to send to the client       | true
+| typeCheck       |  boolean                  | Type is checked if true                           | false
+| methods         |  Method[]                 | REST methods for the property                     | [ "GET", "POST", "PUT", "DELETE" ]
+| operations      |  Operation[]              | SQL DML operations for the property               | [ "select", "insert", "update", "merge", "delete" ]
+| sanitize        |  boolean                  | Sanitize the property if true                     | true
+| normalize       |  boolean                  | Normalize the property if true                    | false
+| validate        |  boolean                  | validate the property if true                     | true
+| sanitizer       |  ((v:any) => any) \| null | Sanitizer function if sanitize is true            | null
+| normalizer      |  ((v:any) => any) \| null | Normalizer function if normalize is true          | null
+| validator       |  ((v:any, min:number, max:number, typeCheck:boolean) => any) \| null  | validator function if validate is true            | null
+
+* *Min and max parameters are not used for boolean type*
+* *TypeCheck Parameter is not used for boolean, string and array types*
+
 
 ## Contributors
 
