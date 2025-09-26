@@ -1,8 +1,10 @@
 
-import { Property as BaseProperty } from '@dwtechs/Antity.js';
-import type { Type, Method, Operation } from '@dwtechs/Antity.js';
+import { Property as BaseProperty } from '@dwtechs/antity';
+import type { Type, Method } from '@dwtechs/antity';
+import type { Operation } from './types';
 
 export class Property extends BaseProperty {
+  filter: boolean;
   operations: Operation[];
 
   constructor(
@@ -13,6 +15,7 @@ export class Property extends BaseProperty {
     required: boolean,
     safe: boolean,
     typeCheck: boolean,
+    filter: boolean,
     methods: Method[],
     operations: Operation[] = [],
     sanitize: boolean,
@@ -38,6 +41,7 @@ export class Property extends BaseProperty {
       normalizer,
       validator
     );
+    this.filter = filter;
     this.operations = operations;
   }
 }

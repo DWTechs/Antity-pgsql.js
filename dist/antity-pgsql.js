@@ -24,78 +24,11 @@ SOFTWARE.
 https://github.com/DWTechs/Antity-pgsql.js
 */
 
-import { isIn, isArray, isString } from '@dwtechs/checkard';
+import { isArray, isIn, isString } from '@dwtechs/checkard';
 import { deleteProps, add as add$1, chunk, flatten } from '@dwtechs/sparray';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
 import Pool from 'pg-pool';
-
-function type(type) {
-    const s = "string";
-    const n = "number";
-    const d = "date";
-    switch (type) {
-        case "integer":
-            return n;
-        case "float":
-            return n;
-        case "even":
-            return n;
-        case "odd":
-            return n;
-        case "positive":
-            return n;
-        case "negative":
-            return n;
-        case "powerOfTwo":
-            return n;
-        case "ascii":
-            return n;
-        case "jwt":
-            return s;
-        case "symbol":
-            return s;
-        case "password":
-            return s;
-        case "email":
-            return s;
-        case "regex":
-            return s;
-        case "ipAddress":
-            return s;
-        case "slug":
-            return s;
-        case "hexadecimal":
-            return s;
-        case "date":
-            return d;
-        case "timestamp":
-            return d;
-        case "function":
-            return s;
-        case "htmlElement":
-            return s;
-        case "htmlEventAttribute":
-            return s;
-        case "node":
-            return s;
-        case "json":
-            return s;
-        case "object":
-            return s;
-        default:
-            return s;
-    }
-}
-
-const matchModes = {
-    string: ["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte"],
-    number: ["equals", "notEquals", "lt", "lte", "gt", "gte"],
-    date: ["is", "isNot", "dateAfter"],
-};
-function matchMode(type, matchMode) {
-    return isIn(matchModes[type], matchMode);
-}
 
 const { DB_HOST, DB_USER, DB_PWD, DB_NAME, DB_PORT, DB_MAX } = process.env;
 var pool = new Pool({
@@ -107,10 +40,12 @@ var pool = new Pool({
     max: DB_MAX ? +DB_MAX : 10,
 });
 
+const LOGS_PREFIX = '[Antity-PGSQL] ';
+
 function start(query, args) {
     const a = JSON.stringify(args);
     const q = query.replace(/[\n\r]+/g, "").replace(/\s{2,}/g, " ");
-    log.debug(`Pgsql: { Query : '${q}', Args : '${a}' }`);
+    log.debug(`${LOGS_PREFIX}Pgsql: { Query : '${q}', Args : '${a}' }`);
     return Date.now();
 }
 function end(res, time) {
@@ -420,6 +355,99 @@ function limit(rows, first) {
     return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
 }
 
+function type(type) {
+    const s = "string";
+    const n = "number";
+    const d = "date";
+    switch (type) {
+        case "integer":
+            return n;
+        case "float":
+            return n;
+        case "even":
+            return n;
+        case "odd":
+            return n;
+        case "positive":
+            return n;
+        case "negative":
+            return n;
+        case "powerOfTwo":
+            return n;
+        case "ascii":
+            return n;
+        case "jwt":
+            return s;
+        case "symbol":
+            return s;
+        case "password":
+            return s;
+        case "email":
+            return s;
+        case "regex":
+            return s;
+        case "ipAddress":
+            return s;
+        case "slug":
+            return s;
+        case "hexadecimal":
+            return s;
+        case "date":
+            return d;
+        case "timestamp":
+            return d;
+        case "function":
+            return s;
+        case "htmlElement":
+            return s;
+        case "htmlEventAttribute":
+            return s;
+        case "node":
+            return s;
+        case "json":
+            return s;
+        case "object":
+            return s;
+        default:
+            return s;
+    }
+}
+
+const matchModes = {
+    string: ["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte"],
+    number: ["equals", "notEquals", "lt", "lte", "gt", "gte"],
+    date: ["is", "isNot", "dateAfter"],
+};
+function matchMode(type, matchMode) {
+    return isIn(matchModes[type], matchMode);
+}
+
+function cleanFilters(filters, getProp) {
+    for (const k in filters) {
+        if (filters.hasOwnProperty(k)) {
+            const prop = getProp(k);
+            if (!prop) {
+                log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
+                delete filters[k];
+                continue;
+            }
+            if (!prop.filter) {
+                log.warn(`${LOGS_PREFIX}Filters: skipping unfilterable property: ${k}`);
+                delete filters[k];
+                continue;
+            }
+            const type$1 = type(prop.type);
+            const { matchMode: matchMode$1 } = filters[k];
+            if (!matchMode$1 || !matchMode(type$1, matchMode$1)) {
+                log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode$1}" for type: "${type$1}" at property: "${k}"`);
+                delete filters[k];
+                continue;
+            }
+        }
+    }
+    return filters;
+}
+
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -460,7 +488,7 @@ class SQLEntity extends Entity {
             const rows = b.rows || null;
             const sortField = b.sortField || null;
             const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-            const filters = this.cleanFilters(b.filters) || null;
+            const filters = cleanFilters(b.filters, this.getProp.bind(this)) || null;
             const pagination = b.pagination || false;
             const dbClient = l.dbClient || null;
             log.debug(`get(first='${first}', rows='${rows}', 
@@ -482,7 +510,7 @@ class SQLEntity extends Entity {
             const dbClient = l.dbClient || null;
             const cId = l.consumerId;
             const cName = l.consumerName;
-            log.debug(`addMany(rows=${rows.length}, consumerId=${cId})`);
+            log.debug(`${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
             const rtn = this.ins.rtn("id");
             const chunks = chunk(rows);
             for (const c of chunks) {
@@ -508,7 +536,7 @@ class SQLEntity extends Entity {
             const dbClient = l.dbClient || null;
             const cId = l.consumerId;
             const cName = l.consumerName;
-            log.debug(`update(rows=${rows.length}, consumerId=${cId})`);
+            log.debug(`${LOGS_PREFIX}update(rows=${rows.length}, consumerId=${cId})`);
             const chunks = chunk(rows);
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._table, c, cId, cName);
@@ -527,7 +555,7 @@ class SQLEntity extends Entity {
             const dbClient = l.dbClient || null;
             const cId = l.consumerId;
             const cName = l.consumerName;
-            log.debug(`archive(rows=${rows.length}, consumerId=${cId})`);
+            log.debug(`${LOGS_PREFIX}archive(rows=${rows.length}, consumerId=${cId})`);
             rows = rows.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
             const chunks = chunk(rows);
             for (const c of chunks) {
@@ -544,7 +572,7 @@ class SQLEntity extends Entity {
         this.delete = (req, res, next) => {
             const date = req.body.date;
             const dbClient = res.locals.dbClient || null;
-            log.debug(`delete archived`);
+            log.debug(`${LOGS_PREFIX}delete archived`);
             const q = query(this._table);
             execute(date, q, dbClient)
                 .then(() => next())
@@ -560,28 +588,8 @@ class SQLEntity extends Entity {
     }
     set table(table) {
         if (!isString(table, "!0"))
-            throw new Error('table must be a string of length > 0');
+            throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
         this._table = table;
-    }
-    cleanFilters(filters) {
-        for (const k in filters) {
-            if (filters.hasOwnProperty(k)) {
-                const prop = this.getProp(k);
-                if (!prop) {
-                    log.warn(`Filters: skipping unknown property: ${k}`);
-                    delete filters[k];
-                    continue;
-                }
-                const type$1 = type(prop.type);
-                const { matchMode: matchMode$1 } = filters[k];
-                if (!matchMode$1 || !matchMode(type$1, matchMode$1)) {
-                    log.warn(`Filters: skipping invalid match mode: "${matchMode$1}" for type: "${type$1}" at property: "${k}"`);
-                    delete filters[k];
-                    continue;
-                }
-            }
-        }
-        return filters;
     }
     mapProps(methods, key) {
         for (const m of methods) {

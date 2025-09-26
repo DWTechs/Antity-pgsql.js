@@ -8,6 +8,7 @@ import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
 import * as del from "./crud/delete";
 import { filter } from "./filter/filter";
+import { cleanFilters } from "./filter/clean";
 import { execute } from "./crud/execute";
 import { LOGS_PREFIX } from './constants';  
 import type { PGResponse, Filters } from "./types";
@@ -75,7 +76,7 @@ export class SQLEntity extends Entity {
     const rows: number | null = b.rows || null;
     const sortField: string | null = b.sortField || null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters: Filters | null = this.cleanFilters(b.filters) || null;
+    const filters: Filters | null = cleanFilters(b.filters, this.getProp.bind(this)) || null;
     const pagination: boolean = b.pagination || false;
     const dbClient = l.dbClient || null;
 

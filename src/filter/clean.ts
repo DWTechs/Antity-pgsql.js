@@ -1,5 +1,4 @@
 import { log } from "@dwtechs/winstan";
-import { isIn } from "@dwtechs/checkard";
 import * as map from "../map";
 import * as check from "../check";
 import type { Filters } from "../types";

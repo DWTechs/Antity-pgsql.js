@@ -54,7 +54,7 @@ const entity = new Entity("consumers", [
     typeCheck: true,
     filter: true,
     methods: ["GET", "PUT", "DELETE"],
-    operations: ["select", "update", "delete"],
+    operations: ["SELECT", "UPDATE", "DELETE"],
     required: true,
     safe: true,
     sanitize: true,
@@ -72,7 +72,7 @@ const entity = new Entity("consumers", [
     typeCheck: true,
     filter: false,
     methods: ["GET", "POST", "PUT", "DELETE"],
-    operations: ["select", "update", "delete"],
+    operations: ["SELECT", "UPDATE", "DELETE"],
     required: true,
     safe: true,
     sanitize: true,
@@ -90,7 +90,7 @@ const entity = new Entity("consumers", [
     typeCheck: true,
     filter: false,
     methods: ["GET", "POST", "PUT", "DELETE"],
-    operations: ["select", "update", "delete"],
+    operations: ["SELECT", "UPDATE", "DELETE"],
     required: true,
     safe: true,
     sanitize: true,
@@ -108,7 +108,7 @@ const entity = new Entity("consumers", [
     typeCheck: true,
     filter: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
-    operations: ["select", "update", "delete"],
+    operations: ["SELECT", "UPDATE", "DELETE"],
     required: true,
     safe: true,
     sanitize: true,
@@ -132,7 +132,7 @@ router.put("/", ..., entity.archive);
 
 ```javascript
 
-type Operation = "select" | "insert" | "update" | "merge" | "delete";
+type Operation = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
 
 type MatchMode =  
   "startsWith" | 
@@ -297,7 +297,7 @@ Any of these can be passed into the options object for each function.
 | typeCheck       |  boolean                  | Type is checked during validation                 | false
 | filter          |  boolean                  | property is filterable in a SELECT operation      | true
 | methods         |  Method[]                 | property is validated for the listed methods only | [ "GET", "POST", "PUT", "DELETE" ]
-| operations      |  Operation[]              | SQL DML operations for the property               | [ "select", "insert", "update", "merge", "delete" ]
+| operations      |  Operation[]              | SQL DML operations for the property               | [ "SELECT", "INSERT", "UPDATE", "DELETE" ]
 | sanitize        |  boolean                  | Sanitize the property if true                     | true
 | normalize       |  boolean                  | Normalize the property if true                    | false
 | validate        |  boolean                  | validate the property if true                     | true
