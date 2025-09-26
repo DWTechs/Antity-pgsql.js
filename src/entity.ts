@@ -3,8 +3,6 @@ import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity, Method } from "@dwtechs/antity";
 import { Property } from './property';
-import * as map from "./map";
-import * as check from "./check";
 import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
@@ -185,59 +183,6 @@ export class SQLEntity extends Entity {
     del.execute( date, q, dbClient)
       .then(() => next())
       .catch((err: Error) => next(err));
-  }
-
-  /**
- * Validates and sanitizes filter criteria by removing invalid properties and incompatible match modes.
- * 
- * This method performs the following validations:
- * - Checks if each filter property exists in the entity's property definitions
- * - Verifies that the match mode is compatible with the SQL data type of the property
- * - Removes any filters that fail validation and logs warnings
- * 
- * @private
- * @param {Filters} filters - The filter object containing property names as keys and filter criteria as values
- * @returns {Filters} A sanitized filter object with only valid filters remaining
- * 
- * @example
- * ```typescript
- * const filters = {
- *   name: { matchMode: 'contains', value: 'John' },
- *   age: { matchMode: 'equals', value: 25 },
- *   invalidProp: { matchMode: 'contains', value: 'test' } // Will be removed
- * };
- * 
- * const cleanedFilters = this.cleanFilters(filters);
- * // Result: { name: { matchMode: 'contains', value: 'John' }, age: { matchMode: 'equals', value: 25 } }
- * ```
- * 
- * @throws {void} Does not throw errors but logs warnings for invalid filters
- * 
- * @see {@link map.type} - For SQL type mapping
- * @see {@link check.matchMode} - For match mode validation
- * @see {@link Entity.getProp} - For property retrieval from parent class
- */
-  private cleanFilters(filters: Filters): Filters {
-    for (const k in filters) {
-      if (filters.hasOwnProperty(k)) {
-        const prop = this.getProp(k);
-        if (!prop) {
-          log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
-          delete filters[k];
-          continue;
-        }
-
-        const type = map.type(prop.type); // transform from entity type to valid sql filter type
-        const { /*subProps, */matchMode } = filters[k];
-
-        if (!matchMode || !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
-          log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
-          delete filters[k];
-          continue;
-        }
-      }
-    }
-    return filters;
   }
 
   private mapProps(methods: Method[], key: string): void {
