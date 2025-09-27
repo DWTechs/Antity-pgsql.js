@@ -1,6 +1,7 @@
 import { log } from "@dwtechs/winstan";
 import * as map from "../map";
 import * as check from "../check";
+import { Property } from '../property';
 import type { Filters } from "../types";
 import { LOGS_PREFIX } from '../constants';  
 
@@ -14,7 +15,7 @@ import { LOGS_PREFIX } from '../constants';
  * 
  * @private
  * @param {Filters} filters - The filter object containing property names as keys and filter criteria as values
- * @param {(key: string) => any} getProp - Function to retrieve property definition by key
+ * @param {Property[]} properties - Array of property definitions for the entity
  * @returns {Filters} A sanitized filter object with only valid filters remaining
  * 
  * @example
@@ -35,10 +36,10 @@ import { LOGS_PREFIX } from '../constants';
  * @see {@link check.matchMode} - For match mode validation
  * @see {@link Entity.getProp} - For property retrieval from parent class
  */
-function cleanFilters(filters: Filters, getProp: (key: string) => any): Filters {
+function cleanFilters(filters: Filters, properties: Property[]): Filters {
   for (const k in filters) {
     if (filters.hasOwnProperty(k)) {
-      const prop = getProp(k);
+      const prop = properties.find(p => p.key === k);
       if (!prop) {
         log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
         delete filters[k];

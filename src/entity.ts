@@ -1,7 +1,7 @@
 import { isString } from '@dwtechs/checkard';
 import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
-import { Entity, Method } from "@dwtechs/antity";
+import { Entity } from "@dwtechs/antity";
 import { Property } from './property';
 import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
@@ -11,7 +11,7 @@ import { filter } from "./filter/filter";
 import { cleanFilters } from "./filter/clean";
 import { execute } from "./crud/execute";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, Filters } from "./types";
+import type { PGResponse, Filters, Operation } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 export class SQLEntity extends Entity {
@@ -28,7 +28,7 @@ export class SQLEntity extends Entity {
     this._table = name;
     // properties is grouped by operation type, making it easy to retrieve and process later.
     for (const p of properties) {
-      this.mapProps(p.methods, p.key);
+      this.mapProps(p.operations, p.key);
     }
   }
 
@@ -76,7 +76,7 @@ export class SQLEntity extends Entity {
     const rows: number | null = b.rows || null;
     const sortField: string | null = b.sortField || null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters: Filters | null = cleanFilters(b.filters, this.getProp.bind(this)) || null;
+    const filters: Filters | null = cleanFilters(b.filters, this.properties as Property[]) || null;
     const pagination: boolean = b.pagination || false;
     const dbClient = l.dbClient || null;
 
@@ -186,19 +186,16 @@ export class SQLEntity extends Entity {
       .catch((err: Error) => next(err));
   }
 
-  private mapProps(methods: Method[], key: string): void {
-    for (const m of methods) {
-      switch (m) {
-        case "GET":
+  private mapProps(operations: Operation[], key: string): void {
+    for (const o of operations) {
+      switch (o) {
+        case "SELECT":
           this.sel.addProp(key);
           break;
-        case "PATCH":
+        case "UPDATE":
           this.upd.addProp(key);
           break;
-        case "PUT":
-          this.upd.addProp(key);
-          break;
-        case "POST":
+        case "INSERT":
           this.ins.addProp(key);
           break;
         default:
