@@ -2,6 +2,8 @@
   
 - Add filter property to make a property filterable in SELECT operations
 - Add Operations property to list SQL DML operations available for the property 
+- Update dependencies : 
+  - "@dwtechs/antity": "0.13.0",
 
 # 0.3.4 (Sep 10th 2025)
   
