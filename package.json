@@ -1,7 +1,7 @@
 {
   "name": "@dwtechs/antity-pgsql",
   "version": "0.3.4",
-  "description": "Open source library for easy entity management",
+  "description": "Open source library to add PostgreSQL support to @dwtechs/Antity entities.",
   "keywords": [
     "entities"
   ],

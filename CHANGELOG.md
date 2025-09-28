@@ -1,7 +1,7 @@
 # 0.4.0 (Sep 26th 2025)
   
-- Add filter property to make property filterable in SELECT operations
-- Add Operations property to list SQL DML operations for the property 
+- Add filter property to make a property filterable in SELECT operations
+- Add Operations property to list SQL DML operations available for the property 
 
 # 0.3.4 (Sep 10th 2025)
   
