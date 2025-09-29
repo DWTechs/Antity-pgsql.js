@@ -422,10 +422,10 @@ function matchMode(type, matchMode) {
     return isIn(matchModes[type], matchMode);
 }
 
-function cleanFilters(filters, getProp) {
+function cleanFilters(filters, properties) {
     for (const k in filters) {
         if (filters.hasOwnProperty(k)) {
-            const prop = getProp(k);
+            const prop = properties.find(p => p.key === k);
             if (!prop) {
                 log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
                 delete filters[k];
@@ -488,7 +488,7 @@ class SQLEntity extends Entity {
             const rows = b.rows || null;
             const sortField = b.sortField || null;
             const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-            const filters = cleanFilters(b.filters, this.getProp.bind(this)) || null;
+            const filters = cleanFilters(b.filters, this.properties) || null;
             const pagination = b.pagination || false;
             const dbClient = l.dbClient || null;
             log.debug(`get(first='${first}', rows='${rows}', 
@@ -580,7 +580,7 @@ class SQLEntity extends Entity {
         };
         this._table = name;
         for (const p of properties) {
-            this.mapProps(p.methods, p.key);
+            this.mapProps(p.operations, p.key);
         }
     }
     get table() {
@@ -591,19 +591,16 @@ class SQLEntity extends Entity {
             throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
         this._table = table;
     }
-    mapProps(methods, key) {
-        for (const m of methods) {
-            switch (m) {
-                case "GET":
+    mapProps(operations, key) {
+        for (const o of operations) {
+            switch (o) {
+                case "SELECT":
                     this.sel.addProp(key);
                     break;
-                case "PATCH":
+                case "UPDATE":
                     this.upd.addProp(key);
                     break;
-                case "PUT":
-                    this.upd.addProp(key);
-                    break;
-                case "POST":
+                case "INSERT":
                     this.ins.addProp(key);
                     break;
             }
