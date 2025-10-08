@@ -117,12 +117,12 @@ function generateSummary(name: string, table: string, properties: Property[]): s
       lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Required: ${p.required}`);
       lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Safe: ${p.safe}`);
       lines.push(`│  ${isLast ? ' ' : '│'}   ├─ TypeCheck: ${p.typeCheck}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Filter: ${prop.filter}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Methods: [${prop.methods.join(', ')}]`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Operations: [${prop.operations.join(', ')}]`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Sanitize: ${prop.sanitize}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Normalize: ${prop.normalize}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Validate: ${prop.validate}`);
+      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Filter: ${p.filter}`);
+      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Methods: [${p.methods.join(', ')}]`);
+      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Operations: [${p.operations.join(', ')}]`);
+      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Sanitize: ${p.sanitize}`);
+      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Normalize: ${p.normalize}`);
+      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Validate: ${p.validate}`);
       
     });
     

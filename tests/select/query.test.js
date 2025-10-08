@@ -39,13 +39,16 @@ describe("query function", () => {
       validator: null
     }
   ]);
-  const entity2 = new SQLEntity('users', [{
+  const entity2 = new SQLEntity('users', [
+    {
       key: 'id',
       type: 'integer',
       min: 0,
       max: 120,
       typeCheck: true,
+      filter: true,
       methods: ['GET', 'PUT'],
+      operations: ['SELECT'],
       required: true,
       safe: true,
       sanitize: true,
@@ -54,7 +57,8 @@ describe("query function", () => {
       sanitizer: null,
       normalizer: null,
       validator: null
-    }]);
+    }
+  ]);
   const entity3 = new SQLEntity('products', []);
   const entity4 = new SQLEntity('products', [
     {
@@ -63,7 +67,9 @@ describe("query function", () => {
       min: 0,
       max: 120,
       typeCheck: true,
+      filter: true,
       methods: ['GET', 'PUT'],
+      operations: ['SELECT'],
       required: true,
       safe: true,
       sanitize: true,
@@ -81,7 +87,9 @@ describe("query function", () => {
       min: 0,
       max: 120,
       typeCheck: true,
+      filter: true,
       methods: ['GET', 'PUT'],
+      operations: ['SELECT'],
       required: true,
       safe: true,
       sanitize: true,

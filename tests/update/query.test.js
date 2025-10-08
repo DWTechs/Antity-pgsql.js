@@ -10,7 +10,7 @@ describe("query function", () => {
       typeCheck: true,
       filter: true,
       methods: ['GET'],
-      operations: ['SELECT', 'UPDATE', 'DELETE'],
+      operations: ['SELECT', 'DELETE'],
       required: true,
       safe: true,
       sanitize: true,

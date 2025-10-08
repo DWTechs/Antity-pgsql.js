@@ -104,6 +104,111 @@ function quoteIfUppercase(word) {
     return word;
 }
 
+function index(index, matchMode) {
+    const i = index.map((i) => `$${i}`);
+    switch (matchMode) {
+        case "startsWith":
+            return `${i}%`;
+        case "endsWith":
+            return `%${i}`;
+        case "contains":
+            return `%${i}%`;
+        case "notContains":
+            return `%${i}%`;
+        case "in":
+            return `(${i})`;
+        default:
+            return `${i}`;
+    }
+}
+
+function comparator(matchMode) {
+    switch (matchMode) {
+        case "startsWith":
+            return "LIKE";
+        case "endsWith":
+            return "LIKE";
+        case "contains":
+            return "LIKE";
+        case "notContains":
+            return "NOT LIKE";
+        case "equals":
+            return "=";
+        case "notEquals":
+            return "<>";
+        case "in":
+            return "IN";
+        case "lt":
+            return "<";
+        case "lte":
+            return "<=";
+        case "gt":
+            return ">";
+        case "gte":
+            return ">=";
+        case "is":
+            return "IS";
+        case "isNot":
+            return "IS NOT";
+        case "before":
+            return "<";
+        case "after":
+            return ">";
+        default:
+            return null;
+    }
+}
+
+function add(filters) {
+    const conditions = [];
+    const args = [];
+    if (filters) {
+        let i = 1;
+        for (const k in filters) {
+            const { value, matchMode } = filters[k];
+            const indexes = isArray(value) ? value.map(() => i++) : [i++];
+            const cond = addOne(k, indexes, matchMode);
+            if (cond) {
+                conditions.push(cond);
+                if (isArray(value))
+                    args.push(...value);
+                else
+                    args.push(value);
+            }
+        }
+    }
+    return { conditions, args };
+}
+function addOne(key, indexes, matchMode) {
+    const sqlKey = `${quoteIfUppercase(key)}`;
+    const comparator$1 = comparator(matchMode);
+    const index$1 = index(indexes, matchMode);
+    return comparator$1 ? `${sqlKey} ${comparator$1} ${index$1}` : "";
+}
+
+function filter(first, rows, sortField, sortOrder, filters) {
+    const { conditions, args } = add(filters);
+    const filterClause = where(conditions)
+        + orderBy(sortField, sortOrder)
+        + limit(rows, first);
+    return { filterClause, args };
+}
+function where(conditions, operator = "AND") {
+    if (!conditions.length)
+        return "";
+    const c = conditions.join(` ${operator} `).trim();
+    return ` WHERE ${c}`;
+}
+function orderBy(sortField, sortOrder) {
+    if (!sortField)
+        return "";
+    const o = sortOrder || "ASC";
+    return ` ORDER BY ${quoteIfUppercase(sortField)} ${o}`;
+}
+function limit(rows, first) {
+    return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
+}
+
 class Select {
     constructor() {
         this._props = [];
@@ -117,10 +222,15 @@ class Select {
     get props() {
         return this._cols;
     }
-    query(table, paginate) {
+    query(table, paginate, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) {
         const p = paginate ? this._count : '';
         const c = this._cols ? this._cols : '*';
-        return `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
+        const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        return {
+            query: baseQuery + filterClause,
+            args: args
+        };
     }
     execute(query, args, client) {
         return execute$1(query, args, client)
@@ -250,111 +360,6 @@ function execute(date, query, client) {
     });
 }
 
-function index(index, matchMode) {
-    const i = index.map((i) => `$${i}`);
-    switch (matchMode) {
-        case "startsWith":
-            return `${i}%`;
-        case "endsWith":
-            return `%${i}`;
-        case "contains":
-            return `%${i}%`;
-        case "notContains":
-            return `%${i}%`;
-        case "in":
-            return `(${i})`;
-        default:
-            return `${i}`;
-    }
-}
-
-function comparator(matchMode) {
-    switch (matchMode) {
-        case "startsWith":
-            return "LIKE";
-        case "endsWith":
-            return "LIKE";
-        case "contains":
-            return "LIKE";
-        case "notContains":
-            return "NOT LIKE";
-        case "equals":
-            return "=";
-        case "notEquals":
-            return "<>";
-        case "in":
-            return "IN";
-        case "lt":
-            return "<";
-        case "lte":
-            return "<=";
-        case "gt":
-            return ">";
-        case "gte":
-            return ">=";
-        case "is":
-            return "IS";
-        case "isNot":
-            return "IS NOT";
-        case "before":
-            return "<";
-        case "after":
-            return ">";
-        default:
-            return null;
-    }
-}
-
-function add(filters) {
-    const conditions = [];
-    const args = [];
-    if (filters) {
-        let i = 1;
-        for (const k in filters) {
-            const { value, matchMode } = filters[k];
-            const indexes = isArray(value) ? value.map(() => i++) : [i++];
-            const cond = addOne(k, indexes, matchMode);
-            if (cond) {
-                conditions.push(cond);
-                if (isArray(value))
-                    args.push(...value);
-                else
-                    args.push(value);
-            }
-        }
-    }
-    return { conditions, args };
-}
-function addOne(key, indexes, matchMode) {
-    const sqlKey = `${quoteIfUppercase(key)}`;
-    const comparator$1 = comparator(matchMode);
-    const index$1 = index(indexes, matchMode);
-    return comparator$1 ? `${sqlKey} ${comparator$1} ${index$1}` : "";
-}
-
-function filter(first, rows, sortField, sortOrder, filters) {
-    const { conditions, args } = add(filters);
-    const filterClause = where(conditions)
-        + orderBy(sortField, sortOrder)
-        + limit(rows, first);
-    return { filterClause, args };
-}
-function where(conditions, operator = "AND") {
-    if (!conditions.length)
-        return "";
-    const c = conditions.join(` ${operator} `).trim();
-    return ` WHERE ${c}`;
-}
-function orderBy(sortField, sortOrder) {
-    if (!sortField)
-        return "";
-    const o = sortOrder || "ASC";
-    return ` ORDER BY ${quoteIfUppercase(sortField)} ${o}`;
-}
-function limit(rows, first) {
-    return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
-}
-
 function type(type) {
     const s = "string";
     const n = "number";
@@ -448,6 +453,75 @@ function cleanFilters(filters, properties) {
     return filters;
 }
 
+function logSummary(name, table, properties) {
+    const summaryLines = generateSummary(name, table, properties);
+    const summary = summaryLines.join('\n');
+    log.info(`${LOGS_PREFIX}Entity "${name}" created successfully`);
+    log.info(`${LOGS_PREFIX}Entity Summary:\n${summary}`);
+}
+function generateSummary(name, table, properties) {
+    const lines = [];
+    const propLen = properties.length;
+    lines.push(`┌─ SQLEntity: "${name}" (Table: ${table})`);
+    lines.push(`├─ Total Properties: ${propLen}`);
+    const operationStats = getOperationStatistics(properties);
+    lines.push(`├─ Operation Distribution:`);
+    Object.entries(operationStats).forEach(([op, count]) => {
+        lines.push(`│  └─ ${op}: ${count} properties`);
+    });
+    lines.push(`├─ Property Details:`);
+    properties.forEach((p, index) => {
+        const isLast = index === propLen - 1;
+        const prefix = isLast ? '└─' : '├─';
+        lines.push(`│  ${prefix} ${p.key}:`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Type: ${p.type}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Min: ${p.min}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Max: ${p.max}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Required: ${p.required}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Safe: ${p.safe}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ TypeCheck: ${p.typeCheck}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Filter: ${p.filter}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Methods: [${p.methods.join(', ')}]`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Operations: [${p.operations.join(', ')}]`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Sanitize: ${p.sanitize}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Normalize: ${p.normalize}`);
+        lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Validate: ${p.validate}`);
+    });
+    const crudMappings = getCrudMappings(properties);
+    lines.push(`├─ CRUD Mappings:`);
+    Object.entries(crudMappings).forEach(([operation, props]) => {
+        lines.push(`│  ├─ ${operation}: [${props.join(', ')}]`);
+    });
+    lines.push(`└─ Entity initialization completed`);
+    return lines;
+}
+function getOperationStatistics(properties) {
+    const stats = {};
+    properties.forEach(prop => {
+        prop.operations.forEach(op => {
+            stats[op] = (stats[op] || 0) + 1;
+        });
+    });
+    return stats;
+}
+function getCrudMappings(properties) {
+    const mappings = {
+        'SELECT': [],
+        'INSERT': [],
+        'UPDATE': [],
+        'DELETE': []
+    };
+    properties.forEach(prop => {
+        const p = prop;
+        prop.operations.forEach(op => {
+            if (mappings[op]) {
+                mappings[op].push(p.key);
+            }
+        });
+    });
+    return mappings;
+}
+
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -464,8 +538,8 @@ class SQLEntity extends Entity {
         this.ins = new Insert();
         this.upd = new Update();
         this.query = {
-            select: (paginate) => {
-                return this.sel.query(this.table, paginate);
+            select: (paginate, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
+                return this.sel.query(this.table, paginate, first, rows, sortField, sortOrder, filters);
             },
             update: (rows, consumerId, consumerName) => {
                 return this.upd.query(this.table, rows, consumerId, consumerName);
@@ -488,14 +562,13 @@ class SQLEntity extends Entity {
             const rows = b.rows || null;
             const sortField = b.sortField || null;
             const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-            const filters = cleanFilters(b.filters, this.properties) || null;
+            const filters = cleanFilters(b.filters, this.properties || []) || null;
             const pagination = b.pagination || false;
             const dbClient = l.dbClient || null;
             log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-            const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-            const q = this.sel.query(this._table, pagination) + filterClause;
+            const { query: q, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
             this.sel.execute(q, args, dbClient)
                 .then((r) => {
                 l.rows = r.rows;
@@ -579,9 +652,11 @@ class SQLEntity extends Entity {
                 .catch((err) => next(err));
         };
         this._table = name;
+        log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
         for (const p of properties) {
             this.mapProps(p.operations, p.key);
         }
+        logSummary(name, this._table, properties);
     }
     get table() {
         return this._table;
