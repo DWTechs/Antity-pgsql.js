@@ -1,3 +1,7 @@
+# 0.4.1 (Oct 07th 2025)
+  
+- Enhance usability with automatic summary logging during entity creation with tree-structured entity summary output showing properties, operations, and CRUD mappings
+
 # 0.4.0 (Sep 26th 2025)
   
 - Add filter property to make a property filterable in SELECT operations

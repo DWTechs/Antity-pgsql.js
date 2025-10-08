@@ -39,7 +39,7 @@ import { LOGS_PREFIX } from '../constants';
 function cleanFilters(filters: Filters, properties: Property[]): Filters {
   for (const k in filters) {
     if (filters.hasOwnProperty(k)) {
-      const prop = properties.find(p => p.key === k);
+      const prop = properties.find(p => (p as any).key === k);
       if (!prop) {
         log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
         delete filters[k];
@@ -50,7 +50,7 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
         delete filters[k];
         continue;
       }
-      const type = map.type(prop.type); // transform from entity type to valid sql filter type
+      const type = map.type((prop as any).type); // transform from entity type to valid sql filter type
       const { /*subProps, */matchMode } = filters[k];
       if (!matchMode || !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
         log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);

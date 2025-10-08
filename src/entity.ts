@@ -10,6 +10,7 @@ import * as del from "./crud/delete";
 import { filter } from "./filter/filter";
 import { cleanFilters } from "./filter/clean";
 import { execute } from "./crud/execute";
+import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
 import type { PGResponse, Filters, Operation } from "./types";
 import type { Request, Response, NextFunction } from 'express';
@@ -26,10 +27,16 @@ export class SQLEntity extends Entity {
   ) {
     super(name, properties); // Call the constructor of the base class
     this._table = name;
+    
+    log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
+    
     // properties is grouped by operation type, making it easy to retrieve and process later.
     for (const p of properties) {
-      this.mapProps(p.operations, p.key);
+      this.mapProps(p.operations, (p as any).key);
     }
+    
+    // Log comprehensive entity summary
+    logSummary(name, this._table, properties);
   }
 
   public get table(): string {
@@ -76,7 +83,7 @@ export class SQLEntity extends Entity {
     const rows: number | null = b.rows || null;
     const sortField: string | null = b.sortField || null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters: Filters | null = cleanFilters(b.filters, this.properties as Property[]) || null;
+    const filters: Filters | null = cleanFilters(b.filters, (this as any).properties || []) || null;
     const pagination: boolean = b.pagination || false;
     const dbClient = l.dbClient || null;
 
