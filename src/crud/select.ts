@@ -1,7 +1,8 @@
 import { deleteProps } from "@dwtechs/sparray";
 import { execute as exe } from "./execute";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, SelectResponse, Filter } from "../types";
+import { filter } from "../filter/filter";
+import type { PGResponse, SelectResponse, Filter, Filters, Sort } from "../types";
 
 export class Select {
   
@@ -18,10 +19,25 @@ export class Select {
     return this._cols;
   }
 
-  public query(table: string, paginate: boolean): string {
+  public query(
+    table: string, 
+    paginate: boolean,
+    first: number = 0,
+    rows: number | null = null,
+    sortField: string | null = null,
+    sortOrder: Sort | null = null,
+    filters: Filters | null = null
+  ): { query: string, args: (Filter["value"])[] } {
     const p = paginate ? this._count : '';
     const c = this._cols ? this._cols : '*';
-    return `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
+    const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
+    
+    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+    
+    return {
+      query: baseQuery + filterClause,
+      args: args
+    };
   }
 
   public execute(

@@ -7,12 +7,11 @@ import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
 import * as del from "./crud/delete";
-import { filter } from "./filter/filter";
 import { cleanFilters } from "./filter/clean";
 import { execute } from "./crud/execute";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, Filters, Operation } from "./types";
+import type { PGResponse, Filters, Filter, Operation } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 export class SQLEntity extends Entity {
@@ -50,8 +49,15 @@ export class SQLEntity extends Entity {
   }
 
   public query = { 
-    select: (paginate: boolean): string => {
-      return this.sel.query(this.table, paginate);
+    select: (
+      paginate: boolean,
+      first: number = 0,
+      rows: number | null = null,
+      sortField: string | null = null,
+      sortOrder: "ASC" | "DESC" | null = null,
+      filters: Filters | null = null
+    ): { query: string, args: (Filter["value"])[] } => {
+      return this.sel.query(this.table, paginate, first, rows, sortField, sortOrder, filters);
     },
     update: (
       rows: Record<string, unknown>[], 
@@ -93,8 +99,7 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-    const q = this.sel.query(this._table, pagination) + filterClause;
+    const { query: q, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
     this.sel.execute( q, args, dbClient)
       .then((r: PGResponse) => {
         l.rows = r.rows;
