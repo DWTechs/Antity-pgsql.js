@@ -36,8 +36,8 @@
     "dist/"
   ],
   "dependencies": {
-    "@dwtechs/checkard": "3.5.1",
-    "@dwtechs/winstan": "0.4.0",
+    "@dwtechs/checkard": "3.6.0",
+    "@dwtechs/winstan": "0.5.0",
     "@dwtechs/antity": "0.13.0",
     "@dwtechs/sparray": "0.2.1",
     "pg": "8.13.1"

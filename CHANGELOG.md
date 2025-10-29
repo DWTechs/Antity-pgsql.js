@@ -2,6 +2,9 @@
   
 - Enhance usability with automatic summary logging during entity creation with tree-structured entity summary output showing properties, operations, and CRUD mappings
 - Update query.select() method to support filtering instead of creating filters externally.
+- Update dependency : 
+  - "@dwtechs/winstan": "0.5.0"
+  - "@dwtechs/checkard": "3.6.0"
 
 # 0.4.0 (Sep 26th 2025)
   
