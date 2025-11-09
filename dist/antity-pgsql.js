@@ -454,8 +454,7 @@ function cleanFilters(filters, properties) {
 }
 
 function logSummary(name, table, properties) {
-    const summaryLines = generateSummary(name, table, properties);
-    const summary = summaryLines.join('\n');
+    const summary = generateSummary(name, table, properties);
     log.info(`${LOGS_PREFIX}Entity "${name}" created successfully`);
     log.info(`${LOGS_PREFIX}Entity Summary:\n${summary}`);
 }
@@ -493,7 +492,7 @@ function generateSummary(name, table, properties) {
         lines.push(`│  ├─ ${operation}: [${props.join(', ')}]`);
     });
     lines.push(`└─ Entity initialization completed`);
-    return lines;
+    return lines.join('\n');
 }
 function getOperationStatistics(properties) {
     const stats = {};

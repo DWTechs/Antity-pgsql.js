@@ -1,17 +1,14 @@
-# 0.5.0 (Oct 07th 2025)
-  
-- Enhance usability with automatic summary logging during entity creation with tree-structured entity summary output showing properties, operations, and CRUD mappings
-- Update query.select() method to support filtering instead of creating filters externally.
-- Update dependency : 
-  - "@dwtechs/winstan": "0.5.0"
-  - "@dwtechs/checkard": "3.6.0"
 
 # 0.4.0 (Sep 26th 2025)
   
 - Add filter property to make a property filterable in SELECT operations
-- Add Operations property to list SQL DML operations available for the property 
+- Add Operations property to list SQL DML operations available for the property
+- Enhance usability with automatic summary logging during entity creation with tree-structured entity summary output showing properties, operations, and CRUD mappings
+- Update query.select() method to support filtering instead of creating filters externally. 
 - Update dependencies : 
-  - "@dwtechs/antity": "0.13.0",
+  - "@dwtechs/antity": "0.13.0"
+  - "@dwtechs/winstan": "0.5.0"
+  - "@dwtechs/checkard": "3.6.0"
 
 # 0.3.4 (Sep 10th 2025)
   
