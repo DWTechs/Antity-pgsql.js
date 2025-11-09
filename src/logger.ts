@@ -106,23 +106,20 @@ function generateSummary(name: string, table: string, properties: Property[]): s
     
     // Property details
     lines.push(`├─ Property Details:`);
-    properties.forEach((p, index) => {
-      const isLast = index === propLen - 1;
-      const prefix = isLast ? '└─' : '├─';
-      
-      lines.push(`│  ${prefix} ${p.key}:`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Type: ${p.type}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Min: ${p.min}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Max: ${p.max}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Required: ${p.required}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Safe: ${p.safe}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ TypeCheck: ${p.typeCheck}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Filter: ${p.filter}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Methods: [${p.methods.join(', ')}]`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Operations: [${p.operations.join(', ')}]`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Sanitize: ${p.sanitize}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Normalize: ${p.normalize}`);
-      lines.push(`│  ${isLast ? ' ' : '│'}   ├─ Validate: ${p.validate}`);
+    properties.forEach((p) => {
+      lines.push(`│ ├─ ${p.key}:`);
+      lines.push(`│ │ ├─ Type: ${p.type}`);
+      lines.push(`│ │ ├─ Min: ${p.min}`);
+      lines.push(`│ │ ├─ Max: ${p.max}`);
+      lines.push(`│ │ ├─ Required: ${p.required}`);
+      lines.push(`│ │ ├─ Safe: ${p.safe}`);
+      lines.push(`│ │ ├─ TypeCheck: ${p.typeCheck}`);
+      lines.push(`│ │ ├─ Filter: ${p.filter}`);
+      lines.push(`│ │ ├─ Methods: [${p.methods.join(', ')}]`);
+      lines.push(`│ │ ├─ Operations: [${p.operations.join(', ')}]`);
+      lines.push(`│ │ ├─ Sanitize: ${p.sanitize}`);
+      lines.push(`│ │ ├─ Normalize: ${p.normalize}`);
+      lines.push(`│ │ ├─ Validate: ${p.validate}`);
       
     });
     

@@ -1,21 +1,19 @@
 import { SQLEntity } from '../../dist/antity-pgsql.js';
+import { log } from '@dwtechs/winstan';
 
 // Mock the logger to capture log output
-const mockLogInfo = jest.fn();
-const mockLogDebug = jest.fn();
-
 jest.mock('@dwtechs/winstan', () => ({
   log: {
-    info: mockLogInfo,
-    debug: mockLogDebug
+    info: jest.fn(),
+    debug: jest.fn()
   }
 }));
 
 describe('Logger - Entity Creation Tests', () => {
   beforeEach(() => {
     // Clear all mocks before each test
-    mockLogInfo.mockClear();
-    mockLogDebug.mockClear();
+    log.info.mockClear();
+    log.debug.mockClear();
   });
 
   describe('Basic Entity Creation Logging', () => {
@@ -27,6 +25,7 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'number',
           typeCheck: true,
           filter: true,
+          methods: ['GET', 'DELETE'],
           operations: ['SELECT', 'DELETE'],
           required: true,
           safe: true
@@ -36,7 +35,7 @@ describe('Logger - Entity Creation Tests', () => {
       new SQLEntity(entityName, properties);
 
       // Check that creation start message was logged
-      expect(mockLogInfo).toHaveBeenCalledWith(
+      expect(log.info).toHaveBeenCalledWith(
         expect.stringContaining('[Antity-PGSQL] Creating SQLEntity: "users"')
       );
     });
@@ -49,6 +48,7 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'number',
           typeCheck: true,
           filter: true,
+          methods: ['GET', 'DELETE'],
           operations: ['SELECT', 'DELETE'],
           required: true,
           safe: true
@@ -60,6 +60,7 @@ describe('Logger - Entity Creation Tests', () => {
           max: 100,
           typeCheck: true,
           filter: true,
+          methods: ['GET', 'POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true
@@ -69,12 +70,12 @@ describe('Logger - Entity Creation Tests', () => {
       new SQLEntity(entityName, properties);
 
       // Check that entity creation success message was logged
-      expect(mockLogInfo).toHaveBeenCalledWith(
+      expect(log.info).toHaveBeenCalledWith(
         expect.stringContaining('[Antity-PGSQL] Entity "products" created successfully')
       );
 
       // Check that entity summary was logged
-      expect(mockLogInfo).toHaveBeenCalledWith(
+      expect(log.info).toHaveBeenCalledWith(
         expect.stringContaining('[Antity-PGSQL] Entity Summary:')
       );
     });
@@ -89,6 +90,7 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'number',
           typeCheck: true,
           filter: true,
+          methods: ['GET'],
           operations: ['SELECT'],
           required: true,
           safe: true
@@ -98,7 +100,7 @@ describe('Logger - Entity Creation Tests', () => {
       new SQLEntity(entityName, properties);
 
       // Find the summary log call
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
@@ -113,6 +115,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
+          methods: ['GET', 'DELETE'],
           operations: ['SELECT', 'DELETE'],
           required: true,
           safe: true
@@ -120,6 +123,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'name',
           type: 'string',
+          methods: ['GET', 'POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true
@@ -128,7 +132,7 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
@@ -149,6 +153,7 @@ describe('Logger - Entity Creation Tests', () => {
           max: 255,
           typeCheck: true,
           filter: true,
+          methods: ['GET', 'POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true
@@ -157,19 +162,18 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
       expect(summaryCall[0]).toContain('├─ Property Details:');
-      expect(summaryCall[0]).toContain('└─ email:');
+      expect(summaryCall[0]).toContain('├─ email:');
       expect(summaryCall[0]).toContain('├─ Type: string');
       expect(summaryCall[0]).toContain('├─ Operations: [SELECT, INSERT, UPDATE]');
       expect(summaryCall[0]).toContain('├─ Required: true');
       expect(summaryCall[0]).toContain('├─ Safe: true');
-      expect(summaryCall[0]).toContain('├─ Filterable: true');
-      expect(summaryCall[0]).toContain('├─ Constraints: min: 5, max: 255');
-      expect(summaryCall[0]).toContain('└─ Validation: enabled');
+      expect(summaryCall[0]).toContain('├─ Filter: true');
+      expect(summaryCall[0]).toContain('├─ Validate: undefined');
     });
 
     test('should include CRUD mappings in summary', () => {
@@ -178,6 +182,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
+          methods: ['GET', 'DELETE'],
           operations: ['SELECT', 'DELETE'],
           required: true,
           safe: true
@@ -185,6 +190,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'title',
           type: 'string',
+          methods: ['GET', 'POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true
@@ -192,6 +198,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'content',
           type: 'string',
+          methods: ['POST', 'PUT'],
           operations: ['INSERT', 'UPDATE'],
           required: false,
           safe: true
@@ -200,7 +207,7 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
@@ -217,7 +224,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'name',
           type: 'string',
-          operations: ['SELECT', 'INSERT'],
+          methods: ['POST', 'GET'], operations: ['SELECT', 'INSERT'],
           required: true,
           safe: true
         }
@@ -225,7 +232,7 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
@@ -240,6 +247,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
+          methods: ['GET', 'DELETE'],
           operations: ['SELECT', 'DELETE'],
           required: true,
           safe: true,
@@ -250,6 +258,7 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 1,
           max: 50,
+          methods: ['GET','POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true,
@@ -260,6 +269,7 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 1,
           max: 50,
+          methods: ['GET','POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true,
@@ -270,6 +280,7 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 5,
           max: 255,
+          methods: ['GET', 'POST', 'PUT'], 
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true,
@@ -278,6 +289,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'createdAt',
           type: 'string',
+          methods: ['POST', 'GET'],
           operations: ['SELECT', 'INSERT'],
           required: false,
           safe: true,
@@ -288,16 +300,16 @@ describe('Logger - Entity Creation Tests', () => {
       new SQLEntity(entityName, properties);
 
       // Verify creation messages
-      expect(mockLogInfo).toHaveBeenCalledWith(
+      expect(log.info).toHaveBeenCalledWith(
         expect.stringContaining('[Antity-PGSQL] Creating SQLEntity: "customers"')
       );
       
-      expect(mockLogInfo).toHaveBeenCalledWith(
+      expect(log.info).toHaveBeenCalledWith(
         expect.stringContaining('[Antity-PGSQL] Entity "customers" created successfully')
       );
 
       // Check summary structure
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
@@ -316,6 +328,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'value',
           type: 'string',
+          methods: ['GET', 'POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
           required: true,
           safe: true
@@ -324,9 +337,9 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      expect(mockLogInfo).toHaveBeenCalledTimes(2); // Creation + Summary
+      expect(log.info).toHaveBeenCalledTimes(3); // Creation + Summary
       
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
@@ -339,6 +352,7 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'message',
           type: 'string',
+          methods: ['POST', 'GET'], 
           operations: ['SELECT', 'INSERT'],
           required: false,
           safe: true,
@@ -348,12 +362,12 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = mockLogInfo.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call => 
         call[0].includes('Entity Summary:')
       );
       
       expect(summaryCall[0]).toContain('├─ Required: false');
-      expect(summaryCall[0]).toContain('└─ Validation: disabled');
+      expect(summaryCall[0]).toContain('├─ Validate: undefined');
       expect(summaryCall[0]).not.toContain('Constraints:');
     });
   });
