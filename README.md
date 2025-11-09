@@ -171,17 +171,33 @@ class SQLEntity {
   set table(table: string);
 
   query: {
-    select: (paginate: boolean) => string;
-    update: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string) => {
+    select: (
+      paginate: boolean,
+      first?: number,
+      rows?: number | null,
+      sortField?: string | null,
+      sortOrder?: "ASC" | "DESC" | null,
+      filters?: Filters | null) => {
         query: string;
-        args: unknown[];
-    };
-    insert: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
-        query: string;
-        args: unknown[];
-    };
-    delete: () => string;
-    return: (prop: string) => string;
+        args: (Filter["value"])[];
+      };
+      update: (
+        rows: Record<string, unknown>[],
+        consumerId: number | string,
+        consumerName: string) => {
+          query: string;
+          args: unknown[];
+      };
+      insert: (
+        rows: Record<string, unknown>[],
+        consumerId: number | string,
+        consumerName: string,
+        rtn?: string) => {
+          query: string;
+            args: unknown[];
+        };
+        delete: () => string;
+        return: (prop: string) => string;
   };
   get: (req: Request, res: Response, next: NextFunction) => void;
   add: (req: Request, res: Response, next: NextFunction) => Promise<void>;

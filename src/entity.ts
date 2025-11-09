@@ -99,8 +99,8 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const { query: q, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
-    this.sel.execute( q, args, dbClient)
+    const { query, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
+    this.sel.execute( query, args, dbClient)
       .then((r: PGResponse) => {
         l.rows = r.rows;
         l.total = r.total;

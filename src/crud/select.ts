@@ -36,7 +36,7 @@ export class Select {
     
     return {
       query: baseQuery + filterClause,
-      args: args
+      args
     };
   }
 

@@ -1,4 +1,8 @@
 
+# 0.4.1 (Oct 26th 2025)
+
+- Fix declaration file for query.select() function
+
 # 0.4.0 (Sep 26th 2025)
   
 - Add filter property to make a property filterable in SELECT operations
