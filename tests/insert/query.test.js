@@ -130,4 +130,35 @@ describe("query function", () => {
     ]);
   });
 
+  it("should generate a valid SQL INSERT query without consumerId and consumerName", () => {
+    const chunk = [
+      { name: 'John', age: 30 },
+      { name: 'Henry', age: 40 },
+    ];
+    const rtn = entity.query.return("id");
+    const { query, args } = entity.query.insert(chunk, undefined, undefined, rtn);
+    expect(query).toBe(
+      'INSERT INTO persons (name, age) VALUES ($1, $2), ($3, $4) RETURNING "id"'
+    );
+    expect(args).toEqual([
+      'John', 30,
+      'Henry', 40
+    ]);
+  });
+
+  it("should generate a valid SQL INSERT query without consumerId and consumerName and no return", () => {
+    const chunk = [
+      { name: 'John', age: 30 },
+      { name: 'Henry', age: 40 },
+    ];
+    const { query, args } = entity.query.insert(chunk);
+    expect(query).toBe(
+      'INSERT INTO persons (name, age) VALUES ($1, $2), ($3, $4)'
+    );
+    expect(args).toEqual([
+      'John', 30,
+      'Henry', 40
+    ]);
+  });
+
 });

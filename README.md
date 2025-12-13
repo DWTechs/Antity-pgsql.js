@@ -183,15 +183,15 @@ class SQLEntity {
       };
       update: (
         rows: Record<string, unknown>[],
-        consumerId: number | string,
-        consumerName: string) => {
+        consumerId?: number | string,
+        consumerName?: string) => {
           query: string;
           args: unknown[];
       };
       insert: (
         rows: Record<string, unknown>[],
-        consumerId: number | string,
-        consumerName: string,
+        consumerId?: number | string,
+        consumerName?: string,
         rtn?: string) => {
           query: string;
             args: unknown[];

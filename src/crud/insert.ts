@@ -1,4 +1,3 @@
-import { add as spAdd } from "@dwtechs/sparray";
 import { execute as exe  } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
@@ -6,14 +5,14 @@ import type { PGResponse, Filter } from "../types";
 
 export class Insert {
 
-  private _props: string[] = ["consumerId", "consumerName"];
-  private _cols: string = "*";
-  private _nbProps: number = 2;
+  private _props: string[] = []; // Base template of properties, augmented with consumer fields when needed
+  private _nbProps: number = 0;
+  private _cols: string = ""; // Cached base column string
 
   public addProp(prop: string): void {
-    this._props = spAdd(this._props, quoteIfUppercase(prop), this._props.length - 2) as string[];
-    this._cols = this._props.join(", ");
+    this._props.push(quoteIfUppercase(prop));
     this._nbProps++;
+    this._cols = this._props.join(", ");
   }
 
   /**
@@ -21,8 +20,8 @@ export class Insert {
    *
    * @param {string} table - The name of the table where the data will be inserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
-   * @param {string | number} consumerId - The ID of the consumer to be added to each row.
-   * @param {string} consumerName - The name of the consumer to be added to each row.
+   * @param {string | number} [consumerId] - Optional. The ID of the consumer to be added to each row (for history tracking).
+   * @param {string} [consumerName] - Optional. The name of the consumer to be added to each row (for history tracking).
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
    * 
@@ -30,22 +29,37 @@ export class Insert {
   public query(
     table: string, 
     rows: Record<string, any>[], 
-    consumerId: string | number,
-    consumerName: string,
+    consumerId?: string | number,
+    consumerName?: string,
     rtn: string = "",
   ): { query: string, args: (Filter["value"])[] } {
-    let query = `INSERT INTO ${quoteIfUppercase(table)} (${this._cols}) VALUES `;
+    // Augment base props template with consumer fields if provided
+    const propsToUse = [...this._props];
+    let nbProps = this._nbProps;
+    let cols = this._cols;
+    
+    if (consumerId !== undefined && consumerName !== undefined) {
+      propsToUse.push("consumerId", "consumerName");
+      nbProps += 2;
+      cols += ", consumerId, consumerName";
+    }
+    
+    let query = `INSERT INTO ${quoteIfUppercase(table)} (${cols}) VALUES `;
     const args: (Filter["value"])[] = [];
     let i = 0;
+    
     for (const row of rows) {
-      row.consumerId = consumerId;
-      row.consumerName = consumerName;
-      query += `${$i(this._nbProps, i)}, `;
-      for (const prop of this._props) {
+      if (consumerId !== undefined && consumerName !== undefined) {
+        row.consumerId = consumerId;
+        row.consumerName = consumerName;
+      }
+      query += `${$i(nbProps, i)}, `;
+      for (const prop of propsToUse) {
         args.push(row[prop]);
       }
-      i += this._nbProps;
+      i += nbProps;
     }
+    
     query = query.slice(0, -2);
     if (rtn) 
       query += ` ${rtn}`;

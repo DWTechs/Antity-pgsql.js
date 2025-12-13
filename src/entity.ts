@@ -61,15 +61,15 @@ export class SQLEntity extends Entity {
     },
     update: (
       rows: Record<string, unknown>[], 
-      consumerId: number | string, 
-      consumerName: string,
+      consumerId?: number | string, 
+      consumerName?: string,
     ): { query: string, args: unknown[] } => {
       return this.upd.query(this.table, rows, consumerId, consumerName);
     },
     insert: (
       rows: Record<string, unknown>[], 
-      consumerId: number | string, 
-      consumerName: string,
+      consumerId?: number | string, 
+      consumerName?: string,
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
       return this.ins.query(this.table, rows, consumerId, consumerName, rtn);

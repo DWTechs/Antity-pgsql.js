@@ -62,11 +62,11 @@ declare class SQLEntity extends Entity {
         args: (Filter["value"])[];
     };
     update: (rows: Record<string,
-      unknown>[], consumerId: number | string, consumerName: string) => {
+      unknown>[], consumerId?: number | string, consumerName?: string) => {
         query: string;
         args: unknown[];
     };
-    insert: (rows: Record<string, unknown>[], consumerId: number | string, consumerName: string, rtn?: string) => {
+    insert: (rows: Record<string, unknown>[], consumerId?: number | string, consumerName?: string, rtn?: string) => {
         query: string;
         args: unknown[];
     };

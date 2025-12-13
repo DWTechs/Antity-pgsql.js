@@ -88,5 +88,16 @@ describe("query function", () => {
     ]);
   });
 
+  it("should generate a valid SQL UPDATE query without consumerId and consumerName", () => {
+    const chunk = [
+      { id: 1, name: 'John', age: 30 },
+      { id: 2, name: 'Henry', age: 40 },
+    ];
+    const { query, args } = entity.query.update(chunk);
+    expect(query).toBe(`UPDATE \"persons\" SET name = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 END, age = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 END WHERE id IN ($1, $2)`);
+    expect(args).toEqual([
+      1, 2, 'John', 'Henry', 30, 40
+    ]);
+  });
 
 });

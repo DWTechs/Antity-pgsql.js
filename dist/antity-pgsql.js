@@ -25,7 +25,7 @@ https://github.com/DWTechs/Antity-pgsql.js
 */
 
 import { isArray, isIn, isString } from '@dwtechs/checkard';
-import { deleteProps, add as add$1, chunk, flatten } from '@dwtechs/sparray';
+import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
 import Pool from 'pg-pool';
@@ -229,7 +229,7 @@ class Select {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
         return {
             query: baseQuery + filterClause,
-            args: args
+            args
         };
     }
     execute(query, args, client) {
@@ -253,27 +253,37 @@ function $i(qty, start) {
 
 class Insert {
     constructor() {
-        this._props = ["consumerId", "consumerName"];
-        this._cols = "*";
-        this._nbProps = 2;
+        this._props = [];
+        this._nbProps = 0;
+        this._cols = "";
     }
     addProp(prop) {
-        this._props = add$1(this._props, quoteIfUppercase(prop), this._props.length - 2);
-        this._cols = this._props.join(", ");
+        this._props.push(quoteIfUppercase(prop));
         this._nbProps++;
+        this._cols = this._props.join(", ");
     }
     query(table, rows, consumerId, consumerName, rtn = "") {
-        let query = `INSERT INTO ${quoteIfUppercase(table)} (${this._cols}) VALUES `;
+        const propsToUse = [...this._props];
+        let nbProps = this._nbProps;
+        let cols = this._cols;
+        if (consumerId !== undefined && consumerName !== undefined) {
+            propsToUse.push("consumerId", "consumerName");
+            nbProps += 2;
+            cols += ", consumerId, consumerName";
+        }
+        let query = `INSERT INTO ${quoteIfUppercase(table)} (${cols}) VALUES `;
         const args = [];
         let i = 0;
         for (const row of rows) {
-            row.consumerId = consumerId;
-            row.consumerName = consumerName;
-            query += `${$i(this._nbProps, i)}, `;
-            for (const prop of this._props) {
+            if (consumerId !== undefined && consumerName !== undefined) {
+                row.consumerId = consumerId;
+                row.consumerName = consumerName;
+            }
+            query += `${$i(nbProps, i)}, `;
+            for (const prop of propsToUse) {
                 args.push(row[prop]);
             }
-            i += this._nbProps;
+            i += nbProps;
         }
         query = query.slice(0, -2);
         if (rtn)
@@ -299,18 +309,24 @@ var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _argu
 };
 class Update {
     constructor() {
-        this._props = ["consumerId", "consumerName"];
+        this._props = [];
     }
     addProp(prop) {
-        this._props = add$1(this._props, quoteIfUppercase(prop), this._props.length - 2);
+        this._props.push(quoteIfUppercase(prop));
     }
     query(table, rows, consumerId, consumerName) {
-        rows = this.addConsumer(rows, consumerId, consumerName);
+        if (consumerId !== undefined && consumerName !== undefined) {
+            rows = this.addConsumer(rows, consumerId, consumerName);
+        }
+        const propsToUse = [...this._props];
+        if (consumerId !== undefined && consumerName !== undefined) {
+            propsToUse.push("consumerId", "consumerName");
+        }
         const l = rows.length;
         const args = rows.map(row => row.id);
         let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
         let i = args.length + 1;
-        for (const p of this._props) {
+        for (const p of propsToUse) {
             if (rows[0][p] === undefined)
                 continue;
             query += `${p} = CASE `;
@@ -565,8 +581,8 @@ class SQLEntity extends Entity {
             log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-            const { query: q, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
-            this.sel.execute(q, args, dbClient)
+            const { query, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
+            this.sel.execute(query, args, dbClient)
                 .then((r) => {
                 l.rows = r.rows;
                 l.total = r.total;

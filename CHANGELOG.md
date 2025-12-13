@@ -1,4 +1,8 @@
 
+# 0.5.0 (Dec 13th 2025)
+
+- Make consumerId and consumerName optional parameters in INSERT and UPDATE operations
+
 # 0.4.1 (Oct 26th 2025)
 
 - Fix declaration file for query.select() function
