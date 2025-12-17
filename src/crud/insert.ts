@@ -5,14 +5,16 @@ import type { PGResponse, Filter } from "../types";
 
 export class Insert {
 
-  private _props: string[] = []; // Base template of properties, augmented with consumer fields when needed
-  private _nbProps: number = 0;
+  private _props: string[] = []; // Original property names for accessing row data
+  private _quotedProps: string[] = []; // Quoted property names for SQL columns
+  private _nbProps: number = 0; //Cached number of properties
   private _cols: string = ""; // Cached base column string
 
   public addProp(prop: string): void {
-    this._props.push(quoteIfUppercase(prop));
+    this._props.push(prop); // Store original name
+    this._quotedProps.push(quoteIfUppercase(prop)); // Store quoted name
     this._nbProps++;
-    this._cols = this._props.join(", ");
+    this._cols = this._quotedProps.join(", ");
   }
 
   /**
@@ -34,14 +36,14 @@ export class Insert {
     rtn: string = "",
   ): { query: string, args: (Filter["value"])[] } {
     // Augment base props template with consumer fields if provided
-    const propsToUse = [...this._props];
+    const propsToUse = [...this._props]; // Original names for data access
     let nbProps = this._nbProps;
     let cols = this._cols;
     
     if (consumerId !== undefined && consumerName !== undefined) {
       propsToUse.push("consumerId", "consumerName");
       nbProps += 2;
-      cols += ", consumerId, consumerName";
+      cols += `, "consumerId", "consumerName"`;
     }
     
     let query = `INSERT INTO ${quoteIfUppercase(table)} (${cols}) VALUES `;
@@ -55,7 +57,7 @@ export class Insert {
       }
       query += `${$i(nbProps, i)}, `;
       for (const prop of propsToUse) {
-        args.push(row[prop]);
+        args.push(row[prop]); // Access using original property name
       }
       i += nbProps;
     }

@@ -1,4 +1,8 @@
 
+# 0.5.1 (Dec 14th 2025)
+
+- Fix INSERT query bug where property values were null due to accessing row data with quoted property names instead of original names
+
 # 0.5.0 (Dec 13th 2025)
 
 - Make consumerId and consumerName optional parameters in INSERT and UPDATE operations

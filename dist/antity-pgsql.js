@@ -254,13 +254,15 @@ function $i(qty, start) {
 class Insert {
     constructor() {
         this._props = [];
+        this._quotedProps = [];
         this._nbProps = 0;
         this._cols = "";
     }
     addProp(prop) {
-        this._props.push(quoteIfUppercase(prop));
+        this._props.push(prop);
+        this._quotedProps.push(quoteIfUppercase(prop));
         this._nbProps++;
-        this._cols = this._props.join(", ");
+        this._cols = this._quotedProps.join(", ");
     }
     query(table, rows, consumerId, consumerName, rtn = "") {
         const propsToUse = [...this._props];
@@ -269,7 +271,7 @@ class Insert {
         if (consumerId !== undefined && consumerName !== undefined) {
             propsToUse.push("consumerId", "consumerName");
             nbProps += 2;
-            cols += ", consumerId, consumerName";
+            cols += `, "consumerId", "consumerName"`;
         }
         let query = `INSERT INTO ${quoteIfUppercase(table)} (${cols}) VALUES `;
         const args = [];
