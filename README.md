@@ -121,8 +121,8 @@ const entity = new Entity("consumers", [
 ]);
 
 router.get("/", ..., entity.get);
-router.post("/", entity.normalize, entity.validate, ..., entity.add);
-router.put("/", entity.normalize, entity.validate, ..., entity.update);
+router.post("/", entity.normalizeArray, entity.validateArray, ..., entity.add);
+router.put("/", entity.normalizeArray, entity.validateArray, ..., entity.update);
 router.put("/", ..., entity.archive);
 
 ```

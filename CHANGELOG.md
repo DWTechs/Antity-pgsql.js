@@ -1,4 +1,9 @@
 
+# 0.5.2 (Dec 20th 2025)
+
+- Update dependencies : 
+  - "@dwtechs/antity": "0.14.0"
+
 # 0.5.1 (Dec 14th 2025)
 
 - Fix INSERT query bug where property values were null due to accessing row data with quoted property names instead of original names

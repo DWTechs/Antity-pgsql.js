@@ -1,6 +1,6 @@
 {
   "name": "@dwtechs/antity-pgsql",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Open source library to add PostgreSQL support to @dwtechs/Antity entities.",
   "keywords": [
     "entities"
@@ -38,7 +38,7 @@
   "dependencies": {
     "@dwtechs/checkard": "3.6.0",
     "@dwtechs/winstan": "0.5.0",
-    "@dwtechs/antity": "0.13.0",
+    "@dwtechs/antity": "0.14.0",
     "@dwtechs/sparray": "0.2.1",
     "pg": "8.13.1"
   },
