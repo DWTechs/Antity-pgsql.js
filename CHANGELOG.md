@@ -1,5 +1,5 @@
 
-# 0.5.2 (Dec 20th 2025)
+# 0.6.0 (Dec 20th 2025)
 
 - Update dependencies : 
   - "@dwtechs/antity": "0.14.0"
