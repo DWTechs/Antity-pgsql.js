@@ -7,7 +7,7 @@ export class Update {
   private _props: string[] = []; // Base template of properties, augmented with consumer fields when needed
 
   public addProp(prop: string): void {
-    this._props.push(quoteIfUppercase(prop));
+    this._props.push(prop);
   }
 
   /**
@@ -27,15 +27,13 @@ export class Update {
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
     // Add consumer fields to rows if provided
-    if (consumerId !== undefined && consumerName !== undefined) {
+    if (consumerId !== undefined && consumerName !== undefined)
       rows = this.addConsumer(rows, consumerId, consumerName);
-    }
     
     // Augment base props template with consumer fields if provided
-    const propsToUse = [...this._props];
-    if (consumerId !== undefined && consumerName !== undefined) {
+    const propsToUse = [...this._props]; // Quoted names for SQL columns
+    if (consumerId !== undefined && consumerName !== undefined)
       propsToUse.push("consumerId", "consumerName");
-    }
     
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row;
@@ -45,7 +43,7 @@ export class Update {
     for (const p of propsToUse) {
       if (rows[0][p] === undefined) // do not create case if prop is not in the first row
         continue;
-      query += `${p} = CASE `;
+      query += `${quoteIfUppercase(p)} = CASE `;
       for (let j = 0; j < l; j++) {
         const row = rows[j];
         query += `WHEN id = $${j+1} THEN $${i++} `;

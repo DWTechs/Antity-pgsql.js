@@ -82,7 +82,7 @@ describe("query function", () => {
     const consumerId = 1;
     const consumerName = 'consumer';
     const { query, args } = entity.query.update(chunk, consumerId, consumerName);
-    expect(query).toBe(`UPDATE \"persons\" SET archived = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 END, consumerId = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 END, consumerName = CASE WHEN id = $1 THEN $7 WHEN id = $2 THEN $8 END WHERE id IN ($1, $2)`);
+    expect(query).toBe(`UPDATE \"persons\" SET archived = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 END, \"consumerId\" = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 END, \"consumerName\" = CASE WHEN id = $1 THEN $7 WHEN id = $2 THEN $8 END WHERE id IN ($1, $2)`);
     expect(args).toEqual([
       1, 2, true, true, 1, 1, 'consumer', 'consumer'
     ]);

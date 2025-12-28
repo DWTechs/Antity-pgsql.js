@@ -314,16 +314,14 @@ class Update {
         this._props = [];
     }
     addProp(prop) {
-        this._props.push(quoteIfUppercase(prop));
+        this._props.push(prop);
     }
     query(table, rows, consumerId, consumerName) {
-        if (consumerId !== undefined && consumerName !== undefined) {
+        if (consumerId !== undefined && consumerName !== undefined)
             rows = this.addConsumer(rows, consumerId, consumerName);
-        }
         const propsToUse = [...this._props];
-        if (consumerId !== undefined && consumerName !== undefined) {
+        if (consumerId !== undefined && consumerName !== undefined)
             propsToUse.push("consumerId", "consumerName");
-        }
         const l = rows.length;
         const args = rows.map(row => row.id);
         let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
@@ -331,7 +329,7 @@ class Update {
         for (const p of propsToUse) {
             if (rows[0][p] === undefined)
                 continue;
-            query += `${p} = CASE `;
+            query += `${quoteIfUppercase(p)} = CASE `;
             for (let j = 0; j < l; j++) {
                 const row = rows[j];
                 query += `WHEN id = $${j + 1} THEN $${i++} `;

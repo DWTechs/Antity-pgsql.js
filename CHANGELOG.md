@@ -1,4 +1,8 @@
 
+# 0.6.1 (Dec 27th 2025)
+
+- Fix UPDATE query to properly apply quoting logic to fields that contain uppercase letters
+
 # 0.6.0 (Dec 20th 2025)
 
 - Update dependencies : 
