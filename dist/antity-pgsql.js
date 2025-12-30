@@ -322,6 +322,7 @@ class Update {
         const propsToUse = [...this._props];
         if (consumerId !== undefined && consumerName !== undefined)
             propsToUse.push("consumerId", "consumerName");
+        log.debug(`${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
         const l = rows.length;
         const args = rows.map(row => row.id);
         let query = `UPDATE "${quoteIfUppercase(table)}" SET `;

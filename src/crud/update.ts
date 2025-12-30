@@ -2,6 +2,8 @@ import { execute as exe } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
 import type { PGResponse, Filter } from "../types";
+import { log } from "@dwtechs/winstan";
+import { LOGS_PREFIX } from "../constants";
 
 export class Update {
   private _props: string[] = []; // Base template of properties, augmented with consumer fields when needed
@@ -26,6 +28,7 @@ export class Update {
     consumerId?: string | number,
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
+    
     // Add consumer fields to rows if provided
     if (consumerId !== undefined && consumerName !== undefined)
       rows = this.addConsumer(rows, consumerId, consumerName);
@@ -35,6 +38,8 @@ export class Update {
     if (consumerId !== undefined && consumerName !== undefined)
       propsToUse.push("consumerId", "consumerName");
     
+    log.debug(`${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
+
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row;
     let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
