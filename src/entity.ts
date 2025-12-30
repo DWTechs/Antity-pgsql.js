@@ -109,6 +109,27 @@ export class SQLEntity extends Entity {
       .catch((err: Error) => next(err));
   }
 
+  /**
+   * Adds multiple rows to the database table.
+   * 
+   * @param {Request} req - Express request object. Expected to contain `rows` array in req.body with data to insert.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumerId, and consumerName.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {Promise<void>} Promise that resolves when all rows are inserted. Added rows with generated IDs are stored in res.locals.rows.
+   * @throws {Error} If database insertion fails.
+   * 
+   * @example
+   * // In an Express route
+   * app.post('/users', userEntity.add, (req, res) => {
+   *   res.json({ users: res.locals.rows });
+   * });
+   * 
+   * // Request body:
+   * // { rows: [{ name: 'John', email: 'john@example.com' }] }
+   * 
+   * // res.locals.rows will contain:
+   * // [{ id: 1, name: 'John', email: 'john@example.com' }]
+   */
   public add = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const rows = req.body.rows;

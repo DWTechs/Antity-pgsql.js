@@ -2,7 +2,7 @@
 [![License: MIT](https://img.shields.io/npm/l/@dwtechs/antity-pgsql.svg?color=brightgreen)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/%40dwtechs%2Fantity-pgsql.svg)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
 [![last version release date](https://img.shields.io/github/release-date/DWTechs/Antity-pgsql.js)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
-![Jest:coverage](https://img.shields.io/badge/Jest:coverage-100%25-brightgreen.svg)
+![Jest:coverage](https://img.shields.io/badge/Jest:coverage-54%25-brightgreen.svg)
 
 - [Synopsis](#synopsis)
 - [Support](#support)
