@@ -293,7 +293,7 @@ class Insert {
         return { query, args };
     }
     rtn(prop) {
-        return `RETURNING "${prop}"`;
+        return `RETURNING ${quoteIfUppercase(prop)}`;
     }
     execute(query, args, client) {
         return execute$1(query, args, client);

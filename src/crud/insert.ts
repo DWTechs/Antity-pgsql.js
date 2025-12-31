@@ -69,7 +69,7 @@ export class Insert {
   } 
 
   public rtn(prop: string): string {
-    return `RETURNING "${prop}"`;
+    return `RETURNING ${quoteIfUppercase(prop)}`;
   }
 
   public execute(

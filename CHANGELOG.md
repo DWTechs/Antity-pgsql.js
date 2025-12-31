@@ -1,4 +1,8 @@
 
+# 0.6.2 (Dec 31st 2025)
+
+- Fix INSERT RETURNING clause to properly apply quoting logic for property names with uppercase letters or reserved keywords
+
 # 0.6.1 (Dec 27th 2025)
 
 - Fix UPDATE query to properly apply quoting logic to fields that contain uppercase letters
