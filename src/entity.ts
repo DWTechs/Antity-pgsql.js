@@ -74,8 +74,11 @@ export class SQLEntity extends Entity {
     ): { query: string, args: unknown[] } => {
       return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
     },
-    delete: (): string => {
-      return del.query(this.table);
+    delete: (ids: number[]): { query: string, args: number[] } => {
+      return del.queryById(this.table, ids);
+    },
+    deleteArchive: (): string => {
+      return del.queryArchived(this.table);
     },
     return: (prop: string): string => {
       return this.ins.rtn(prop);
@@ -208,13 +211,67 @@ export class SQLEntity extends Entity {
 
   }
 
-  public delete = ( req: Request, res: Response, next: NextFunction ): void => {
+  /**
+   * Deletes rows from the database table by their IDs.
+   * 
+   * @param {Request} req - Express request object. Expected to contain `rows` array in req.body with IDs to delete: [{id: 1}, {id: 2}].
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {Promise<void>} Promise that resolves when rows are deleted.
+   * @throws {Error} If database deletion fails.
+   * 
+   * @example
+   * // In an Express route
+   * app.delete('/users', userEntity.delete, (req, res) => {
+   *   res.json({ success: true });
+   * });
+   * 
+   * // Request body:
+   * // { rows: [{ id: 1 }, { id: 2 }] }
+   */
+  public delete = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
+    const rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    const dbClient = res.locals.dbClient || null;
+    
+    const ids = rows.map((row: Record<string, unknown>) => row.id as number);
+    
+    log.debug(`${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
+    
+    const { query, args } = del.queryById(this._table, ids);
+    
+    try {
+      await execute(query, args, dbClient);
+    } catch (err: unknown) {
+      return next(err);
+    }
+    next();
+  }
+
+  /**
+   * Deletes archived rows from the database table that were archived before a specific date.
+   * 
+   * @param {Request} req - Express request object. Expected to contain `date` in req.body.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {void}
+   * @throws {Error} If database deletion fails.
+   * 
+   * @example
+   * // In an Express route
+   * app.delete('/users/archived', userEntity.deleteArchive, (req, res) => {
+   *   res.json({ success: true });
+   * });
+   * 
+   * // Request body:
+   * // { date: new Date('2025-01-01') }
+   */
+  public deleteArchive = ( req: Request, res: Response, next: NextFunction ): void => {
     const date = req.body.date;
     const dbClient = res.locals.dbClient || null;
     
-    log.debug(`${LOGS_PREFIX}delete archived`);
-    const q = del.query(this._table);
-    del.execute( date, q, dbClient)
+    log.debug(`${LOGS_PREFIX}deleteArchive(date=${date})`);
+    const q = del.queryArchived(this._table);
+    del.executeArchived( date, q, dbClient)
       .then(() => next())
       .catch((err: Error) => next(err));
   }

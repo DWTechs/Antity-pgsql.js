@@ -1,4 +1,11 @@
 
+# 0.7.0 (Jan 1st 2026)
+
+- Rename delete() method to deleteArchive() for deleting archived rows before a specific date
+- Add new delete() method that deletes rows by their IDs using a single database request
+- Add query.delete(ids: number[]) method that generates DELETE queries using PostgreSQL's ANY operator
+- Add query.deleteArchive() method that generates DELETE queries for archived rows
+
 # 0.6.2 (Dec 31st 2025)
 
 - Fix INSERT RETURNING clause to properly apply quoting logic for property names with uppercase letters or reserved keywords

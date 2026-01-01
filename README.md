@@ -123,7 +123,9 @@ const entity = new Entity("consumers", [
 router.get("/", ..., entity.get);
 router.post("/", entity.normalizeArray, entity.validateArray, ..., entity.add);
 router.put("/", entity.normalizeArray, entity.validateArray, ..., entity.update);
-router.put("/", ..., entity.archive);
+router.put("/archive", ..., entity.archive);
+router.delete("/", ..., entity.delete);
+router.delete("/archived", ..., entity.deleteArchive);
 
 ```
 
@@ -181,29 +183,34 @@ class SQLEntity {
         query: string;
         args: (Filter["value"])[];
       };
-      update: (
-        rows: Record<string, unknown>[],
-        consumerId?: number | string,
-        consumerName?: string) => {
-          query: string;
+    update: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string) => {
+        query: string;
+        args: unknown[];
+    };
+    insert: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string,
+      rtn?: string) => {
+        query: string;
           args: unknown[];
       };
-      insert: (
-        rows: Record<string, unknown>[],
-        consumerId?: number | string,
-        consumerName?: string,
-        rtn?: string) => {
-          query: string;
-            args: unknown[];
-        };
-        delete: () => string;
-        return: (prop: string) => string;
+    delete: (ids: number[]) => {
+      query: string;
+      args: number[];
+    };
+    deleteArchive: () => string;
+    return: (prop: string) => string;
   };
   get: (req: Request, res: Response, next: NextFunction) => void;
   add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-  delete: (req: Request, res: Response, next: NextFunction) => void;
+  delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  deleteArchive: (req: Request, res: Response, next: NextFunction) => void;
 
 }
 
@@ -223,8 +230,11 @@ function execute(
 
 
 ```
-get(), add(), update(), archive() and delete() methods are made to be used as Express.js middlewares.
+get(), add(), update(), archive(), delete() and deleteArchive() methods are made to be used as Express.js middlewares.
 Each method will look for data to work on in the **req.body.rows** parameter.
+
+- **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
+- **deleteArchive()**: Deletes archived rows that were archived before a specific date. Expects `req.body.date` to be a Date object.
 
 
 ## Match modes

@@ -58,7 +58,7 @@ var perf = {
     end,
 };
 
-function execute$1(query, args, clt) {
+function execute(query, args, clt) {
     const time = perf.start(query, args);
     const client = clt || pool;
     return client
@@ -233,7 +233,7 @@ class Select {
         };
     }
     execute(query, args, client) {
-        return execute$1(query, args, client)
+        return execute(query, args, client)
             .then((r) => {
             if (!r.rowCount)
                 throw { status: 404, msg: "Resource not found" };
@@ -296,7 +296,7 @@ class Insert {
         return `RETURNING ${quoteIfUppercase(prop)}`;
     }
     execute(query, args, client) {
-        return execute$1(query, args, client);
+        return execute(query, args, client);
     }
 }
 
@@ -343,7 +343,7 @@ class Update {
     }
     execute(query, args, client) {
         return __awaiter$2(this, void 0, void 0, function* () {
-            return execute$1(query, args, client);
+            return execute(query, args, client);
         });
     }
     addConsumer(rows, consumerId, consumerName) {
@@ -361,14 +361,20 @@ var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _argu
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-function query(table) {
+function queryById(table, ids) {
+    return {
+        query: `DELETE FROM ${quoteIfUppercase(table)} WHERE id = ANY($1)`,
+        args: [ids]
+    };
+}
+function queryArchived(table) {
     return `DELETE FROM ${quoteIfUppercase(table)} WHERE "archivedAt" < $1`;
 }
-function execute(date, query, client) {
+function executeArchived(date, query, client) {
     return __awaiter$1(this, void 0, void 0, function* () {
         let db;
         try {
-            db = yield execute$1(query, [date], client);
+            db = yield execute(query, [date], client);
         }
         catch (err) {
             throw err;
@@ -561,8 +567,11 @@ class SQLEntity extends Entity {
             insert: (rows, consumerId, consumerName, rtn = "") => {
                 return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
             },
-            delete: () => {
-                return query(this.table);
+            delete: (ids) => {
+                return queryById(this.table, ids);
+            },
+            deleteArchive: () => {
+                return queryArchived(this.table);
             },
             return: (prop) => {
                 return this.ins.rtn(prop);
@@ -604,7 +613,7 @@ class SQLEntity extends Entity {
                 const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
                 let db;
                 try {
-                    db = yield execute$1(query, args, dbClient);
+                    db = yield execute(query, args, dbClient);
                 }
                 catch (err) {
                     return next(err);
@@ -628,7 +637,7 @@ class SQLEntity extends Entity {
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._table, c, cId, cName);
                 try {
-                    yield execute$1(query, args, dbClient);
+                    yield execute(query, args, dbClient);
                 }
                 catch (err) {
                     return next(err);
@@ -648,7 +657,7 @@ class SQLEntity extends Entity {
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._table, c, cId, cName);
                 try {
-                    yield execute$1(query, args, dbClient);
+                    yield execute(query, args, dbClient);
                 }
                 catch (err) {
                     return next(err);
@@ -656,12 +665,26 @@ class SQLEntity extends Entity {
             }
             next();
         });
-        this.delete = (req, res, next) => {
+        this.delete = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            const rows = req.body.rows;
+            const dbClient = res.locals.dbClient || null;
+            const ids = rows.map((row) => row.id);
+            log.debug(`${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
+            const { query, args } = queryById(this._table, ids);
+            try {
+                yield execute(query, args, dbClient);
+            }
+            catch (err) {
+                return next(err);
+            }
+            next();
+        });
+        this.deleteArchive = (req, res, next) => {
             const date = req.body.date;
             const dbClient = res.locals.dbClient || null;
-            log.debug(`${LOGS_PREFIX}delete archived`);
-            const q = query(this._table);
-            execute(date, q, dbClient)
+            log.debug(`${LOGS_PREFIX}deleteArchive(date=${date})`);
+            const q = queryArchived(this._table);
+            executeArchived(date, q, dbClient)
                 .then(() => next())
                 .catch((err) => next(err));
         };
@@ -697,4 +720,4 @@ class SQLEntity extends Entity {
     }
 }
 
-export { SQLEntity, execute$1 as execute, filter };
+export { SQLEntity, execute, filter };
