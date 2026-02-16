@@ -174,7 +174,6 @@ class SQLEntity {
 
   query: {
     select: (
-      paginate: boolean,
       first?: number,
       rows?: number | null,
       sortField?: string | null,
@@ -233,6 +232,7 @@ function execute(
 get(), add(), update(), archive(), delete() and deleteArchive() methods are made to be used as Express.js middlewares.
 Each method will look for data to work on in the **req.body.rows** parameter.
 
+- **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date. Expects `req.body.date` to be a Date object.
 
