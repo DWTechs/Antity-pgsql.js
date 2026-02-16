@@ -78,7 +78,6 @@ declare class SQLEntity extends Entity {
   set table(table: string);
   query: {
     select: (
-      paginate: boolean,
       first?: number,
       rows?: number | null,
       sortField?: string | null,

@@ -50,14 +50,13 @@ export class SQLEntity extends Entity {
 
   public query = { 
     select: (
-      paginate: boolean,
       first: number = 0,
       rows: number | null = null,
       sortField: string | null = null,
       sortOrder: "ASC" | "DESC" | null = null,
       filters: Filters | null = null
     ): { query: string, args: (Filter["value"])[] } => {
-      return this.sel.query(this.table, paginate, first, rows, sortField, sortOrder, filters);
+      return this.sel.query(this.table, first, rows, sortField, sortOrder, filters);
     },
     update: (
       rows: Record<string, unknown>[], 
@@ -102,7 +101,7 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const { query, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
+    const { query, args } = this.sel.query(this._table, first, rows, sortField, sortOrder, filters);
     this.sel.execute( query, args, dbClient)
       .then((r: PGResponse) => {
         l.rows = r.rows;

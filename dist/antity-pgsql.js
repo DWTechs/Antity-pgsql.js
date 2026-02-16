@@ -222,8 +222,8 @@ class Select {
     get props() {
         return this._cols;
     }
-    query(table, paginate, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) {
-        const p = paginate ? this._count : '';
+    query(table, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) {
+        const p = rows ? this._count : '';
         const c = this._cols ? this._cols : '*';
         const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
@@ -558,8 +558,8 @@ class SQLEntity extends Entity {
         this.ins = new Insert();
         this.upd = new Update();
         this.query = {
-            select: (paginate, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
-                return this.sel.query(this.table, paginate, first, rows, sortField, sortOrder, filters);
+            select: (first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
+                return this.sel.query(this.table, first, rows, sortField, sortOrder, filters);
             },
             update: (rows, consumerId, consumerName) => {
                 return this.upd.query(this.table, rows, consumerId, consumerName);
@@ -591,7 +591,7 @@ class SQLEntity extends Entity {
             log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-            const { query, args } = this.sel.query(this._table, pagination, first, rows, sortField, sortOrder, filters);
+            const { query, args } = this.sel.query(this._table, first, rows, sortField, sortOrder, filters);
             this.sel.execute(query, args, dbClient)
                 .then((r) => {
                 l.rows = r.rows;

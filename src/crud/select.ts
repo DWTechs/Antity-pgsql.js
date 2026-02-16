@@ -20,15 +20,14 @@ export class Select {
   }
 
   public query(
-    table: string, 
-    paginate: boolean,
+    table: string,
     first: number = 0,
     rows: number | null = null,
     sortField: string | null = null,
     sortOrder: Sort | null = null,
     filters: Filters | null = null
   ): { query: string, args: (Filter["value"])[] } {
-    const p = paginate ? this._count : '';
+    const p = rows ? this._count : '';
     const c = this._cols ? this._cols : '*';
     const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
     

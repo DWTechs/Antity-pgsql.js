@@ -1,4 +1,9 @@
 
+# 0.8.0 (Feb 16th 2026)
+
+- Delete "paginate" property from query function
+- The total row count is now automatically included when pagination parameters (first/rows) are provided
+
 # 0.7.0 (Jan 1st 2026)
 
 - Rename delete() method to deleteArchive() for deleting archived rows before a specific date
