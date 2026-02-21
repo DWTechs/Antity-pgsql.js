@@ -336,7 +336,7 @@ class Update {
                 query += `WHEN id = $${j + 1} THEN $${i++} `;
                 args.push(row[p]);
             }
-            query += `END, `;
+            query += `ELSE ${quoteIfUppercase(p)} END, `;
         }
         query = `${query.slice(0, -2)} WHERE id IN ${$i(l, 0)}`;
         return { query, args };

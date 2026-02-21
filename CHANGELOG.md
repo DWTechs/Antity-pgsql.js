@@ -1,3 +1,6 @@
+# 0.8.1 (Feb 21th 2026)
+
+- Fix UPDATE query to include ELSE clauses in CASE statements
 
 # 0.8.0 (Feb 16th 2026)
 
