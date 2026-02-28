@@ -42,6 +42,10 @@ export type PGResponse = {
   rowAsArray?: boolean;
 };
 
+type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
+type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
+
 declare class SQLEntity extends Entity {
   private _table;
   private sel;
@@ -50,6 +54,10 @@ declare class SQLEntity extends Entity {
   constructor(name: string, properties: Property[]);
   get table(): string;
   set table(table: string);
+  get addArraySubstack(): SubstackTuple;
+  get addOneSubstack(): SubstackTuple;
+  get updateArraySubstack(): SubstackTuple;
+  get updateOneSubstack(): SubstackTuple;
   query: {
     select: (
       first?: number,

@@ -121,8 +121,15 @@ const entity = new Entity("consumers", [
 ]);
 
 router.get("/", ..., entity.get);
-router.post("/", entity.normalizeArray, entity.validateArray, ..., entity.add);
-router.put("/", entity.normalizeArray, entity.validateArray, ..., entity.update);
+
+// Using substacks (recommended) - combines normalize, validate, and database operation
+router.post("/", ...entity.addArraySubstack);
+router.put("/", ...entity.updateArraySubstack);
+
+// Or manually chain middlewares
+router.post("/manual", entity.normalizeArray, entity.validateArray, ..., entity.add);
+router.put("/manual", entity.normalizeArray, entity.validateArray, ..., entity.update);
+
 router.put("/archive", ..., entity.archive);
 router.delete("/", ..., entity.delete);
 router.delete("/archived", ..., entity.deleteArchive);
@@ -163,6 +170,10 @@ type Filter = {
   matchMode?: MatchMode;
 }
 
+type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
+type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
+
 class SQLEntity {
   constructor(name: string, properties: Property[]);
   get name(): string;
@@ -171,6 +182,12 @@ class SQLEntity {
   get properties(): Property[];
   set name(name: string);
   set table(table: string);
+
+  // Middleware substacks (combine normalize, validate, and operation)
+  get addArraySubstack(): SubstackTuple;
+  get addOneSubstack(): SubstackTuple;
+  get updateArraySubstack(): SubstackTuple;
+  get updateOneSubstack(): SubstackTuple;
 
   query: {
     select: (
@@ -229,8 +246,24 @@ function execute(
 
 
 ```
+
+### Middleware Methods
+
 get(), add(), update(), archive(), delete() and deleteArchive() methods are made to be used as Express.js middlewares.
 Each method will look for data to work on in the **req.body.rows** parameter.
+
+### Middleware Substacks
+
+Substacks are pre-composed middleware chains that combine normalization, validation, and database operations:
+
+- **addArraySubstack**: Combines `normalizeArray`, `validateArray`, and `add`. Use this for POST routes with `req.body.rows` containing multiple objects.
+- **addOneSubstack**: Combines `normalizeOne`, `validateOne`, and `add`. Use this for POST routes with `req.body` containing a single object.
+- **updateArraySubstack**: Combines `normalizeArray`, `validateArray`, and `update`. Use this for PUT routes with `req.body.rows` containing multiple objects.
+- **updateOneSubstack**: Combines `normalizeOne`, `validateOne`, and `update`. Use this for PUT routes with `req.body` containing a single object.
+
+Using substacks simplifies your route definitions and ensures consistent data processing.
+
+### Query Methods
 
 - **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`

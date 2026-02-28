@@ -14,6 +14,10 @@ import { LOGS_PREFIX } from './constants';
 import type { PGResponse, Filters, Filter, Operation } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
+type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
+type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
+
 export class SQLEntity extends Entity {
   private _table: string;
   private sel: Select = new Select();
@@ -46,6 +50,63 @@ export class SQLEntity extends Entity {
     if (!isString(table, "!0"))
       throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
     this._table = table;
+  }
+
+  /**
+   * Middleware stack that combines normalize, validate, and add operations.
+   * Use this to create entities with automatic normalization and validation.
+   * 
+   * @returns {Array<Function>} Array of Express middleware functions: [normalizeArray, validateArray, add]
+   * 
+   * @example
+   * // In an Express route
+   * app.post('/users', ...userEntity.substack, (req, res) => {
+   *   res.json({ users: res.locals.rows });
+   * });
+   * 
+   * // Request body:
+   * // { rows: [{ name: 'John', email: 'john@example.com' }] }
+   * 
+   * // The data will be:
+   * // 1. Normalized (through normalizeArray)
+   * // 2. Validated (through validateArray)
+   * // 3. Inserted (through add)
+   * // 4. Returned in res.locals.rows with generated IDs
+   */
+  public get addArraySubstack(): SubstackTuple {
+    return [this.normalizeArray, this.validateArray, this.add];
+  }
+
+  public get addOneSubstack(): SubstackTuple {
+    return [this.normalizeOne, this.validateOne, this.add];
+  }
+
+  /**
+   * Middleware stack that combines normalize, validate, and update operations.
+   * Use this to update entities with automatic normalization and validation.
+   * 
+   * @returns {Array<Function>} Array of Express middleware functions: [normalizeArray, validateArray, update]
+   * 
+   * @example
+   * // In an Express route
+   * app.put('/users', ...userEntity.updateSubstack, (req, res) => {
+   *   res.json({ success: true });
+   * });
+   * 
+   * // Request body:
+   * // { rows: [{ id: 1, name: 'John Updated', email: 'johnupdated@example.com' }] }
+   * 
+   * // The data will be:
+   * // 1. Normalized (through normalizeArray)
+   * // 2. Validated (through validateArray)
+   * // 3. Updated (through update)
+   */
+  public get updateArraySubstack(): SubstackTuple {
+    return [this.normalizeArray, this.validateArray, this.update];
+  }
+
+  public get updateOneSubstack(): SubstackTuple {
+    return [this.normalizeOne, this.validateOne, this.update];
   }
 
   public query = { 
