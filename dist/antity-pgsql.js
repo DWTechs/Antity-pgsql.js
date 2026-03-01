@@ -497,11 +497,10 @@ function generateSummary(name, table, properties) {
         lines.push(`│ │ ├─ Type: ${p.type}`);
         lines.push(`│ │ ├─ Min: ${p.min}`);
         lines.push(`│ │ ├─ Max: ${p.max}`);
-        lines.push(`│ │ ├─ Required: ${p.required}`);
+        lines.push(`│ │ ├─ need: ${p.need}`);
         lines.push(`│ │ ├─ Safe: ${p.safe}`);
         lines.push(`│ │ ├─ TypeCheck: ${p.typeCheck}`);
         lines.push(`│ │ ├─ Filter: ${p.filter}`);
-        lines.push(`│ │ ├─ Methods: [${p.methods.join(', ')}]`);
         lines.push(`│ │ ├─ Operations: [${p.operations.join(', ')}]`);
         lines.push(`│ │ ├─ Sanitize: ${p.sanitize}`);
         lines.push(`│ │ ├─ Normalize: ${p.normalize}`);
@@ -702,6 +701,18 @@ class SQLEntity extends Entity {
         if (!isString(table, "!0"))
             throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
         this._table = table;
+    }
+    get addArraySubstack() {
+        return [this.normalizeArray, this.validateArray, this.add];
+    }
+    get addOneSubstack() {
+        return [this.normalizeOne, this.validateOne, this.add];
+    }
+    get updateArraySubstack() {
+        return [this.normalizeArray, this.validateArray, this.update];
+    }
+    get updateOneSubstack() {
+        return [this.normalizeOne, this.validateOne, this.update];
     }
     mapProps(operations, key) {
         for (const o of operations) {

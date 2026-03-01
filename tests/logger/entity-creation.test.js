@@ -25,10 +25,9 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'number',
           typeCheck: true,
           filter: true,
-          methods: ['GET', 'DELETE'],
+          need: [],
           operations: ['SELECT', 'DELETE'],
-          required: true,
-          safe: true
+          send: true
         }
       ];
 
@@ -48,10 +47,9 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'number',
           typeCheck: true,
           filter: true,
-          methods: ['GET', 'DELETE'],
+          need: [],
           operations: ['SELECT', 'DELETE'],
-          required: true,
-          safe: true
+          send: true
         },
         {
           key: 'name',
@@ -60,10 +58,9 @@ describe('Logger - Entity Creation Tests', () => {
           max: 100,
           typeCheck: true,
           filter: true,
-          methods: ['GET', 'POST', 'PUT'],
+          need: [],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true
+          send: true
         }
       ];
 
@@ -90,10 +87,9 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'number',
           typeCheck: true,
           filter: true,
-          methods: ['GET'],
+          need: [],
           operations: ['SELECT'],
-          required: true,
-          safe: true
+          send: true
         }
       ];
 
@@ -115,18 +111,16 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          methods: ['GET', 'DELETE'],
+          need: [],
           operations: ['SELECT', 'DELETE'],
-          required: true,
-          safe: true
+          send: true
         },
         {
           key: 'name',
           type: 'string',
-          methods: ['GET', 'POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true
+          send: true
         }
       ];
 
@@ -153,10 +147,9 @@ describe('Logger - Entity Creation Tests', () => {
           max: 255,
           typeCheck: true,
           filter: true,
-          methods: ['GET', 'POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true
+          send: true
         }
       ];
 
@@ -170,8 +163,8 @@ describe('Logger - Entity Creation Tests', () => {
       expect(summaryCall[0]).toContain('├─ email:');
       expect(summaryCall[0]).toContain('├─ Type: string');
       expect(summaryCall[0]).toContain('├─ Operations: [SELECT, INSERT, UPDATE]');
-      expect(summaryCall[0]).toContain('├─ Required: true');
-      expect(summaryCall[0]).toContain('├─ Safe: true');
+      expect(summaryCall[0]).toContain('├─ need: POST,PUT');
+      expect(summaryCall[0]).toContain('├─ TypeCheck: true');
       expect(summaryCall[0]).toContain('├─ Filter: true');
       expect(summaryCall[0]).toContain('├─ Validate: undefined');
     });
@@ -182,26 +175,23 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          methods: ['GET', 'DELETE'],
+          need: [],
           operations: ['SELECT', 'DELETE'],
-          required: true,
-          safe: true
+          send: true
         },
         {
           key: 'title',
           type: 'string',
-          methods: ['GET', 'POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true
+          send: true
         },
         {
           key: 'content',
           type: 'string',
-          methods: ['POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['INSERT', 'UPDATE'],
-          required: false,
-          safe: true
+          send: true
         }
       ];
 
@@ -224,9 +214,9 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'name',
           type: 'string',
-          methods: ['POST', 'GET'], operations: ['SELECT', 'INSERT'],
-          required: true,
-          safe: true
+          need: ['POST'], 
+          operations: ['SELECT', 'INSERT'],
+          send: true
         }
       ];
 
@@ -247,10 +237,9 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          methods: ['GET', 'DELETE'],
+          need: [],
           operations: ['SELECT', 'DELETE'],
-          required: true,
-          safe: true,
+          send: true,
           filter: true
         },
         {
@@ -258,10 +247,9 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 1,
           max: 50,
-          methods: ['GET','POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true,
+          send: true,
           filter: true
         },
         {
@@ -269,10 +257,9 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 1,
           max: 50,
-          methods: ['GET','POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true,
+          send: true,
           filter: true
         },
         {
@@ -280,18 +267,18 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 5,
           max: 255,
-          methods: ['GET', 'POST', 'PUT'], 
+          need: ['POST', 'PUT'], 
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
+          send: true,
           safe: true,
           filter: true
         },
         {
           key: 'createdAt',
           type: 'string',
-          methods: ['POST', 'GET'],
+          need: ['POST'],
           operations: ['SELECT', 'INSERT'],
-          required: false,
+          send: true,
           safe: true,
           filter: false
         }
@@ -328,10 +315,9 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'value',
           type: 'string',
-          methods: ['GET', 'POST', 'PUT'],
+          need: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          required: true,
-          safe: true
+          send: true
         }
       ];
 
@@ -352,9 +338,9 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'message',
           type: 'string',
-          methods: ['POST', 'GET'], 
+          need: ['POST'], 
           operations: ['SELECT', 'INSERT'],
-          required: false,
+          send: true,
           safe: true,
           typeCheck: false
         }
@@ -366,7 +352,7 @@ describe('Logger - Entity Creation Tests', () => {
         call[0].includes('Entity Summary:')
       );
       
-      expect(summaryCall[0]).toContain('├─ Required: false');
+      expect(summaryCall[0]).toContain('├─ need: POST');
       expect(summaryCall[0]).toContain('├─ Validate: undefined');
       expect(summaryCall[0]).not.toContain('Constraints:');
     });

@@ -247,7 +247,7 @@ function execute(
 
 ```
 
-### Middleware Methods
+### Middleware Methods for Express.js
 
 get(), add(), update(), archive(), delete() and deleteArchive() methods are made to be used as Express.js middlewares.
 Each method will look for data to work on in the **req.body.rows** parameter.

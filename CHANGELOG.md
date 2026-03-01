@@ -1,3 +1,22 @@
+# 0.9.0 (Mar 1st 2026)
+
+- Update dependencies:
+  - "@dwtechs/antity": "0.15.0"
+- **BREAKING CHANGE**: Update Property interface to align with @dwtechs/antity 0.15.0
+  - Remove `methods` property (REST methods like GET, POST, PUT, DELETE)
+  - Remove `required` boolean property
+  - Remove `safe` boolean property  
+  - Remove `sanitize` boolean property
+  - Remove `normalize` boolean property
+  - Remove `validate` boolean property
+  - Add `need` property: array of REST methods (POST, PUT, PATCH) that require this property in request body
+  - Add `send` property: boolean to indicate if property should be sent in response
+- Add convenience express substack middlewares :
+  - `addArraySubstack`: Returns [normalizeArray, validateArray, add] middleware chain
+  - `addOneSubstack`: Returns [normalizeOne, validateOne, add] middleware chain
+  - `updateArraySubstack`: Returns [normalizeArray, validateArray, update] middleware chain
+  - `updateOneSubstack`: Returns [normalizeOne, validateOne, update] middleware chain
+
 # 0.8.1 (Feb 21th 2026)
 
 - Fix UPDATE query to include ELSE clauses in CASE statements
