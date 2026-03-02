@@ -53,13 +53,9 @@ const entity = new Entity("consumers", [
     max: 120,
     typeCheck: true,
     filter: true,
-    methods: ["GET", "PUT", "DELETE"],
+    need: ["PUT"],
     operations: ["SELECT", "UPDATE", "DELETE"],
-    required: true,
-    safe: true,
-    sanitize: true,
-    normalize: true,
-    validate: true,
+    send: true,
     sanitizer: null,
     normalizer: null,
     validator: null,
@@ -71,13 +67,9 @@ const entity = new Entity("consumers", [
     max: 255,
     typeCheck: true,
     filter: false,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    need: ["POST", "PUT"],
     operations: ["SELECT", "UPDATE", "DELETE"],
-    required: true,
-    safe: true,
-    sanitize: true,
-    normalize: true,
-    validate: true,
+    send: true,
     sanitizer: null,
     normalizer: normalizeName,
     validator: null,
@@ -89,13 +81,9 @@ const entity = new Entity("consumers", [
     max: 255,
     typeCheck: true,
     filter: false,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    need: ["POST", "PUT"],
     operations: ["SELECT", "UPDATE", "DELETE"],
-    required: true,
-    safe: true,
-    sanitize: true,
-    normalize: true,
-    validate: true,
+    send: true,
     sanitizer: null,
     normalizer: normalizeName,
     validator: null,
@@ -107,13 +95,9 @@ const entity = new Entity("consumers", [
     max: 255,
     typeCheck: true,
     filter: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    need: ["POST", "PUT"],
     operations: ["SELECT", "UPDATE", "DELETE"],
-    required: true,
-    safe: true,
-    sanitize: true,
-    normalize: true,
-    validate: true,
+    send: true,
     sanitizer: null,
     normalizer: normalizeNickname,
     validator: null,
@@ -351,15 +335,11 @@ Any of these can be passed into the options object for each function.
 | type            |  Type                     | Type of the property                              |
 | min             |  number \| Date           | Minimum value                                     | 0 \| 1900-01-01
 | max             |  number \| Date           | Maximum value                                     | 999999999 \| 2200-12-31
-| required        |  boolean                  | Property is required during validation            | false
-| safe            |  boolean                  | Property is sent in the response                  | true
+| need            |  Method[]                 | property is validated for the listed methods only            | false
+| send            |  boolean                  | Property is sent in the response                  | true
 | typeCheck       |  boolean                  | Type is checked during validation                 | false
 | filter          |  boolean                  | property is filterable in a SELECT operation      | true
-| methods         |  Method[]                 | property is validated for the listed methods only | [ "GET", "POST", "PUT", "DELETE" ]
 | operations      |  Operation[]              | SQL DML operations for the property               | [ "SELECT", "INSERT", "UPDATE", "DELETE" ]
-| sanitize        |  boolean                  | Sanitize the property if true                     | true
-| normalize       |  boolean                  | Normalize the property if true                    | false
-| validate        |  boolean                  | validate the property if true                     | true
 | sanitizer       |  ((v:any) => any) \| null | Custom sanitizer function if sanitize is true     | null
 | normalizer      |  ((v:any) => any) \| null | Custop Normalizer function if normalize is true   | null
 | validator       |  ((v:any, min:number, max:number, typeCheck:boolean) => any) \| null  | validator function if validate is true            | null
