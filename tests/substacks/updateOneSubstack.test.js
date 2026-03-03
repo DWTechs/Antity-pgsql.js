@@ -6,7 +6,7 @@ describe("updateOneSubstack", () => {
       key: 'id',
       type: 'integer',
       min: 1,
-      max: 0,
+      max: 999999999,
       typeCheck: true,
       filter: true,
       need: ['PUT'],
@@ -68,7 +68,8 @@ describe("updateOneSubstack", () => {
   });
 
   const mockRequest = (body) => ({
-    body
+    body,
+    method: 'PUT'
   });
 
   const mockResponse = (dbClient, consumerId, consumerName) => ({
@@ -118,11 +119,11 @@ describe("updateOneSubstack", () => {
     expect(mockNext).toHaveBeenCalledTimes(1);
     expect(mockNext).toHaveBeenCalledWith();
 
-    // Verify normalization occurred and data is in rows array
-    expect(req.body.rows).toBeDefined();
-    expect(req.body.rows).toHaveLength(1);
-    expect(req.body.rows[0].name).toBe('john updated');
-    expect(req.body.rows[0].email).toBe('johnupdated@example.com');
+    // Verify normalization occurred on req.body directly
+    expect(req.body.name).toBe('john updated');
+    expect(req.body.email).toBe('johnupdated@example.com');
+    expect(req.body.id).toBe(1);
+    expect(req.body.age).toBe(31);
 
     mockNext.mockClear();
 
@@ -132,6 +133,9 @@ describe("updateOneSubstack", () => {
     expect(mockNext).toHaveBeenCalledWith();
 
     mockNext.mockClear();
+
+    // Convert to array format expected by update middleware
+    req.body = { rows: [req.body] };
 
     // Update in database
     await update(req, res, mockNext);

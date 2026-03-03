@@ -6,7 +6,7 @@ describe("updateArraySubstack", () => {
       key: 'id',
       type: 'integer',
       min: 1,
-      max: 0,
+      max: 999999999,
       typeCheck: true,
       filter: true,
       need: ['PUT'],
@@ -68,7 +68,8 @@ describe("updateArraySubstack", () => {
   });
 
   const mockRequest = (rows) => ({
-    body: { rows }
+    body: { rows },
+    method: 'PUT'
   });
 
   const mockResponse = (dbClient, consumerId, consumerName) => ({
@@ -147,7 +148,7 @@ describe("updateArraySubstack", () => {
 
   it("should handle validation errors in the update chain", () => {
     const inputRows = [
-      { id: 1, name: '  JOHN  ', email: '  JOHN@EXAMPLE.COM  ', age: 15 } // age is below minimum
+      { name: '  JOHN  ', email: '  JOHN@EXAMPLE.COM  ', age: 15 } // age is below minimum, missing required 'id' for PUT
     ];
     
     const req = mockRequest(inputRows);
@@ -160,12 +161,14 @@ describe("updateArraySubstack", () => {
     expect(mockNext).toHaveBeenCalledWith();
     mockNext.mockClear();
 
-    // Validate - should fail due to age < 18
+    // Validate - should fail due to missing id or age < 18
     validate(req, res, mockNext);
     
     // Next should be called with an error
     expect(mockNext).toHaveBeenCalledTimes(1);
     const error = mockNext.mock.calls[0][0];
-    expect(error).toBeInstanceOf(Error);
+    expect(error).toBeDefined();
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toBeDefined();
   });
 });

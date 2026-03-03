@@ -6,7 +6,7 @@ describe("addArraySubstack", () => {
       key: 'id',
       type: 'integer',
       min: 1,
-      max: 0,
+      max: 999999999,
       typeCheck: true,
       filter: true,
       need: ['PUT'],
@@ -80,7 +80,8 @@ describe("addArraySubstack", () => {
    * @returns {object} Mock request object
    */
   const mockRequest = (rows) => ({
-    body: { rows }
+    body: { rows },
+    method: 'POST'
   });
 
   /**
@@ -204,7 +205,9 @@ describe("addArraySubstack", () => {
     // Next should be called with an error
     expect(mockNext).toHaveBeenCalledTimes(1);
     const error = mockNext.mock.calls[0][0];
-    expect(error).toBeInstanceOf(Error);
+    expect(error).toBeDefined();
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toBeDefined();
   });
 
   it("should be usable in Express.js route definitions", async () => {

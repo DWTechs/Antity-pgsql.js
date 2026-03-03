@@ -222,10 +222,10 @@ class Select {
     get props() {
         return this._cols;
     }
-    query(table, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) {
+    query(schema, table, first = 0, rows = null, sortField = null, sortOrder = null, filters = null) {
         const p = rows ? this._count : '';
         const c = this._cols ? this._cols : '*';
-        const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
+        const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)}`;
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
         return {
             query: baseQuery + filterClause,
@@ -264,7 +264,7 @@ class Insert {
         this._nbProps++;
         this._cols = this._quotedProps.join(", ");
     }
-    query(table, rows, consumerId, consumerName, rtn = "") {
+    query(schema, table, rows, consumerId, consumerName, rtn = "") {
         const propsToUse = [...this._props];
         let nbProps = this._nbProps;
         let cols = this._cols;
@@ -273,7 +273,7 @@ class Insert {
             nbProps += 2;
             cols += `, "consumerId", "consumerName"`;
         }
-        let query = `INSERT INTO ${quoteIfUppercase(table)} (${cols}) VALUES `;
+        let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;
         const args = [];
         let i = 0;
         for (const row of rows) {
@@ -316,7 +316,7 @@ class Update {
     addProp(prop) {
         this._props.push(prop);
     }
-    query(table, rows, consumerId, consumerName) {
+    query(schema, table, rows, consumerId, consumerName) {
         if (consumerId !== undefined && consumerName !== undefined)
             rows = this.addConsumer(rows, consumerId, consumerName);
         const propsToUse = [...this._props];
@@ -325,7 +325,7 @@ class Update {
         log.debug(`${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
         const l = rows.length;
         const args = rows.map(row => row.id);
-        let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
+        let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET `;
         let i = args.length + 1;
         for (const p of propsToUse) {
             if (rows[0][p] === undefined)
@@ -361,20 +361,20 @@ var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _argu
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-function queryById(table, ids) {
+function queryById(schema, table, ids) {
     return {
-        query: `DELETE FROM ${quoteIfUppercase(table)} WHERE id = ANY($1)`,
+        query: `DELETE FROM ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} WHERE id = ANY($1)`,
         args: [ids]
     };
 }
-function queryArchived(table) {
-    return `DELETE FROM ${quoteIfUppercase(table)} WHERE "archivedAt" < $1`;
+function queryByDate() {
+    return `SELECT hard_delete($1, $2, $3)`;
 }
-function executeArchived(date, query, client) {
+function executeArchived(schema, table, date, query, client) {
     return __awaiter$1(this, void 0, void 0, function* () {
         let db;
         try {
-            db = yield execute(query, [date], client);
+            db = yield execute(query, [schema, table, date], client);
         }
         catch (err) {
             throw err;
@@ -551,26 +551,26 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
     });
 };
 class SQLEntity extends Entity {
-    constructor(name, properties) {
+    constructor(name, properties, schema = 'public') {
         super(name, properties);
         this.sel = new Select();
         this.ins = new Insert();
         this.upd = new Update();
         this.query = {
             select: (first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
-                return this.sel.query(this.table, first, rows, sortField, sortOrder, filters);
+                return this.sel.query(this.schema, this.table, first, rows, sortField, sortOrder, filters);
             },
             update: (rows, consumerId, consumerName) => {
-                return this.upd.query(this.table, rows, consumerId, consumerName);
+                return this.upd.query(this.schema, this.table, rows, consumerId, consumerName);
             },
             insert: (rows, consumerId, consumerName, rtn = "") => {
-                return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
+                return this.ins.query(this.schema, this.table, rows, consumerId, consumerName, rtn);
             },
             delete: (ids) => {
-                return queryById(this.table, ids);
+                return queryById(this.schema, this.table, ids);
             },
             deleteArchive: () => {
-                return queryArchived(this.table);
+                return queryByDate();
             },
             return: (prop) => {
                 return this.ins.rtn(prop);
@@ -590,7 +590,7 @@ class SQLEntity extends Entity {
             log.debug(`get(first='${first}', rows='${rows}', 
       sortOrder='${sortOrder}', sortField='${sortField}', 
       pagination=${pagination}, filters=${JSON.stringify(filters)}`);
-            const { query, args } = this.sel.query(this._table, first, rows, sortField, sortOrder, filters);
+            const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters);
             this.sel.execute(query, args, dbClient)
                 .then((r) => {
                 l.rows = r.rows;
@@ -609,7 +609,7 @@ class SQLEntity extends Entity {
             const rtn = this.ins.rtn("id");
             const chunks = chunk(rows);
             for (const c of chunks) {
-                const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
+                const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
                 let db;
                 try {
                     db = yield execute(query, args, dbClient);
@@ -634,7 +634,7 @@ class SQLEntity extends Entity {
             log.debug(`${LOGS_PREFIX}update(rows=${rows.length}, consumerId=${cId})`);
             const chunks = chunk(rows);
             for (const c of chunks) {
-                const { query, args } = this.upd.query(this._table, c, cId, cName);
+                const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
                 try {
                     yield execute(query, args, dbClient);
                 }
@@ -654,7 +654,7 @@ class SQLEntity extends Entity {
             rows = rows.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
             const chunks = chunk(rows);
             for (const c of chunks) {
-                const { query, args } = this.upd.query(this._table, c, cId, cName);
+                const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
                 try {
                     yield execute(query, args, dbClient);
                 }
@@ -669,7 +669,7 @@ class SQLEntity extends Entity {
             const dbClient = res.locals.dbClient || null;
             const ids = rows.map((row) => row.id);
             log.debug(`${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
-            const { query, args } = queryById(this._table, ids);
+            const { query, args } = queryById(this._schema, this._table, ids);
             try {
                 yield execute(query, args, dbClient);
             }
@@ -681,13 +681,13 @@ class SQLEntity extends Entity {
         this.deleteArchive = (req, res, next) => {
             const date = req.body.date;
             const dbClient = res.locals.dbClient || null;
-            log.debug(`${LOGS_PREFIX}deleteArchive(date=${date})`);
-            const q = queryArchived(this._table);
-            executeArchived(date, q, dbClient)
+            log.debug(`${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
+            executeArchived(this._schema, this._table, date, queryByDate(), dbClient)
                 .then(() => next())
                 .catch((err) => next(err));
         };
         this._table = name;
+        this._schema = schema;
         log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
         for (const p of properties) {
             this.mapProps(p.operations, p.key);
@@ -701,6 +701,14 @@ class SQLEntity extends Entity {
         if (!isString(table, "!0"))
             throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
         this._table = table;
+    }
+    get schema() {
+        return this._schema;
+    }
+    set schema(schema) {
+        if (!isString(schema, "!0"))
+            throw new Error(`${LOGS_PREFIX}schema must be a string of length > 0`);
+        this._schema = schema;
     }
     get addArraySubstack() {
         return [this.normalizeArray, this.validateArray, this.add];

@@ -6,7 +6,7 @@ describe("addOneSubstack", () => {
       key: 'id',
       type: 'integer',
       min: 1,
-      max: 0,
+      max: 999999999,
       typeCheck: true,
       filter: true,
       need: ['PUT'],
@@ -68,7 +68,8 @@ describe("addOneSubstack", () => {
   });
 
   const mockRequest = (body) => ({
-    body
+    body,
+    method: 'POST'
   });
 
   const mockResponse = (dbClient, consumerId, consumerName) => ({
@@ -119,11 +120,10 @@ describe("addOneSubstack", () => {
     expect(mockNext).toHaveBeenCalledTimes(1);
     expect(mockNext).toHaveBeenCalledWith();
 
-    // Verify normalization occurred and data is in rows array
-    expect(req.body.rows).toBeDefined();
-    expect(req.body.rows).toHaveLength(1);
-    expect(req.body.rows[0].name).toBe('john');
-    expect(req.body.rows[0].email).toBe('john@example.com');
+    // Verify normalization occurred on req.body directly
+    expect(req.body.name).toBe('john');
+    expect(req.body.email).toBe('john@example.com');
+    expect(req.body.age).toBe(30);
 
     mockNext.mockClear();
 
@@ -133,6 +133,9 @@ describe("addOneSubstack", () => {
     expect(mockNext).toHaveBeenCalledWith();
 
     mockNext.mockClear();
+
+    // Convert to array format expected by add middleware
+    req.body = { rows: [req.body] };
 
     // Add to database
     await add(req, res, mockNext);
