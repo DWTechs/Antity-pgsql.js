@@ -74,7 +74,7 @@ describe("query function", () => {
     const rtn = entity.query.return("id");
     const { query, args } = entity.query.insert(chunk, consumerId, consumerName, rtn);
     expect(query).toBe(
-      'INSERT INTO persons (name, age, "consumerId", "consumerName") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8) RETURNING id'
+      'INSERT INTO public.persons (name, age, "consumerId", "consumerName") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8) RETURNING id'
     );
     expect(args).toEqual([
       'John', 30, 1, 'consumer',
@@ -92,7 +92,7 @@ describe("query function", () => {
     const rtn = "";
     const { query, args } = entity.query.insert(chunk, consumerId, consumerName, rtn);
     expect(query).toBe(
-      'INSERT INTO persons (name, age, "consumerId", "consumerName") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)'
+      'INSERT INTO public.persons (name, age, "consumerId", "consumerName") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)'
     );
     expect(args).toEqual([
       'John', 30, 1, 'consumer',
@@ -110,7 +110,7 @@ describe("query function", () => {
     const rtn = entity2.query.return("id");
     const { query, args } = entity2.query.insert(chunk, consumerId, consumerName, rtn);
     expect(query).toBe(
-      'INSERT INTO persons (age, "consumerId", "consumerName") VALUES ($1, $2, $3), ($4, $5, $6) RETURNING id'
+      'INSERT INTO public.persons (age, "consumerId", "consumerName") VALUES ($1, $2, $3), ($4, $5, $6) RETURNING id'
     );
     expect(args).toEqual([
       30, consumerId, consumerName,
@@ -126,7 +126,7 @@ describe("query function", () => {
     const rtn = entity.query.return("id");
     const { query, args } = entity.query.insert(chunk, undefined, undefined, rtn);
     expect(query).toBe(
-      'INSERT INTO persons (name, age) VALUES ($1, $2), ($3, $4) RETURNING id'
+      'INSERT INTO public.persons (name, age) VALUES ($1, $2), ($3, $4) RETURNING id'
     );
     expect(args).toEqual([
       'John', 30,
@@ -141,7 +141,7 @@ describe("query function", () => {
     ];
     const { query, args } = entity.query.insert(chunk);
     expect(query).toBe(
-      'INSERT INTO persons (name, age) VALUES ($1, $2), ($3, $4)'
+      'INSERT INTO public.persons (name, age) VALUES ($1, $2), ($3, $4)'
     );
     expect(args).toEqual([
       'John', 30,

@@ -150,7 +150,7 @@ describe("query function", () => {
     const consumerId = 1;
     const consumerName = 'consumer';
     const { query, args } = entity.query.update(chunk, consumerId, consumerName);
-    expect(query).toBe(`UPDATE \"persons\" SET name = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE name END, age = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 ELSE age END, \"consumerId\" = CASE WHEN id = $1 THEN $7 WHEN id = $2 THEN $8 ELSE \"consumerId\" END, \"consumerName\" = CASE WHEN id = $1 THEN $9 WHEN id = $2 THEN $10 ELSE \"consumerName\" END WHERE id IN ($1, $2)`);
+    expect(query).toBe(`UPDATE public.persons SET name = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE name END, age = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 ELSE age END, "consumerId" = CASE WHEN id = $1 THEN $7 WHEN id = $2 THEN $8 ELSE "consumerId" END, "consumerName" = CASE WHEN id = $1 THEN $9 WHEN id = $2 THEN $10 ELSE "consumerName" END WHERE id IN ($1, $2)`);
     expect(args).toEqual([
       1, 2, 'John', 'Henry', 30, 40, 1, 1, 'consumer', 'consumer'
     ]);
@@ -162,7 +162,7 @@ describe("query function", () => {
       { id: 2, name: 'Henry', age: 40 },
     ];
     const { query, args } = entity.query.update(chunk);
-    expect(query).toBe(`UPDATE \"persons\" SET name = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE name END, age = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 ELSE age END WHERE id IN ($1, $2)`);
+    expect(query).toBe(`UPDATE public.persons SET name = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE name END, age = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 ELSE age END WHERE id IN ($1, $2)`);
     expect(args).toEqual([
       1, 2, 'John', 'Henry', 30, 40
     ]);
@@ -174,7 +174,7 @@ describe("query function", () => {
       { id: 2, accessToken: 'Jyyyy', refreshToken: 'fghkl' },
     ];
     const { query, args } = consumerEntity.query.update(chunk);
-    expect(query).toBe(`UPDATE \"consumer\" SET \"accessToken\" = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE \"accessToken\" END, \"refreshToken\" = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 ELSE \"refreshToken\" END WHERE id IN ($1, $2)`);
+    expect(query).toBe(`UPDATE public.consumer SET "accessToken" = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE "accessToken" END, "refreshToken" = CASE WHEN id = $1 THEN $5 WHEN id = $2 THEN $6 ELSE "refreshToken" END WHERE id IN ($1, $2)`);
     expect(args).toEqual([
       1, 2, 'Jxxxx', 'Jyyyy', 'fdjlz', 'fghkl'
     ]);
@@ -185,7 +185,7 @@ describe("query function", () => {
       { id: 1, accessToken: 'Jxxxx', refreshToken: 'fdjlz' },
     ];
     const { query, args } = consumerEntity.query.update(chunk);
-    expect(query).toBe(`UPDATE \"consumer\" SET \"accessToken\" = CASE WHEN id = $1 THEN $2 ELSE \"accessToken\" END, \"refreshToken\" = CASE WHEN id = $1 THEN $3 ELSE \"refreshToken\" END WHERE id IN ($1)`);
+    expect(query).toBe(`UPDATE public.consumer SET "accessToken" = CASE WHEN id = $1 THEN $2 ELSE "accessToken" END, "refreshToken" = CASE WHEN id = $1 THEN $3 ELSE "refreshToken" END WHERE id IN ($1)`);
     expect(args).toEqual([
       1, 'Jxxxx', 'fdjlz'
     ]);

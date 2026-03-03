@@ -20,6 +20,7 @@ export class Select {
   }
 
   public query(
+    schema: string,
     table: string,
     first: number = 0,
     rows: number | null = null,
@@ -29,7 +30,7 @@ export class Select {
   ): { query: string, args: (Filter["value"])[] } {
     const p = rows ? this._count : '';
     const c = this._cols ? this._cols : '*';
-    const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(table)}`;
+    const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)}`;
     
     const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
     

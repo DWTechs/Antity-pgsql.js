@@ -20,6 +20,7 @@ export class Insert {
   /**
    * Generates an SQL INSERT query string and its corresponding arguments for a given table and data rows.
    *
+   * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the data will be inserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
    * @param {string | number} [consumerId] - Optional. The ID of the consumer to be added to each row (for history tracking).
@@ -29,6 +30,7 @@ export class Insert {
    * 
    */
   public query(
+    schema: string,
     table: string, 
     rows: Record<string, any>[], 
     consumerId?: string | number,
@@ -46,7 +48,7 @@ export class Insert {
       cols += `, "consumerId", "consumerName"`;
     }
     
-    let query = `INSERT INTO ${quoteIfUppercase(table)} (${cols}) VALUES `;
+    let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;
     const args: (Filter["value"])[] = [];
     let i = 0;
     

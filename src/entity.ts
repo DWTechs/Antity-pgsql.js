@@ -20,16 +20,19 @@ type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsy
 
 export class SQLEntity extends Entity {
   private _table: string;
+  private _schema: string;
   private sel: Select = new Select();
   private ins: Insert = new Insert();
   private upd: Update = new Update();
 
   constructor(
     name: string, 
-    properties: Property[], 
+    properties: Property[],
+    schema: string = 'public'
   ) {
     super(name, properties); // Call the constructor of the base class
     this._table = name;
+    this._schema = schema;
     
     log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
     
@@ -50,6 +53,16 @@ export class SQLEntity extends Entity {
     if (!isString(table, "!0"))
       throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
     this._table = table;
+  }
+
+  public get schema(): string {
+    return this._schema;
+  }
+
+  public set schema(schema: string) {
+    if (!isString(schema, "!0"))
+      throw new Error(`${LOGS_PREFIX}schema must be a string of length > 0`);
+    this._schema = schema;
   }
 
   /**
@@ -117,14 +130,14 @@ export class SQLEntity extends Entity {
       sortOrder: "ASC" | "DESC" | null = null,
       filters: Filters | null = null
     ): { query: string, args: (Filter["value"])[] } => {
-      return this.sel.query(this.table, first, rows, sortField, sortOrder, filters);
+      return this.sel.query(this.schema, this.table, first, rows, sortField, sortOrder, filters);
     },
     update: (
       rows: Record<string, unknown>[], 
       consumerId?: number | string, 
       consumerName?: string,
     ): { query: string, args: unknown[] } => {
-      return this.upd.query(this.table, rows, consumerId, consumerName);
+      return this.upd.query(this.schema, this.table, rows, consumerId, consumerName);
     },
     insert: (
       rows: Record<string, unknown>[], 
@@ -132,13 +145,13 @@ export class SQLEntity extends Entity {
       consumerName?: string,
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
-      return this.ins.query(this.table, rows, consumerId, consumerName, rtn);
+      return this.ins.query(this.schema, this.table, rows, consumerId, consumerName, rtn);
     },
     delete: (ids: number[]): { query: string, args: number[] } => {
-      return del.queryById(this.table, ids);
+      return del.queryById(this.schema, this.table, ids);
     },
     deleteArchive: (): string => {
-      return del.queryArchived(this.table);
+      return del.queryByDate();
     },
     return: (prop: string): string => {
       return this.ins.rtn(prop);
@@ -162,7 +175,7 @@ export class SQLEntity extends Entity {
       pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
-    const { query, args } = this.sel.query(this._table, first, rows, sortField, sortOrder, filters);
+    const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters);
     this.sel.execute( query, args, dbClient)
       .then((r: PGResponse) => {
         l.rows = r.rows;
@@ -205,7 +218,7 @@ export class SQLEntity extends Entity {
     const rtn = this.ins.rtn("id");
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.ins.query(this._table, c, cId, cName, rtn);
+      const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
       let db: PGResponse;
       try {
         db = await execute(query, args, dbClient);
@@ -233,7 +246,7 @@ export class SQLEntity extends Entity {
 
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.upd.query(this._table, c, cId, cName);
+      const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
@@ -260,7 +273,7 @@ export class SQLEntity extends Entity {
 
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.upd.query(this._table, c, cId, cName);
+      const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
@@ -297,7 +310,7 @@ export class SQLEntity extends Entity {
     
     log.debug(`${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
     
-    const { query, args } = del.queryById(this._table, ids);
+    const { query, args } = del.queryById(this._schema, this._table, ids);
     
     try {
       await execute(query, args, dbClient);
@@ -309,6 +322,7 @@ export class SQLEntity extends Entity {
 
   /**
    * Deletes archived rows from the database table that were archived before a specific date.
+   * Uses the hard_delete PostgreSQL function to delete rows and their history.
    * 
    * @param {Request} req - Express request object. Expected to contain `date` in req.body.
    * @param {Response} res - Express response object. Uses res.locals to access dbClient.
@@ -329,9 +343,8 @@ export class SQLEntity extends Entity {
     const date = req.body.date;
     const dbClient = res.locals.dbClient || null;
     
-    log.debug(`${LOGS_PREFIX}deleteArchive(date=${date})`);
-    const q = del.queryArchived(this._table);
-    del.executeArchived( date, q, dbClient)
+    log.debug(`${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
+    del.executeArchived(this._schema, this._table, date, del.queryByDate(), dbClient)
       .then(() => next())
       .catch((err: Error) => next(err));
   }

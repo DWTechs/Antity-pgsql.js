@@ -1,8 +1,7 @@
 # 0.9.0 (Mar 1st 2026)
 
-- Update dependencies:
-  - "@dwtechs/antity": "0.15.0"
-- **BREAKING CHANGE**: Update Property interface to align with @dwtechs/antity 0.15.0
+- add schema parameter to entity constructor to support multiple schemas in the same database 
+- Update Property interface to align with @dwtechs/antity 0.15.0
   - Remove `methods` property (REST methods like GET, POST, PUT, DELETE)
   - Remove `required` boolean property
   - Remove `safe` boolean property  
@@ -16,6 +15,10 @@
   - `addOneSubstack`: Returns [normalizeOne, validateOne, add] middleware chain
   - `updateArraySubstack`: Returns [normalizeArray, validateArray, update] middleware chain
   - `updateOneSubstack`: Returns [normalizeOne, validateOne, update] middleware chain
+- change `queryArchived` function name to `queryByDate` to better reflect its purpose of generating queries for deleting archived rows based on a date condition 
+  - `queryByDate` function now generates a query that uses a hard_delete() function in postgreSQL in order to delete rows and their history in a single query 
+- Update dependencies:
+  - "@dwtechs/antity": "0.15.0"
 
 # 0.8.1 (Feb 21th 2026)
 

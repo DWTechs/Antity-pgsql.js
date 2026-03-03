@@ -48,12 +48,15 @@ type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsy
 
 declare class SQLEntity extends Entity {
   private _table;
+  private _schema;
   private sel;
   private ins;
   private upd;
-  constructor(name: string, properties: Property[]);
+  constructor(name: string, properties: Property[], schema?: string);
   get table(): string;
   set table(table: string);
+  get schema(): string;
+  set schema(schema: string);
   get addArraySubstack(): SubstackTuple;
   get addOneSubstack(): SubstackTuple;
   get updateArraySubstack(): SubstackTuple;

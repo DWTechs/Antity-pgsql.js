@@ -15,6 +15,7 @@ export class Update {
   /**
    * Generates an SQL UPDATE query string and its corresponding arguments for a given table and data rows.
    *
+   * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the data will be updated.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be updated. Each object should contain an 'id' property.
    * @param {string | number} [consumerId] - Optional. The ID of the consumer to be added to each row (for history tracking).
@@ -23,6 +24,7 @@ export class Update {
    * 
    */
   public query(
+    schema: string,
     table: string, 
     rows: Record<string, any>[],
     consumerId?: string | number,
@@ -42,7 +44,7 @@ export class Update {
 
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row;
-    let query = `UPDATE "${quoteIfUppercase(table)}" SET `;
+    let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET `;
     let i = args.length+1;
     
     for (const p of propsToUse) {

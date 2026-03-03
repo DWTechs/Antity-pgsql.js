@@ -5,38 +5,43 @@ import type { PGResponse } from "../types";
 /**
  * Generates a DELETE query for rows by their IDs.
  * 
+ * @param {string} schema - The name of the schema.
  * @param {string} table - The name of the table to delete from.
  * @param {number[]} ids - Array of IDs to delete.
  * @returns {{ query: string, args: number[] }} Object containing the SQL query and arguments.
  * 
  * @example
- * const result = queryById('users', [1, 2, 3]);
- * // Returns: { query: 'DELETE FROM users WHERE id = ANY($1)', args: [1, 2, 3] }
+ * const result = queryById('public', 'users', [1, 2, 3]);
+ * // Returns: { query: 'DELETE FROM public.users WHERE id = ANY($1)', args: [1, 2, 3] }
  */
-function queryById(table: string, ids: number[]): { query: string, args: any[] } {
+function queryById(schema: string, table: string, ids: number[]): { query: string, args: any[] } {
   return {
-    query: `DELETE FROM ${quoteIfUppercase(table)} WHERE id = ANY($1)`,
+    query: `DELETE FROM ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} WHERE id = ANY($1)`,
     args: [ids]
   };
 }
 
 /**
- * Generates a DELETE query for archived rows before a specific date.
+ * Generates a query to call the hard_delete function for archived rows before a specific date.
  * 
+ * @param {string} schema - The name of the schema.
  * @param {string} table - The name of the table to delete from.
  * @returns {string} SQL query string.
  * 
  * @example
- * const query = queryArchived('users');
- * // Returns: 'DELETE FROM users WHERE "archivedAt" < $1'
+ * const query = queryArchived('public', 'users');
+ * // Returns: 'SELECT hard_delete($1, $2, $3)'
  */
-function queryArchived(table: string): string {
-  return `DELETE FROM ${quoteIfUppercase(table)} WHERE "archivedAt" < $1`;
+function queryByDate(): string {
+  // SELECT hard_delete('public', 'route', NOW() - INTERVAL '1 year')
+  return `SELECT hard_delete($1, $2, $3)`;
 }
 
 /**
- * Executes a DELETE query for archived rows.
+ * Executes the hard_delete function for archived rows.
  * 
+ * @param {string} schema - The name of the schema.
+ * @param {string} table - The name of the table.
  * @param {Date} date - The date threshold for deletion. Rows archived before this date will be deleted.
  * @param {string} query - The SQL query to execute.
  * @param {any} client - The database client.
@@ -44,17 +49,19 @@ function queryArchived(table: string): string {
  * @throws {Error} If the database operation fails.
  * 
  * @example
- * const query = queryArchived('users');
- * await executeArchived(new Date('2025-01-01'), query, dbClient);
+ * const query = queryArchived('public', 'users');
+ * await executeArchived('public', 'users', new Date('2025-01-01'), query, dbClient);
  */
 async function executeArchived(
+  schema: string,
+  table: string,
   date: Date,
   query: string,
   client: any): Promise<PGResponse> {
   
   let db: PGResponse;
   try {
-    db = await exe(query, [date], client);
+    db = await exe(query, [schema, table, date], client);
   } catch (err: unknown) {
     throw err;
   }
@@ -63,6 +70,6 @@ async function executeArchived(
 
 export {
   queryById,
-  queryArchived,
+  queryByDate,
   executeArchived,
 };
