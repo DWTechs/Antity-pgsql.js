@@ -45,20 +45,38 @@ export class SQLEntity extends Entity {
     logSummary(name, this._table, properties);
   }
 
+  /**
+   * Gets the table name for the entity.
+   * @returns {string} The table name.
+   */
   public get table(): string {
     return this._table;
   }
 
+  /**
+   * Sets the table name for the entity.
+   * @param {string} table - The new table name. Must be a non-empty string.
+   * @throws {Error} If the provided table name is not a valid non-empty string.
+   */
   public set table(table: string) {
     if (!isString(table, "!0"))
       throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
     this._table = table;
   }
 
+  /**
+   * Gets the schema name for the entity.
+   * @returns {string} The schema name.
+   */
   public get schema(): string {
     return this._schema;
   }
 
+  /**
+   * Sets the schema name for the entity.
+   * @param {string} schema - The new schema name. Must be a non-empty string.
+   * @throws {Error} If the provided schema name is not a valid non-empty string.
+   */
   public set schema(schema: string) {
     if (!isString(schema, "!0"))
       throw new Error(`${LOGS_PREFIX}schema must be a string of length > 0`);
@@ -158,6 +176,7 @@ export class SQLEntity extends Entity {
     }
   };
 
+  
   public get = ( req: Request, res: Response, next: NextFunction ): void => {
     const l = res.locals;
     const b = req.body;
@@ -346,6 +365,59 @@ export class SQLEntity extends Entity {
     log.debug(`${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
     del.executeArchived(this._schema, this._table, date, del.queryByDate(), dbClient)
       .then(() => next())
+      .catch((err: Error) => next(err));
+  }
+
+  /**
+   * Retrieves the history for a specific row by its ID.
+   * 
+   * @param {Request} req - Express request object. Expected to contain `id` in req.params.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {void}
+   * @throws {Error} If database query fails or ID is missing.
+   * 
+   * @example
+   * // In an Express route
+   * app.get('/users/:id/history', userEntity.getHistory, (req, res) => {
+   *   res.json({ history: res.locals.history, total: res.locals.total });
+   * });
+   * 
+   * // Request params:
+   * // { id: 1 }
+   * 
+   * // res.locals will contain:
+   * // { history: [...], total: 5 }
+   */
+  public getHistory = ( req: Request, res: Response, next: NextFunction ): void => {
+    const id = req.params.id;
+    const dbClient = res.locals.dbClient || null;
+    
+    if (!id) {
+      return next({ status: 400, msg: "Missing id" });
+    }
+    
+    log.debug(`${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
+    
+    const sql = `
+      SELECT id, tstamp, operation, "consumerId", "consumerName"
+      FROM log.history
+      WHERE "schemaName" = $1 
+        AND "tableName" = $2
+        AND CAST(record->>'id' AS INT) = $3
+      ORDER BY tstamp ASC
+    `;
+    
+    execute(sql, [this._schema, this._table, id], dbClient)
+      .then((r: PGResponse) => {
+        const { rowCount, rows } = r;
+        if (!rowCount) {
+          return next({ status: 404, msg: "History not found" });
+        }
+        res.locals.history = rows;
+        res.locals.total = rowCount;
+        next();
+      })
       .catch((err: Error) => next(err));
   }
 

@@ -17,6 +17,7 @@
   - `updateOneSubstack`: Returns [normalizeOne, validateOne, update] middleware chain
 - change `queryArchived` function name to `queryByDate` to better reflect its purpose of generating queries for deleting archived rows based on a date condition 
   - `queryByDate` function now generates a query that uses a hard_delete() function in postgreSQL in order to delete rows and their history in a single query 
+- Add history getter to entity that generates a query to retrieve the history of changes for a specific row based on its ID
 - Update dependencies:
   - "@dwtechs/antity": "0.15.0"
 

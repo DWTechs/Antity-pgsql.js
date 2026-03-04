@@ -46,53 +46,74 @@ type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => vo
 type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
 
-declare class SQLEntity extends Entity {
-  private _table;
-  private _schema;
-  private sel;
-  private ins;
-  private upd;
+export class SQLEntity extends Entity {
+  private _table: string;
+  private _schema: string;
+  private sel: any;
+  private ins: any;
+  private upd: any;
+  
   constructor(name: string, properties: Property[], schema?: string);
+  
   get table(): string;
   set table(table: string);
+  
   get schema(): string;
   set schema(schema: string);
+  
   get addArraySubstack(): SubstackTuple;
   get addOneSubstack(): SubstackTuple;
   get updateArraySubstack(): SubstackTuple;
   get updateOneSubstack(): SubstackTuple;
+  
   query: {
     select: (
       first?: number,
       rows?: number | null,
       sortField?: string | null,
       sortOrder?: "ASC" | "DESC" | null,
-      filters?: Filters | null) => {
-        query: string;
-        args: (Filter["value"])[];
+      filters?: Filters | null
+    ) => {
+      query: string;
+      args: (Filter["value"])[];
     };
-    update: (rows: Record<string,
-      unknown>[], consumerId?: number | string, consumerName?: string) => {
-        query: string;
-        args: unknown[];
+    
+    update: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string
+    ) => {
+      query: string;
+      args: unknown[];
     };
-    insert: (rows: Record<string, unknown>[], consumerId?: number | string, consumerName?: string, rtn?: string) => {
-        query: string;
-        args: unknown[];
+    
+    insert: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string,
+      rtn?: string
+    ) => {
+      query: string;
+      args: unknown[];
     };
+    
     delete: (ids: number[]) => {
       query: string;
       args: number[];
     };
+    
     deleteArchive: () => string;
+    
     return: (prop: string) => string;
   };
-  get: (req: Request, res: Response, next: NextFunction) => void;
-  add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-  update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-  archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-  delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-  deleteArchive: (req: Request, res: Response, next: NextFunction) => void;
+  
+  get(req: Request, res: Response, next: NextFunction): void;
+  add(req: Request, res: Response, next: NextFunction): Promise<void>;
+  update(req: Request, res: Response, next: NextFunction): Promise<void>;
+  archive(req: Request, res: Response, next: NextFunction): Promise<void>;
+  delete(req: Request, res: Response, next: NextFunction): Promise<void>;
+  deleteArchive(req: Request, res: Response, next: NextFunction): void;
+  getHistory(req: Request, res: Response, next: NextFunction): void;
 }
 
 declare function filter(
