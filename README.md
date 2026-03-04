@@ -65,7 +65,7 @@ const entity = new SQLEntity("consumers", [
     typeCheck: true,
     filter: true,
     need: ["PUT"],
-    operations: ["SELECT", "UPDATE", "DELETE"],
+    operations: ["SELECT", "UPDATE"],
     send: true,
     sanitizer: null,
     normalizer: null,
@@ -79,7 +79,7 @@ const entity = new SQLEntity("consumers", [
     typeCheck: true,
     filter: false,
     need: ["POST", "PUT"],
-    operations: ["SELECT", "UPDATE", "DELETE"],
+    operations: ["SELECT", "UPDATE"],
     send: true,
     sanitizer: null,
     normalizer: normalizeName,
@@ -93,7 +93,7 @@ const entity = new SQLEntity("consumers", [
     typeCheck: true,
     filter: false,
     need: ["POST", "PUT"],
-    operations: ["SELECT", "UPDATE", "DELETE"],
+    operations: ["SELECT", "UPDATE"],
     send: true,
     sanitizer: null,
     normalizer: normalizeName,
@@ -107,7 +107,7 @@ const entity = new SQLEntity("consumers", [
     typeCheck: true,
     filter: true,
     need: ["POST", "PUT"],
-    operations: ["SELECT", "UPDATE", "DELETE"],
+    operations: ["SELECT", "UPDATE"],
     send: true,
     sanitizer: null,
     normalizer: normalizeNickname,
@@ -137,7 +137,7 @@ router.get("/history", ..., entity.getHistory);
 
 ```javascript
 
-type Operation = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
+type Operation = "SELECT" | "INSERT" | "UPDATE";
 
 type MatchMode =  
   "startsWith" | 
