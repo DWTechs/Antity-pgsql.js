@@ -1,3 +1,11 @@
+# 0.9.1 (Mar 3th 2026)
+
+- Fix TypeScript type definitions in antity-pgsql.d.ts:
+  - Remove DELETE from Operation type (now "SELECT" | "INSERT" | "UPDATE")
+  - Replace `any` types with proper TypeScript types (`Pool | PoolClient | null`, `unknown`)
+  - Add proper Property class declaration extending BaseProperty from @dwtechs/antity
+  - Improve import statements for better type safety
+
 # 0.9.0 (Mar 1st 2026)
 
 - add schema parameter to entity constructor to support multiple schemas in the same database 

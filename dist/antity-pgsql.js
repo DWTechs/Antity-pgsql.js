@@ -686,6 +686,33 @@ class SQLEntity extends Entity {
                 .then(() => next())
                 .catch((err) => next(err));
         };
+        this.getHistory = (req, res, next) => {
+            const id = req.params.id;
+            const dbClient = res.locals.dbClient || null;
+            if (!id) {
+                return next({ status: 400, msg: "Missing id" });
+            }
+            log.debug(`${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
+            const sql = `
+      SELECT id, tstamp, operation, "consumerId", "consumerName"
+      FROM log.history
+      WHERE "schemaName" = $1 
+        AND "tableName" = $2
+        AND CAST(record->>'id' AS INT) = $3
+      ORDER BY tstamp ASC
+    `;
+            execute(sql, [this._schema, this._table, id], dbClient)
+                .then((r) => {
+                const { rowCount, rows } = r;
+                if (!rowCount) {
+                    return next({ status: 404, msg: "History not found" });
+                }
+                res.locals.history = rows;
+                res.locals.total = rowCount;
+                next();
+            })
+                .catch((err) => next(err));
+        };
         this._table = name;
         this._schema = schema;
         log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);

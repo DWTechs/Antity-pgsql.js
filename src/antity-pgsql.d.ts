@@ -1,9 +1,9 @@
-import { Entity } from "@dwtechs/antity";
-import { Type } from "@dwtechs/antity";
-import { Property } from './property';
+import { Entity, Property as BaseProperty } from "@dwtechs/antity";
+import type { Type, Method } from "@dwtechs/antity";
 import type { Request, Response, NextFunction } from 'express';
+import type { Pool, PoolClient } from 'pg';
 
-export type Operation = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
+export type Operation = "SELECT" | "INSERT" | "UPDATE";
 export type Sort = "ASC" | "DESC";
 export type Filters = {
   [key: string]: Filter;
@@ -13,7 +13,27 @@ export type Filter = {
   subProps?: string[];
   matchMode?: MatchMode;
 };
-export { Type };
+export type { Type };
+
+export declare class Property extends BaseProperty {
+  filter: boolean;
+  operations: Operation[];
+  constructor(
+    key: string,
+    type: Type,
+    min: number | Date | null,
+    max: number | Date | null,
+    need: Method[],
+    send: boolean,
+    typeCheck: boolean,
+    filter: boolean,
+    operations: Operation[] | undefined,
+    sanitizer: ((v: unknown) => unknown) | null,
+    normalizer: ((v: unknown) => unknown) | null,
+    validator: ((v: unknown) => unknown) | null
+  );
+}
+
 export type LogicalOperator = "AND" | "OR";
 export type Comparator = "=" | "<" | ">" | "<=" | ">=" | "<>" | "IS" | "IS NOT" | "IN" | "LIKE" | "NOT LIKE";
 export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" | "equals" | "notEquals" | "between" | "in" | "lt" | "lte" | "gt" | "gte" | "is" | "isNot" | "before" | "after" | "st_contains" | "st_dwithin";
@@ -46,12 +66,12 @@ type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => vo
 type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
 
-export class SQLEntity extends Entity {
+export declare class SQLEntity extends Entity {
   private _table: string;
   private _schema: string;
-  private sel: any;
-  private ins: any;
-  private upd: any;
+  private sel: unknown;
+  private ins: unknown;
+  private upd: unknown;
   
   constructor(name: string, properties: Property[], schema?: string);
   
@@ -116,7 +136,7 @@ export class SQLEntity extends Entity {
   getHistory(req: Request, res: Response, next: NextFunction): void;
 }
 
-declare function filter(
+export declare function filter(
   first: number,
   rows: number | null,
   sortField: string | null,
@@ -124,16 +144,9 @@ declare function filter(
   filters: Filters | null,
 ): { filterClause: string, args: (Filter["value"])[] };
   
-declare function execute(
+export declare function execute(
   query: string, 
   args: (string | number | boolean | Date | number[])[], 
-  client: any
+  client: Pool | PoolClient | null
 ): Promise<PGResponse>;
-
-export { 
-  SQLEntity,
-  Property,
-  filter,
-  execute,
-};
 
