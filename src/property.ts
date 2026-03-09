@@ -4,7 +4,7 @@ import type { Type, Method } from '@dwtechs/antity';
 import type { Operation } from './types';
 
 export class Property extends BaseProperty {
-  filter: boolean;
+  isFilterable: boolean;
   operations: Operation[];
 
   constructor(
@@ -12,10 +12,10 @@ export class Property extends BaseProperty {
     type: Type,
     min: number | Date | null,
     max: number | Date | null,
-    need: Method[],
-    send: boolean,
-    typeCheck: boolean,
-    filter: boolean,
+    requiredFor: Method[],
+    isPrivate: boolean,
+    isTypeChecked: boolean,
+    isFilterable: boolean,
     operations: Operation[] = [],
     sanitizer: ((v:any) => any) | null,
     normalizer: ((v:any) => any) | null,
@@ -26,14 +26,14 @@ export class Property extends BaseProperty {
       type,
       min,
       max,
-      send,
-      need,
-      typeCheck,
+      isPrivate,
+      requiredFor,
+      isTypeChecked,
       sanitizer,
       normalizer,
       validator
     );
-    this.filter = filter;
+    this.isFilterable = isFilterable;
     this.operations = operations;
   }
 }

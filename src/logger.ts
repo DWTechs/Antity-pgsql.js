@@ -111,10 +111,10 @@ function generateSummary(name: string, table: string, properties: Property[]): s
       lines.push(`│ │ ├─ Type: ${p.type}`);
       lines.push(`│ │ ├─ Min: ${p.min}`);
       lines.push(`│ │ ├─ Max: ${p.max}`);
-      lines.push(`│ │ ├─ need: ${p.need}`);
-      lines.push(`│ │ ├─ Safe: ${p.safe}`);
-      lines.push(`│ │ ├─ TypeCheck: ${p.typeCheck}`);
-      lines.push(`│ │ ├─ Filter: ${p.filter}`);
+      lines.push(`│ │ ├─ RequiredFor: ${p.requiredFor}`);
+      lines.push(`│ │ ├─ IsPrivate: ${p.isPrivate}`);
+      lines.push(`│ │ ├─ IsTypeChecked: ${p.isTypeChecked}`);
+      lines.push(`│ │ ├─ IsFilterable: ${p.isFilterable}`);
       lines.push(`│ │ ├─ Operations: [${p.operations.join(', ')}]`);
       lines.push(`│ │ ├─ Sanitize: ${p.sanitize}`);
       lines.push(`│ │ ├─ Normalize: ${p.normalize}`);

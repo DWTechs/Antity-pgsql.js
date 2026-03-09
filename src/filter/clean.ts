@@ -45,7 +45,7 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
         delete filters[k];
         continue;
       }
-      if (!prop.filter) {
+      if (!prop.isFilterable) {
         log.warn(`${LOGS_PREFIX}Filters: skipping unfilterable property: ${k}`);
         delete filters[k];
         continue;

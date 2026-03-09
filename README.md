@@ -125,10 +125,10 @@ router.put("/", ...entity.updateArraySubstack);
 router.post("/manual", entity.normalizeArray, entity.validateArray, ..., entity.add);
 router.put("/manual", entity.normalizeArray, entity.validateArray, ..., entity.update);
 
-router.put("/archive", ..., entity.archive);
+router.patch("/archive", ..., entity.archive);
 router.delete("/", ..., entity.delete);
 router.delete("/archived", ..., entity.deleteArchive);
-router.get("/history", ..., entity.getHistory);
+router.get("/:id/history", ..., entity.getHistory);
 
 ```
 
@@ -360,10 +360,10 @@ Any of these can be passed into the options object for each function.
 | type            |  Type                     | Type of the property                              |
 | min             |  number \| Date           | Minimum value                                     | 0 \| 1900-01-01
 | max             |  number \| Date           | Maximum value                                     | 999999999 \| 2200-12-31
-| need            |  Method[]                 | property is validated for the listed methods only | ["PATCH", "PUT", "POST"]
-| send            |  boolean                  | Property is sent in the response                  | true
-| typeCheck       |  boolean                  | Type is checked during validation                 | false
-| filter          |  boolean                  | property is filterable in a SELECT operation      | true
+| requiredFor     |  Method[]                 | property is required for the listed methods only | ["PATCH", "PUT", "POST"]
+| isPrivate       |  boolean                  | Property is unsafe to send in the response                  | true
+| isTypeChecked   |  boolean                  | Type is checked during validation                 | false
+| isFilterable    |  boolean                  | property is filterable in a SELECT operation      | true
 | operations      |  Operation[]              | Property is used for the DML operations only      | ["SELECT", "INSERT", "UPDATE"]
 | sanitizer       |  ((v:any) => any) \| null | Custom sanitizer function if sanitize is true     | null
 | normalizer      |  ((v:any) => any) \| null | Custom Normalizer function if normalize is true   | null
