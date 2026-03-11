@@ -1,3 +1,15 @@
+# 0.10.0 (Mar 11th 2026)
+
+- Rename Property interface properties for better clarity and consistency:
+  - `typeCheck` → `isTypeChecked`: Boolean flag to enable/disable type checking
+  - `filter` → `isFilterable`: Boolean flag to enable/disable filtering in SELECT operations
+  - `need` → `requiredFor`: Array of REST methods (POST, PUT, PATCH) that require this property
+  - `send` → `isPrivate`: Boolean flag inverted - `send: true` becomes `isPrivate: false`
+- Rename entity getter method:
+  - `unsafeProps` → `privateProps`: Returns array of property names that are private
+- Update dependencies:
+  - "@dwtechs/antity": "0.16.0"
+
 # 0.9.1 (Mar 3th 2026)
 
 - Fix TypeScript type definitions in antity-pgsql.d.ts:
