@@ -23,11 +23,11 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          typeCheck: true,
-          filter: true,
-          need: [],
+          isTypeChecked: true,
+          isFilterable: true,
+          requiredFor: [],
           operations: ['SELECT', 'DELETE'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -45,22 +45,22 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          typeCheck: true,
-          filter: true,
-          need: [],
+          isTypeChecked: true,
+          isFilterable: true,
+          requiredFor: [],
           operations: ['SELECT', 'DELETE'],
-          send: true
+          isPrivate: false
         },
         {
           key: 'name',
           type: 'string',
           min: 2,
           max: 100,
-          typeCheck: true,
-          filter: true,
-          need: [],
+          isTypeChecked: true,
+          isFilterable: true,
+          requiredFor: [],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -85,11 +85,11 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          typeCheck: true,
-          filter: true,
-          need: [],
+          isTypeChecked: true,
+          isFilterable: true,
+          requiredFor: [],
           operations: ['SELECT'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -111,16 +111,16 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          need: [],
+          requiredFor: [],
           operations: ['SELECT', 'DELETE'],
-          send: true
+          isPrivate: false
         },
         {
           key: 'name',
           type: 'string',
-          need: ['POST', 'PUT'],
+          requiredFor: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -145,11 +145,11 @@ describe('Logger - Entity Creation Tests', () => {
           type: 'string',
           min: 5,
           max: 255,
-          typeCheck: true,
-          filter: true,
-          need: ['POST', 'PUT'],
+          isTypeChecked: true,
+          isFilterable: true,
+          requiredFor: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -163,9 +163,9 @@ describe('Logger - Entity Creation Tests', () => {
       expect(summaryCall[0]).toContain('├─ email:');
       expect(summaryCall[0]).toContain('├─ Type: string');
       expect(summaryCall[0]).toContain('├─ Operations: [SELECT, INSERT, UPDATE]');
-      expect(summaryCall[0]).toContain('├─ need: POST,PUT');
-      expect(summaryCall[0]).toContain('├─ TypeCheck: true');
-      expect(summaryCall[0]).toContain('├─ Filter: true');
+      expect(summaryCall[0]).toContain('├─ RequiredFor: POST,PUT');
+      expect(summaryCall[0]).toContain('├─ IsTypeChecked: true');
+      expect(summaryCall[0]).toContain('├─ IsFilterable: true');
       expect(summaryCall[0]).toContain('├─ Validate: undefined');
     });
 
@@ -175,23 +175,23 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          need: [],
+          requiredFor: [],
           operations: ['SELECT', 'DELETE'],
-          send: true
+          isPrivate: false
         },
         {
           key: 'title',
           type: 'string',
-          need: ['POST', 'PUT'],
+          requiredFor: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true
+          isPrivate: false
         },
         {
           key: 'content',
           type: 'string',
-          need: ['POST', 'PUT'],
+          requiredFor: ['POST', 'PUT'],
           operations: ['INSERT', 'UPDATE'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -214,9 +214,9 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'name',
           type: 'string',
-          need: ['POST'], 
+          requiredFor: ['POST'], 
           operations: ['SELECT', 'INSERT'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -237,50 +237,48 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'id',
           type: 'number',
-          need: [],
+          requiredFor: [],
           operations: ['SELECT', 'DELETE'],
-          send: true,
-          filter: true
+          isPrivate: false,
+          isFilterable: true
         },
         {
           key: 'firstName',
           type: 'string',
           min: 1,
           max: 50,
-          need: ['POST', 'PUT'],
+          requiredFor: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true,
-          filter: true
+          isPrivate: false,
+          isFilterable: true
         },
         {
           key: 'lastName',
           type: 'string',
           min: 1,
           max: 50,
-          need: ['POST', 'PUT'],
+          requiredFor: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true,
-          filter: true
+          isPrivate: false,
+          isFilterable: true
         },
         {
           key: 'email',
           type: 'string',
           min: 5,
           max: 255,
-          need: ['POST', 'PUT'], 
+          requiredFor: ['POST', 'PUT'], 
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true,
-          safe: true,
-          filter: true
+          isPrivate: false,
+          isFilterable: true
         },
         {
           key: 'createdAt',
           type: 'string',
-          need: ['POST'],
+          requiredFor: ['POST'],
           operations: ['SELECT', 'INSERT'],
-          send: true,
-          safe: true,
-          filter: false
+          isPrivate: false,
+          isFilterable: false
         }
       ];
 
@@ -315,9 +313,9 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'value',
           type: 'string',
-          need: ['POST', 'PUT'],
+          requiredFor: ['POST', 'PUT'],
           operations: ['SELECT', 'INSERT', 'UPDATE'],
-          send: true
+          isPrivate: false
         }
       ];
 
@@ -338,11 +336,10 @@ describe('Logger - Entity Creation Tests', () => {
         {
           key: 'message',
           type: 'string',
-          need: ['POST'], 
+          requiredFor: ['POST'], 
           operations: ['SELECT', 'INSERT'],
-          send: true,
-          safe: true,
-          typeCheck: false
+          isPrivate: false,
+          isTypeChecked: false
         }
       ];
 
@@ -352,9 +349,10 @@ describe('Logger - Entity Creation Tests', () => {
         call[0].includes('Entity Summary:')
       );
       
-      expect(summaryCall[0]).toContain('├─ need: POST');
-      expect(summaryCall[0]).toContain('├─ Validate: undefined');
-      expect(summaryCall[0]).not.toContain('Constraints:');
+      expect(summaryCall[0]).toContain('RequiredFor: POST');
+      expect(summaryCall[0]).toContain('Validate: undefined');
+      expect(summaryCall[0]).toContain('Min: undefined');
+      expect(summaryCall[0]).toContain('Max: undefined');
     });
   });
 });

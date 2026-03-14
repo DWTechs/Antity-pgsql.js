@@ -360,8 +360,8 @@ Any of these can be passed into the options object for each function.
 | type            |  Type                     | Type of the property                              |
 | min             |  number \| Date           | Minimum value                                     | 0 \| 1900-01-01
 | max             |  number \| Date           | Maximum value                                     | 999999999 \| 2200-12-31
-| requiredFor     |  Method[]                 | property is required for the listed methods only | ["PATCH", "PUT", "POST"]
-| isPrivate       |  boolean                  | Property is unsafe to send in the response                  | true
+| requiredFor     |  Method[]                 | property is required for the listed methods only  | ["PATCH", "PUT", "POST"]
+| isPrivate       |  boolean                  | Property is unsafe to send in the response        | true
 | isTypeChecked   |  boolean                  | Type is checked during validation                 | false
 | isFilterable    |  boolean                  | property is filterable in a SELECT operation      | true
 | operations      |  Operation[]              | Property is used for the DML operations only      | ["SELECT", "INSERT", "UPDATE"]
