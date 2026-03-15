@@ -4,13 +4,13 @@ export type Operation = typeof OPERATIONS[number];
 export type Sort = "ASC" | "DESC";
 
 export type Filters = {
-  [key: string]: Filter;
+  [key: string]: Filter | Filter[];
 }
 
 export type Filter = {
   value: string | number | boolean | Date | number[];
-  subProps?: string[];
   matchMode?: MatchMode;
+  operator?: string;
 }
 
 export type LogicalOperator = "AND" | "OR";

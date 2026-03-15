@@ -160,20 +160,33 @@ function comparator(matchMode) {
 }
 
 function add(filters) {
+    var _a, _b;
     const conditions = [];
     const args = [];
     if (filters) {
         let i = 1;
         for (const k in filters) {
-            const { value, matchMode } = filters[k];
-            const indexes = isArray(value) ? value.map(() => i++) : [i++];
-            const cond = addOne(k, indexes, matchMode);
-            if (cond) {
-                conditions.push(cond);
-                if (isArray(value))
-                    args.push(...value);
-                else
-                    args.push(value);
+            const filterValue = filters[k];
+            const filterArray = isArray(filterValue) ? filterValue : [filterValue];
+            const groupConditions = [];
+            for (const filter of filterArray) {
+                const { value, matchMode } = filter;
+                const indexes = isArray(value) ? value.map(() => i++) : [i++];
+                const cond = addOne(k, indexes, matchMode);
+                if (cond) {
+                    groupConditions.push(cond);
+                    if (isArray(value))
+                        args.push(...value);
+                    else
+                        args.push(value);
+                }
+            }
+            if (groupConditions.length > 0) {
+                const operator = ((_b = (_a = filterArray[0]) === null || _a === void 0 ? void 0 : _a.operator) === null || _b === void 0 ? void 0 : _b.toUpperCase()) || 'AND';
+                const combined = groupConditions.length > 1
+                    ? `(${groupConditions.join(` ${operator} `)})`
+                    : groupConditions[0];
+                conditions.push(combined);
             }
         }
     }
@@ -465,12 +478,20 @@ function cleanFilters(filters, properties) {
                 continue;
             }
             const type$1 = type(prop.type);
-            const { matchMode: matchMode$1 } = filters[k];
-            if (!matchMode$1 || !matchMode(type$1, matchMode$1)) {
-                log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode$1}" for type: "${type$1}" at property: "${k}"`);
+            const filterValue = filters[k];
+            const filterArray = isArray(filterValue) ? filterValue : [filterValue];
+            const validFilters = filterArray.filter((f) => {
+                const { matchMode: matchMode$1 } = f;
+                if (!matchMode$1 || !matchMode(type$1, matchMode$1)) {
+                    log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode$1}" for type: "${type$1}" at property: "${k}"`);
+                    return false;
+                }
+                return true;
+            });
+            if (!validFilters.length)
                 delete filters[k];
-                continue;
-            }
+            else
+                filters[k] = validFilters;
         }
     }
     return filters;

@@ -1,5 +1,11 @@
-# 0.10.1 (Mar 12th 2026)
+# 0.11.0 (Mar 13th 2026)
 
+- Add support for array-based filter format with multiple filters per property:
+  - Filters now accept both simple format (single object) and complex format (array of objects)
+  - Simple format: `{name: {value: "John", matchMode: "contains"}}` (backward compatible)
+  - Complex format: `{name: [{value: "John", matchMode: "contains", operator: "or"}]}` (new)
+  - Support logical operators (AND/OR) to combine multiple filters on the same property
+  - Example: `{name: [{value: "John", operator: "or"}, {value: "Jane", operator: "or"}]}`
 - Fix `isFilterable` property in declaration file
 
 # 0.10.0 (Mar 11th 2026)

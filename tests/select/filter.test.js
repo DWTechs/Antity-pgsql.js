@@ -2,21 +2,25 @@
 import { filter } from '../../dist/antity-pgsql.js';
 
 // Builds the where clause with given filters
-// Filters should be as follow :
+// Filters support two formats:
+// 
+// Simple format (old - still supported):
 // filters={
 //   "key1":{"value":"xxx", "matchMode":"contains"}, => string
-//   "key2":{"value":[1,2], "matchMode":"contains"}, => number[]
-//   "key3":{"value":true, "matchMode":"contains"},  => boolean
-//   "key4":{"value":["2023-04-09T22:00:00.000Z","2023-04-12T21:59:59.000Z"],"matchMode":"between"}, => date range
-//   "key5":{"value":false} => boolean,
-//   "key6":{"value":1400, "subProp":"xxx"} => JsonAgg[]
-//   "key7":{"value":{"2":[1,2], "3":[3]} => object[]
+//   "key2":{"value":[1,2], "matchMode":"in"}, => number[]
+//   "key3":{"value":true, "matchMode":"equals"},  => boolean
 // };
+//
+// Complex format (new - array-based):
+// filters={
+//   "key1":[{"value":"xxx", "matchMode":"contains", "operator":"or"}], => string with operator
+//   "key2":[{"value":1, "matchMode":"equals"}, {"value":2, "matchMode":"equals", "operator":"or"}], => multiple filters
+//   "key3":[{"value":false, "matchMode":"equals"}],  => boolean
+// };
+//
 // MatchMode is optional.
 // key is the name of a column in database
 // aggregate columns must have an "Agg" suffix
-// Other cases may be added
-
 
 // first: number,
 // rows: number | null,
@@ -24,7 +28,7 @@ import { filter } from '../../dist/antity-pgsql.js';
 // sortOrder: Sort,
 // filters: Filters | null,
 
-describe('filter', () => {
+describe('filter - simple format (backward compatibility)', () => {
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'startsWith' }, age: { value: 30, matchMode: 'gte' }};", () => {
         const first = 0;
         const rows = 10;
@@ -290,6 +294,217 @@ describe('filter', () => {
 
         expect(filterClause).toBe(' ORDER BY name ASC');
         expect(args).toEqual([]);
+    });
+
+});
+
+describe('filter - complex format (array-based)', () => {
+    it("should generate correct SQL filter clause for single filter in array format", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: 'John', matchMode: 'contains' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name LIKE %$1% AND archived = $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['John', false]);
+    });
+
+    it("should generate correct SQL filter clause for multiple filters with OR operator", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [
+                { value: 'John', matchMode: 'contains', operator: 'or' },
+                { value: 'Jane', matchMode: 'contains', operator: 'or' }
+            ],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE (name LIKE %$1% OR name LIKE %$2%) ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['John', 'Jane']);
+    });
+
+    it("should generate correct SQL filter clause for multiple filters with AND operator", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            age: [
+                { value: 18, matchMode: 'gte', operator: 'and' },
+                { value: 65, matchMode: 'lte', operator: 'and' }
+            ],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE (age >= $1 AND age <= $2) ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([18, 65]);
+    });
+
+    it("should generate correct SQL filter clause combining multiple properties with array filters", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [
+                { value: 'John', matchMode: 'contains', operator: 'or' },
+                { value: 'Jane', matchMode: 'contains', operator: 'or' }
+            ],
+            archived: [{ value: false, matchMode: 'equals' }],
+            age: [{ value: 18, matchMode: 'gte' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE (name LIKE %$1% OR name LIKE %$2%) AND archived = $3 AND age >= $4 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['John', 'Jane', false, 18]);
+    });
+
+    it("should handle array format with IN matchMode", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: [{ value: ['active', 'pending', 'approved'], matchMode: 'in' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status IN ($1,$2,$3) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['active', 'pending', 'approved']);
+    });
+
+    it("should handle multiple filters with different match modes", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'DESC';
+        const filters = {
+            name: [
+                { value: 'John', matchMode: 'startsWith', operator: 'or' },
+                { value: 'Doe', matchMode: 'endsWith', operator: 'or' }
+            ],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE (name LIKE $1% OR name LIKE %$2) ORDER BY name DESC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['John', 'Doe']);
+    });
+
+    it("should handle array format with notEquals and notContains", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: 'Admin', matchMode: 'notContains' }],
+            status: [{ value: 'deleted', matchMode: 'notEquals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name NOT LIKE %$1% AND status <> $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['Admin', 'deleted']);
+    });
+
+    it("should handle mixed simple and complex filter formats", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: { value: 'John', matchMode: 'contains' }, // simple format
+            age: [{ value: 30, matchMode: 'gte' }], // complex format
+            archived: [{ value: false, matchMode: 'equals' }], // complex format
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name LIKE %$1% AND age >= $2 AND archived = $3 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['John', 30, false]);
+    });
+
+    it("should handle array format with IS and IS NOT", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            deletedAt: [{ value: null, matchMode: 'is' }],
+            archivedAt: [{ value: null, matchMode: 'isNot' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE "deletedAt" IS $1 AND "archivedAt" IS NOT $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([null, null]);
+    });
+
+    it("should handle array format with before and after (date comparisons)", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'createdAt';
+        const sortOrder = 'DESC';
+        const date = new Date('2024-01-01');
+        const filters = {
+            createdAt: [{ value: date, matchMode: 'after' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE "createdAt" > $1 ORDER BY "createdAt" DESC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([date]);
+    });
+
+    it("should handle complex filters with no pagination", () => {
+        const first = null;
+        const rows = null;
+        const sortField = null;
+        const sortOrder = null;
+        const filters = {
+            status: [
+                { value: 'active', matchMode: 'equals', operator: 'or' },
+                { value: 'pending', matchMode: 'equals', operator: 'or' }
+            ],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE (status = $1 OR status = $2)');
+        expect(args).toEqual(['active', 'pending']);
     });
 
 });

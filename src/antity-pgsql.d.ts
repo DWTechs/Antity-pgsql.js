@@ -10,8 +10,8 @@ export type Filters = {
 };
 export type Filter = {
   value: string | number | boolean | Date | number[];
-  subProps?: string[];
   matchMode?: MatchMode;
+  operator?: string;
 };
 export type { Type };
 

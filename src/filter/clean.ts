@@ -1,4 +1,5 @@
 import { log } from "@dwtechs/winstan";
+import { isArray } from "@dwtechs/checkard";
 import * as map from "../map";
 import * as check from "../check";
 import { Property } from '../property';
@@ -12,22 +13,41 @@ import { LOGS_PREFIX } from '../constants';
  * - Checks if each filter property exists in the entity's property definitions
  * - Verifies that the match mode is compatible with the SQL data type of the property
  * - Removes any filters that fail validation and logs warnings
+ * - Supports both old format (single filter object) and new format (array of filter objects)
  * 
  * @private
- * @param {Filters} filters - The filter object containing property names as keys and filter criteria as values
+ * @param {Filters} filters - The filter object containing property names as keys and filter criteria as values (object or array)
  * @param {Property[]} properties - Array of property definitions for the entity
  * @returns {Filters} A sanitized filter object with only valid filters remaining
  * 
  * @example
  * ```typescript
+ * // complex format (array)
  * const filters = {
+ *   name: [
+ *     { matchMode: 'contains', value: 'John', operator: 'or' },
+ *     { matchMode: 'contains', value: 'Jane', operator: 'or' }
+ *   ],
+ *   age: [{ matchMode: 'equals', value: 25 }],
+ *   archived: [{ matchMode: 'equals', value: false }],
+ *   invalidProp: [{ matchMode: 'contains', value: 'test' }] // Will be removed
+ * };
+ * 
+ * // simple format (object) - still supported
+ * const oldFilters = {
  *   name: { matchMode: 'contains', value: 'John' },
- *   age: { matchMode: 'equals', value: 25 },
- *   invalidProp: { matchMode: 'contains', value: 'test' } // Will be removed
+ *   age: { matchMode: 'equals', value: 25 }
  * };
  * 
  * const cleanedFilters = this.cleanFilters(filters);
- * // Result: { name: { matchMode: 'contains', value: 'John' }, age: { matchMode: 'equals', value: 25 } }
+ * // Result: { 
+ * //   name: [
+ * //     { matchMode: 'contains', value: 'John', operator: 'or' },
+ * //     { matchMode: 'contains', value: 'Jane', operator: 'or' }
+ * //   ],
+ * //   age: [{ matchMode: 'equals', value: 25 }],
+ * //   archived: [{ matchMode: 'equals', value: false }]
+ * // }
  * ```
  * 
  * @throws {void} Does not throw errors but logs warnings for invalid filters
@@ -51,12 +71,26 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
         continue;
       }
       const type = map.type((prop as any).type); // transform from entity type to valid sql filter type
-      const { /*subProps, */matchMode } = filters[k];
-      if (!matchMode || !check.matchMode(type, matchMode)) { // check if match mode is compatible with sql type
-        log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
+      
+      // Normalize to array format (handle both old and new formats)
+      const filterValue = filters[k];
+      const filterArray = isArray(filterValue) ? filterValue : [filterValue];
+      
+      // Validate each filter in the array
+      const validFilters = filterArray.filter((f) => {
+        const { matchMode } = f;
+        if (!matchMode || !check.matchMode(type, matchMode)) {
+          log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
+          return false;
+        }
+        return true;
+      });
+      
+      // If no valid filters remain, remove the property entirely
+      if (!validFilters.length)
         delete filters[k];
-        continue;
-      }
+      else
+        filters[k] = validFilters;
     }
   }
   return filters;

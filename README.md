@@ -160,10 +160,14 @@ type MatchMode =
   "st_dwithin";
 
 
+type Filters = {
+  [key: string]: Filter | Filter[]; // Supports both simple (object) and complex (array) formats
+}
+
 type Filter = {
   value: string | number | boolean | Date | number[];
-  subProps?: string[];
   matchMode?: MatchMode;
+  operator?: string; // 'and' | 'or' - Used when multiple filters apply to the same property
 }
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
@@ -277,6 +281,56 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
 - **getHistory()**: Retrieves modification history for rows from the `log.history` table. Expects `req.body.rows` to be an array of objects with `id` property. Returns all historical records for the specified entity IDs.
+
+### Filters
+
+Filters support two formats for maximum flexibility:
+
+#### Simple Format (Single Filter per Property)
+
+Backward-compatible format using a single filter object:
+
+```javascript
+const filters = {
+  name: { value: 'John', matchMode: 'contains' },
+  age: { value: 30, matchMode: 'equals' },
+  archived: { value: false, matchMode: 'equals' }
+};
+```
+
+#### Complex Format (Multiple Filters per Property)
+
+Array-based format supporting multiple filters with logical operators:
+
+```javascript
+const filters = {
+  // Multiple filters on the same property with OR operator
+  name: [
+    { value: 'John', matchMode: 'contains', operator: 'or' },
+    { value: 'Jane', matchMode: 'contains', operator: 'or' }
+  ],
+  // Age range with AND operator
+  age: [
+    { value: 18, matchMode: 'gte', operator: 'and' },
+    { value: 65, matchMode: 'lte', operator: 'and' }
+  ],
+  // Single filter in array format
+  archived: [{ value: false, matchMode: 'equals' }]
+};
+```
+
+This generates SQL like:
+```sql
+WHERE (name LIKE '%John%' OR name LIKE '%Jane%') 
+  AND (age >= 18 AND age <= 65) 
+  AND archived = false
+```
+
+**Notes:**
+- Both formats can be mixed in the same filters object
+- When using arrays with a single filter, the operator is optional
+- Default operator is 'AND' if not specified
+- The operator field is case-insensitive
 
 
 ## Match modes
