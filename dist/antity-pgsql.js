@@ -24,7 +24,7 @@ SOFTWARE.
 https://github.com/DWTechs/Antity-pgsql.js
 */
 
-import { isArray, isIn, isString } from '@dwtechs/checkard';
+import { isArray, isString, isIn } from '@dwtechs/checkard';
 import { deleteProps, chunk, flatten } from '@dwtechs/sparray';
 import { log } from '@dwtechs/winstan';
 import { Entity } from '@dwtechs/antity';
@@ -107,14 +107,6 @@ function quoteIfUppercase(word) {
 function index(index, matchMode) {
     const i = index.map((i) => `$${i}`);
     switch (matchMode) {
-        case "startsWith":
-            return `${i}%`;
-        case "endsWith":
-            return `%${i}`;
-        case "contains":
-            return `%${i}%`;
-        case "notContains":
-            return `%${i}%`;
         case "in":
             return `(${i})`;
         default:
@@ -159,6 +151,21 @@ function comparator(matchMode) {
     }
 }
 
+function formatValue(value, matchMode) {
+    if (!isString(value))
+        return value;
+    switch (matchMode) {
+        case "startsWith":
+            return `${value}%`;
+        case "endsWith":
+            return `%${value}`;
+        case "contains":
+        case "notContains":
+            return `%${value}%`;
+        default:
+            return value;
+    }
+}
 function add(filters) {
     var _a, _b;
     const conditions = [];
@@ -176,9 +183,9 @@ function add(filters) {
                 if (cond) {
                     groupConditions.push(cond);
                     if (isArray(value))
-                        args.push(...value);
+                        args.push(...value.map((v) => formatValue(v, matchMode)));
                     else
-                        args.push(value);
+                        args.push(formatValue(value, matchMode));
                 }
             }
             if (groupConditions.length > 0) {

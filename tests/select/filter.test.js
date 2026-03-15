@@ -42,9 +42,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name LIKE $1% AND age >= $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE $1 AND age >= $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 30]);
+        expect(args).toEqual(['John%', 30]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'endsWith' }, age: { value: 30, matchMode: 'lte' }};", () => {
@@ -60,9 +60,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name LIKE %$1 AND age <= $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE $1 AND age <= $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 30]);
+        expect(args).toEqual(['%John', 30]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'contains' }, age: { value: 30, matchMode: 'gt' }};", () => {
@@ -78,9 +78,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name LIKE %$1% AND age > $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE $1 AND age > $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 29]);
+        expect(args).toEqual(['%John%', 29]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'notContains' }, age: { value: 30, matchMode: 'lt' }};", () => {
@@ -96,9 +96,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name NOT LIKE %$1% AND age < $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE $1 AND age < $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 31]);
+        expect(args).toEqual(['%John%', 31]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'notContains' }, age: { value: 30, matchMode: 'equals' }};", () => {
@@ -114,9 +114,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name NOT LIKE %$1% AND age = $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE $1 AND age = $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 30]);
+        expect(args).toEqual(['%John%', 30]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'notContains' }, age: { value: 31, matchMode: 'notEquals' }};", () => {
@@ -132,9 +132,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name NOT LIKE %$1% AND age <> $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE $1 AND age <> $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 31]);
+        expect(args).toEqual(['%John%', 31]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'notContains' }, age: { value: [30, 31, 32], matchMode: 'in' }};", () => {
@@ -150,9 +150,9 @@ describe('filter - simple format (backward compatibility)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name NOT LIKE %$1% AND age IN ($2,$3,$4) ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE $1 AND age IN ($2,$3,$4) ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 30, 31, 32]);
+        expect(args).toEqual(['%John%', 30, 31, 32]);
     });
 
     it("should generate correct SQL filter clause and arguments for filters = {name: { value: 'John', matchMode: 'is' }, age: { value: 30, matchMode: 'is' }};", () => {
@@ -312,9 +312,9 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name LIKE %$1% AND archived = $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE $1 AND archived = $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', false]);
+        expect(args).toEqual(['%John%', false]);
     });
 
     it("should generate correct SQL filter clause for multiple filters with OR operator", () => {
@@ -332,9 +332,9 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE (name LIKE %$1% OR name LIKE %$2%) ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE (name LIKE $1 OR name LIKE $2) ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 'Jane']);
+        expect(args).toEqual(['%John%', '%Jane%']);
     });
 
     it("should generate correct SQL filter clause for multiple filters with AND operator", () => {
@@ -374,9 +374,9 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE (name LIKE %$1% OR name LIKE %$2%) AND archived = $3 AND age >= $4 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE (name LIKE $1 OR name LIKE $2) AND archived = $3 AND age >= $4 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 'Jane', false, 18]);
+        expect(args).toEqual(['%John%', '%Jane%', false, 18]);
     });
 
     it("should handle array format with IN matchMode", () => {
@@ -411,9 +411,9 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE (name LIKE $1% OR name LIKE %$2) ORDER BY name DESC LIMIT 10 OFFSET 0'
+            ' WHERE (name LIKE $1 OR name LIKE $2) ORDER BY name DESC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 'Doe']);
+        expect(args).toEqual(['John%', '%Doe']);
     });
 
     it("should handle array format with notEquals and notContains", () => {
@@ -429,9 +429,9 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name NOT LIKE %$1% AND status <> $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name NOT LIKE $1 AND status <> $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['Admin', 'deleted']);
+        expect(args).toEqual(['%Admin%', 'deleted']);
     });
 
     it("should handle mixed simple and complex filter formats", () => {
@@ -448,9 +448,9 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE name LIKE %$1% AND age >= $2 AND archived = $3 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE name LIKE $1 AND age >= $2 AND archived = $3 ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual(['John', 30, false]);
+        expect(args).toEqual(['%John%', 30, false]);
     });
 
     it("should handle array format with IS and IS NOT", () => {

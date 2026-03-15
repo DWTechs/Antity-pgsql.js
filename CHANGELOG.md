@@ -1,3 +1,10 @@
+# 0.11.1 (Mar 14th 2026)
+
+- Fix wildcard placement in LIKE queries:
+  - Wildcards (%) are now added to string values instead of SQL parameter placeholders
+  - Affects matchModes: `startsWith`, `endsWith`, `contains`, `notContains`
+  - SQL now generates `LIKE $1` with value `'%abc%'` instead of `LIKE %$1%` with value `'abc'`
+
 # 0.11.0 (Mar 13th 2026)
 
 - Add support for array-based filter format with multiple filters per property:

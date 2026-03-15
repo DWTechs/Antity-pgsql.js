@@ -2,7 +2,40 @@ import { mapIndexes } from "./map/index";
 import { mapComparator } from "./map/comparator";
 import { quoteIfUppercase } from "../crud/quote";
 import type { MatchMode, Filters, Filter } from "../types";
-import { isArray } from "@dwtechs/checkard";
+import { isArray, isString } from "@dwtechs/checkard";
+
+/**
+ * Formats a value by adding wildcards based on match mode.
+ *
+ * @param {Filter["value"]} value - The value to format.
+ * @param {MatchMode | undefined} matchMode - The mode of matching to be applied.
+ * @returns {Filter["value"]} The formatted value with wildcards if applicable.
+ * @example
+ * // Returns "abc%"
+ * formatValue("abc", "startsWith");
+ * @example
+ * // Returns "%abc"
+ * formatValue("abc", "endsWith");
+ * @example
+ * // Returns "%abc%"
+ * formatValue("abc", "contains");
+ */
+function formatValue(value: Filter["value"], matchMode: MatchMode | undefined): Filter["value"] {
+  if (!isString(value))
+    return value;
+  
+  switch (matchMode) {
+    case "startsWith":
+      return `${value}%`;
+    case "endsWith":
+      return `%${value}`;
+    case "contains":
+    case "notContains":
+      return `%${value}%`;
+    default:
+      return value;
+  }
+}
 
 function add(filters: Filters | null ): 
   { conditions: string[], args: (Filter["value"])[] } 
@@ -25,9 +58,9 @@ function add(filters: Filters | null ):
         if (cond) {
           groupConditions.push(cond);
           if (isArray(value))
-            args.push(...value);  
+            args.push(...value.map((v: number) => formatValue(v, matchMode)));  
           else
-            args.push(value);
+            args.push(formatValue(value, matchMode));
         }
       }
       
