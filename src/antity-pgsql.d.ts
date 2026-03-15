@@ -16,7 +16,7 @@ export type Filter = {
 export type { Type };
 
 export declare class Property extends BaseProperty {
-  filter: boolean;
+  isFilterable: boolean;
   operations: Operation[];
   constructor(
     key: string,

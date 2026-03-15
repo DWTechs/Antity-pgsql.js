@@ -1,3 +1,7 @@
+# 0.10.1 (Mar 12th 2026)
+
+- Fix `isFilterable` property in declaration file
+
 # 0.10.0 (Mar 11th 2026)
 
 - Rename Property interface properties for better clarity and consistency:
