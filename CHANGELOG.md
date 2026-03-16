@@ -1,3 +1,7 @@
+# 0.12.0 (Mar 15th 2026)
+
+- `update` middleware now forwards sanitized and normalized rows to `res.locals.rows` for use in subsequent middlewares and response handling. Like `add` and `get` middlewares
+
 # 0.11.1 (Mar 14th 2026)
 
 - Fix wildcard placement in LIKE queries:

@@ -256,14 +256,14 @@ export class SQLEntity extends Entity {
 
   public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows = req.body.rows;
+    const r = req.body.rows;
     const dbClient = l.dbClient || null;
     const cId = l.consumerId;
     const cName = l.consumerName;
     
-    log.debug(`${LOGS_PREFIX}update(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(`${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
 
-    const chunks = chunk(rows);
+    const chunks = chunk(r);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
       try {
@@ -272,6 +272,7 @@ export class SQLEntity extends Entity {
         return next(err);
       }
     }
+    l.rows = r;
     next();
   }
 
