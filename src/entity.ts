@@ -278,20 +278,20 @@ export class SQLEntity extends Entity {
 
   public archive = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => { 
     const l = res.locals;
-    let rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    let r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
     const cId = l.consumerId;
     const cName = l.consumerName;
     
-    log.debug(`${LOGS_PREFIX}archive(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
 
     // Add archived value
-    rows = rows.map((id: Record<string, unknown>) => ({
+    r = r.map((id: Record<string, unknown>) => ({
       ...id,
       archived: true,
     }));
 
-    const chunks = chunk(rows);
+    const chunks = chunk(r);
     for (const c of chunks) {
       const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
       try {
