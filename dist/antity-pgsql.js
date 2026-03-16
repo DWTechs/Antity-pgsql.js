@@ -655,12 +655,12 @@ class SQLEntity extends Entity {
         });
         this.update = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
-            const rows = req.body.rows;
+            const r = req.body.rows;
             const dbClient = l.dbClient || null;
             const cId = l.consumerId;
             const cName = l.consumerName;
-            log.debug(`${LOGS_PREFIX}update(rows=${rows.length}, consumerId=${cId})`);
-            const chunks = chunk(rows);
+            log.debug(`${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
+            const chunks = chunk(r);
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
                 try {
@@ -670,6 +670,7 @@ class SQLEntity extends Entity {
                     return next(err);
                 }
             }
+            l.rows = r;
             next();
         });
         this.archive = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
