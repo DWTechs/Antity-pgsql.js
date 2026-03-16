@@ -675,13 +675,13 @@ class SQLEntity extends Entity {
         });
         this.archive = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const l = res.locals;
-            let rows = req.body.rows;
+            let r = req.body.rows;
             const dbClient = l.dbClient || null;
             const cId = l.consumerId;
             const cName = l.consumerName;
-            log.debug(`${LOGS_PREFIX}archive(rows=${rows.length}, consumerId=${cId})`);
-            rows = rows.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
-            const chunks = chunk(rows);
+            log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
+            r = r.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
+            const chunks = chunk(r);
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
                 try {
