@@ -108,7 +108,7 @@ describe("query function", () => {
       isTypeChecked: true,
       isFilterable: true,
       requiredFor: [],
-      operations: ['SELECT'],
+      operations: ['SELECT', 'UPDATE'],
       isPrivate: false,
       sanitizer: null,
       normalizer: null,

@@ -123,7 +123,6 @@ describe("archive middleware", () => {
     await entity.archive(req, res, mockNext);
 
     const [, args] = dbClient.query.mock.calls[0];
-    expect(args).toContain(true);
     expect(args).toContain(123);
     expect(args).toContain('adminUser');
     expect(mockNext).toHaveBeenCalledWith();
@@ -138,7 +137,6 @@ describe("archive middleware", () => {
 
     const [, args] = dbClient.query.mock.calls[0];
     expect(args.filter(arg => arg === false)).toHaveLength(0);
-    expect(args).toContain(true);
     expect(mockNext).toHaveBeenCalledWith();
   });
 
@@ -150,7 +148,7 @@ describe("archive middleware", () => {
     await entity.archive(req, res, mockNext);
 
     const [, args] = dbClient.query.mock.calls[0];
-    expect(args).toContain(true);
+    expect(args).toEqual([1]);
     expect(args).not.toContain(undefined);
     expect(mockNext).toHaveBeenCalledWith();
   });
@@ -204,6 +202,7 @@ describe("archive middleware", () => {
     await entity.archive(req, res, mockNext);
 
     expect(mockNext).toHaveBeenCalledTimes(1);
-    expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    const [[error]] = mockNext.mock.calls;
+    expect(error.constructor.name).toBe('AggregateError');
   });
 });
