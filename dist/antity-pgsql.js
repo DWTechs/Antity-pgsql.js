@@ -320,7 +320,7 @@ class Insert {
     }
 }
 
-var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$3 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -362,13 +362,42 @@ class Update {
         return { query, args };
     }
     execute(query, args, client) {
-        return __awaiter$2(this, void 0, void 0, function* () {
+        return __awaiter$3(this, void 0, void 0, function* () {
             return execute(query, args, client);
         });
     }
     addConsumer(rows, consumerId, consumerName) {
         return rows.map((row) => (Object.assign(Object.assign({}, row), { consumerId,
             consumerName })));
+    }
+}
+
+var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+class Archive {
+    query(schema, table, rows, consumerId, consumerName) {
+        log.debug(`${LOGS_PREFIX}Archive query input rows: ${JSON.stringify(rows, null, 2)}`);
+        const l = rows.length;
+        const args = rows.map(row => row.id);
+        let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET archived = true`;
+        if (consumerId !== undefined && consumerName !== undefined) {
+            query += `, ${quoteIfUppercase("consumerId")} = $${l + 1}, ${quoteIfUppercase("consumerName")} = $${l + 2}`;
+            args.push(consumerId, consumerName);
+        }
+        query += ` WHERE id IN ${$i(l, 0)}`;
+        return { query, args };
+    }
+    execute(query, args, client) {
+        return __awaiter$2(this, void 0, void 0, function* () {
+            return execute(query, args, client);
+        });
     }
 }
 
@@ -584,6 +613,7 @@ class SQLEntity extends Entity {
         this.sel = new Select();
         this.ins = new Insert();
         this.upd = new Update();
+        this.arc = new Archive();
         this.query = {
             select: (first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
                 return this.sel.query(this.schema, this.table, first, rows, sortField, sortOrder, filters);
@@ -596,6 +626,9 @@ class SQLEntity extends Entity {
             },
             delete: (ids) => {
                 return queryById(this.schema, this.table, ids);
+            },
+            archive: (rows, consumerId, consumerName) => {
+                return this.arc.query(this.schema, this.table, rows, consumerId, consumerName);
             },
             deleteArchive: () => {
                 return queryByDate();
@@ -612,7 +645,7 @@ class SQLEntity extends Entity {
             const rows = b.rows || null;
             const sortField = b.sortField || null;
             const sortOrder = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-            const filters = cleanFilters(b.filters, this.properties || []) || null;
+            const filters = cleanFilters(b.filters, this.properties) || null;
             const pagination = b.pagination || false;
             const dbClient = l.dbClient || null;
             log.debug(`get(first='${first}', rows='${rows}', 
@@ -680,10 +713,9 @@ class SQLEntity extends Entity {
             const cId = l.consumerId;
             const cName = l.consumerName;
             log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
-            r = r.map((id) => (Object.assign(Object.assign({}, id), { archived: true })));
             const chunks = chunk(r);
             for (const c of chunks) {
-                const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
+                const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName);
                 try {
                     yield execute(query, args, dbClient);
                 }
@@ -765,6 +797,9 @@ class SQLEntity extends Entity {
         if (!isString(schema, "!0"))
             throw new Error(`${LOGS_PREFIX}schema must be a string of length > 0`);
         this._schema = schema;
+    }
+    get properties() {
+        return super.properties;
     }
     get addArraySubstack() {
         return [this.normalizeArray, this.validateArray, this.add];

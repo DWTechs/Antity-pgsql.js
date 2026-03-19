@@ -98,6 +98,7 @@ export declare class SQLEntity extends Entity {
   private sel: unknown;
   private ins: unknown;
   private upd: unknown;
+  private arc: unknown;
   
   constructor(name: string, properties: Property[], schema?: string);
   
@@ -106,7 +107,9 @@ export declare class SQLEntity extends Entity {
   
   get schema(): string;
   set schema(schema: string);
-  
+
+  get properties(): Property[];
+
   get addArraySubstack(): SubstackTuple;
   get addOneSubstack(): SubstackTuple;
   get updateArraySubstack(): SubstackTuple;
@@ -125,6 +128,15 @@ export declare class SQLEntity extends Entity {
     };
     
     update: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string
+    ) => {
+      query: string;
+      args: unknown[];
+    };
+    
+    archive: (
       rows: Record<string, unknown>[],
       consumerId?: number | string,
       consumerName?: string

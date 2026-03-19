@@ -22,7 +22,6 @@ type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsy
 export class SQLEntity extends Entity {
   private _table: string;
   private _schema: string;
-  private _properties: Property[];
   private sel: Select = new Select();
   private ins: Insert = new Insert();
   private upd: Update = new Update();
@@ -36,7 +35,6 @@ export class SQLEntity extends Entity {
     super(name, properties); // Call the constructor of the base class
     this._table = name;
     this._schema = schema;
-    this._properties = properties;
     
     log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
     
@@ -94,7 +92,7 @@ export class SQLEntity extends Entity {
    * const props = userEntity.properties;
    */
   public get properties(): Property[] {
-    return this._properties;
+    return super.properties as Property[];
   }
 
   /**
@@ -205,7 +203,7 @@ export class SQLEntity extends Entity {
     const rows: number | null = b.rows || null;
     const sortField: string | null = b.sortField || null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
-    const filters: Filters | null = cleanFilters(b.filters, this._properties) || null;
+    const filters: Filters | null = cleanFilters(b.filters, this.properties) || null;
     const pagination: boolean = b.pagination || false;
     const dbClient = l.dbClient || null;
 
