@@ -81,7 +81,9 @@ export declare class SQLEntity extends Entity {
   
   get schema(): string;
   set schema(schema: string);
-  
+
+  get properties(): Property[];
+
   get addArraySubstack(): SubstackTuple;
   get addOneSubstack(): SubstackTuple;
   get updateArraySubstack(): SubstackTuple;
