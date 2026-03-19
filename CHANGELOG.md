@@ -1,7 +1,7 @@
 
 # 0.13.0 (Mar 17th 2026)
 
-- Add dedicated `Archive` class in `src/crud/archive.ts`:
+- Add dedicated `Archive` query :
   - Replaces the previous approach of passing `archived: true` through the generic `Update` query
   - Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query directly
   - Optionally appends `consumerId` and `consumerName` as single scalar values (not per-row CASE blocks)
