@@ -6,6 +6,7 @@ import { Property } from './property';
 import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
+import { Archive } from "./crud/archive";
 import * as del from "./crud/delete";
 import { cleanFilters } from "./filter/clean";
 import { execute } from "./crud/execute";
@@ -24,6 +25,7 @@ export class SQLEntity extends Entity {
   private sel: Select = new Select();
   private ins: Insert = new Insert();
   private upd: Update = new Update();
+  private arc: Archive = new Archive();
 
   constructor(
     name: string, 
@@ -168,6 +170,13 @@ export class SQLEntity extends Entity {
     delete: (ids: number[]): { query: string, args: number[] } => {
       return del.queryById(this.schema, this.table, ids);
     },
+    archive: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string,
+    ): { query: string, args: unknown[] } => {
+      return this.arc.query(this.schema, this.table, rows, consumerId, consumerName);
+    },
     deleteArchive: (): string => {
       return del.queryByDate();
     },
@@ -285,15 +294,9 @@ export class SQLEntity extends Entity {
     
     log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
 
-    // Add archived value
-    r = r.map((id: Record<string, unknown>) => ({
-      ...id,
-      archived: true,
-    }));
-
     const chunks = chunk(r);
     for (const c of chunks) {
-      const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
+      const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {

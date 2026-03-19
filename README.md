@@ -208,6 +208,13 @@ class SQLEntity {
         query: string;
         args: unknown[];
     };
+    archive: (
+      rows: Record<string, unknown>[],
+      consumerId?: number | string,
+      consumerName?: string) => {
+        query: string;
+        args: unknown[];
+    };
     insert: (
       rows: Record<string, unknown>[],
       consumerId?: number | string,
@@ -278,6 +285,7 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 ### Query Methods
 
 - **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
+- **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of objects with `id` property. Optionally appends `consumerId` and `consumerName` for history tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
 - **getHistory()**: Retrieves modification history for rows from the `log.history` table. Expects `req.body.rows` to be an array of objects with `id` property. Returns all historical records for the specified entity IDs.

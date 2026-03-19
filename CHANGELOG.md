@@ -1,3 +1,11 @@
+# 0.13.0 (Mar 19th 2026)
+
+- Add dedicated `Archive` class in `src/crud/archive.ts`:
+  - Replaces the previous approach of passing `archived: true` through the generic `Update` query
+  - Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query directly
+  - Optionally appends `consumerId` and `consumerName` as single scalar values (not per-row CASE blocks)
+- Add `query.archive()` method to `SQLEntity` using the new `Archive` class
+
 # 0.12.0 (Mar 15th 2026)
 
 - `update` middleware now forwards sanitized and normalized rows to `res.locals.rows` for use in subsequent middlewares and response handling. Like `add` and `get` middlewares
