@@ -1,4 +1,20 @@
 
+# 0.14.0 (Mar 22nd 2026)
+
+- Add UPSERT functionality using PostgreSQL's `INSERT ... ON CONFLICT ... DO UPDATE` syntax:
+  - New `query.upsert()` method generates upsert queries with configurable conflict targets
+  - Supports single or multiple column conflict targets (e.g., `'id'` or `['email', 'username']`)
+  - Properties with both `INSERT` and `UPDATE` operations are automatically included in upsert
+  - Optionally includes `consumerId` and `consumerName` for history tracking
+  - Supports `RETURNING` clause to retrieve updated/inserted row IDs
+- Add `upsert()` Express middleware for handling upsert operations:
+  - Expects `rows` and `conflictTarget` in request body
+  - Returns upserted rows with IDs in `res.locals.rows`
+  - Supports chunking for bulk operations
+- Add convenience Express substack middlewares:
+  - `upsertArraySubstack`: Returns `[normalizeArray, validateArray, upsert]` middleware chain
+  - `upsertOneSubstack`: Returns `[normalizeOne, validateOne, upsert]` middleware chain
+
 # 0.13.0 (Mar 17th 2026)
 
 - Add dedicated `Archive` query :

@@ -72,6 +72,7 @@ export declare class SQLEntity extends Entity {
   private sel: unknown;
   private ins: unknown;
   private upd: unknown;
+  private ups: unknown;
   private arc: unknown;
   
   constructor(name: string, properties: Property[], schema?: string);
@@ -88,6 +89,8 @@ export declare class SQLEntity extends Entity {
   get addOneSubstack(): SubstackTuple;
   get updateArraySubstack(): SubstackTuple;
   get updateOneSubstack(): SubstackTuple;
+  get upsertArraySubstack(): SubstackTuple;
+  get upsertOneSubstack(): SubstackTuple;
   
   query: {
     select: (
@@ -129,6 +132,17 @@ export declare class SQLEntity extends Entity {
       args: unknown[];
     };
     
+    upsert: (
+      rows: Record<string, unknown>[],
+      conflictTarget: string | string[],
+      consumerId?: number | string,
+      consumerName?: string,
+      rtn?: string
+    ) => {
+      query: string;
+      args: unknown[];
+    };
+    
     delete: (ids: number[]) => {
       query: string;
       args: number[];
@@ -142,6 +156,7 @@ export declare class SQLEntity extends Entity {
   get(req: Request, res: Response, next: NextFunction): void;
   add(req: Request, res: Response, next: NextFunction): Promise<void>;
   update(req: Request, res: Response, next: NextFunction): Promise<void>;
+  upsert(req: Request, res: Response, next: NextFunction): Promise<void>;
   archive(req: Request, res: Response, next: NextFunction): Promise<void>;
   delete(req: Request, res: Response, next: NextFunction): Promise<void>;
   deleteArchive(req: Request, res: Response, next: NextFunction): void;

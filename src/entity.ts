@@ -6,6 +6,7 @@ import { Property } from './property';
 import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
+import { Upsert } from "./crud/upsert";
 import { Archive } from "./crud/archive";
 import * as del from "./crud/delete";
 import { cleanFilters } from "./filter/clean";
@@ -25,6 +26,7 @@ export class SQLEntity extends Entity {
   private sel: Select = new Select();
   private ins: Insert = new Insert();
   private upd: Update = new Update();
+  private ups: Upsert = new Upsert();
   private arc: Archive = new Archive();
 
   constructor(
@@ -152,6 +154,35 @@ export class SQLEntity extends Entity {
     return [this.normalizeOne, this.validateOne, this.update];
   }
 
+  /**
+   * Middleware stack that combines normalize, validate, and upsert operations.
+   * Use this to upsert entities with automatic normalization and validation.
+   * 
+   * @returns {Array<Function>} Array of Express middleware functions: [normalizeArray, validateArray, upsert]
+   * 
+   * @example
+   * // In an Express route
+   * app.post('/users/upsert', ...userEntity.upsertArraySubstack, (req, res) => {
+   *   res.json({ users: res.locals.rows });
+   * });
+   * 
+   * // Request body:
+   * // { rows: [{ id: 1, name: 'John Updated', email: 'john@example.com' }], conflictTarget: 'id' }
+   * 
+   * // The data will be:
+   * // 1. Normalized (through normalizeArray)
+   * // 2. Validated (through validateArray)
+   * // 3. Upserted (through upsert)
+   * // 4. Returned in res.locals.rows with IDs
+   */
+  public get upsertArraySubstack(): SubstackTuple {
+    return [this.normalizeArray, this.validateArray, this.upsert];
+  }
+
+  public get upsertOneSubstack(): SubstackTuple {
+    return [this.normalizeOne, this.validateOne, this.upsert];
+  }
+
   public query = { 
     select: (
       first: number = 0,
@@ -176,6 +207,15 @@ export class SQLEntity extends Entity {
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
       return this.ins.query(this.schema, this.table, rows, consumerId, consumerName, rtn);
+    },
+    upsert: (
+      rows: Record<string, unknown>[],
+      conflictTarget: string | string[],
+      consumerId?: number | string,
+      consumerName?: string,
+      rtn: string = ""
+    ): { query: string, args: unknown[] } => {
+      return this.ups.query(this.schema, this.table, rows, conflictTarget, consumerId, consumerName, rtn);
     },
     delete: (ids: number[]): { query: string, args: number[] } => {
       return del.queryById(this.schema, this.table, ids);
@@ -292,6 +332,62 @@ export class SQLEntity extends Entity {
       }
     }
     l.rows = r;
+    next();
+  }
+
+  /**
+   * Upserts (inserts or updates) rows in the database table.
+   * If a row with the specified conflict target already exists, it will be updated; otherwise, it will be inserted.
+   * 
+   * @param {Request} req - Express request object. Expected to contain `rows` array and `conflictTarget` in req.body.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumerId, and consumerName.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {Promise<void>} Promise that resolves when all rows are upserted. Upserted rows with IDs are stored in res.locals.rows.
+   * @throws {Error} If database upsert fails or conflictTarget is missing.
+   * 
+   * @example
+   * // In an Express route
+   * app.post('/users/upsert', userEntity.upsert, (req, res) => {
+   *   res.json({ users: res.locals.rows });
+   * });
+   * 
+   * // Request body:
+   * // { rows: [{ id: 1, name: 'John', email: 'john@example.com' }], conflictTarget: 'id' }
+   * 
+   * // res.locals.rows will contain:
+   * // [{ id: 1, name: 'John', email: 'john@example.com' }]
+   */
+  public upsert = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
+    const l = res.locals;
+    const rows = req.body.rows;
+    const conflictTarget = req.body.conflictTarget;
+    const dbClient = l.dbClient || null;
+    const cId = l.consumerId;
+    const cName = l.consumerName;
+    
+    if (!conflictTarget) {
+      return next({ status: 400, msg: "Missing conflictTarget for upsert operation" });
+    }
+    
+    log.debug(`${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
+    
+    const rtn = this.ups.rtn("id");
+    const chunks = chunk(rows);
+    for (const c of chunks) {
+      const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cId, cName, rtn);
+      let db: PGResponse;
+      try {
+        db = await execute(query, args, dbClient);
+      } catch (err: unknown) {
+        return next(err);
+      }
+      // update ids in rows
+      const r = db.rows;
+      for (let i = 0; i < c.length; i++) {
+        c[i].id = r[i].id;
+      }
+    }
+    l.rows = flatten(chunks);
     next();
   }
 
@@ -436,6 +532,9 @@ export class SQLEntity extends Entity {
   }
 
   private mapProps(operations: Operation[], key: string): void {
+    let hasInsert = false;
+    let hasUpdate = false;
+    
     for (const o of operations) {
       switch (o) {
         case "SELECT":
@@ -443,13 +542,20 @@ export class SQLEntity extends Entity {
           break;
         case "UPDATE":
           this.upd.addProp(key);
+          hasUpdate = true;
           break;
         case "INSERT":
           this.ins.addProp(key);
+          hasInsert = true;
           break;
         default:
           break;
       }
+    }
+    
+    // Properties with both INSERT and UPDATE are automatically included in UPSERT
+    if (hasInsert && hasUpdate) {
+      this.ups.addProp(key);
     }
   }
 }

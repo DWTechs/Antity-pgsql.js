@@ -190,6 +190,8 @@ class SQLEntity {
   get addOneSubstack(): SubstackTuple;
   get updateArraySubstack(): SubstackTuple;
   get updateOneSubstack(): SubstackTuple;
+  get upsertArraySubstack(): SubstackTuple;
+  get upsertOneSubstack(): SubstackTuple;
 
   query: {
     select: (
@@ -223,6 +225,15 @@ class SQLEntity {
         query: string;
           args: unknown[];
       };
+    upsert: (
+      rows: Record<string, unknown>[],
+      conflictTarget: string | string[],
+      consumerId?: number | string,
+      consumerName?: string,
+      rtn?: string) => {
+        query: string;
+        args: unknown[];
+      };
     delete: (ids: number[]) => {
       query: string;
       args: number[];
@@ -233,6 +244,7 @@ class SQLEntity {
   get: (req: Request, res: Response, next: NextFunction) => void;
   add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  upsert: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   deleteArchive: (req: Request, res: Response, next: NextFunction) => void;
@@ -259,8 +271,10 @@ function execute(
 
 ### Middleware Methods for Express.js
 
-get(), add(), update(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
+get(), add(), update(), upsert(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
 Each method will look for data to work on in the **req.body.rows** parameter.
+
+The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
 
 ### Schema Qualification
 
@@ -279,16 +293,122 @@ Substacks are pre-composed middleware chains that combine normalization, validat
 - **addOneSubstack**: Combines `normalizeOne`, `validateOne`, and `add`. Use this for POST routes with `req.body` containing a single object.
 - **updateArraySubstack**: Combines `normalizeArray`, `validateArray`, and `update`. Use this for PUT routes with `req.body.rows` containing multiple objects.
 - **updateOneSubstack**: Combines `normalizeOne`, `validateOne`, and `update`. Use this for PUT routes with `req.body` containing a single object.
+- **upsertArraySubstack**: Combines `normalizeArray`, `validateArray`, and `upsert`. Use this for upsert routes with `req.body.rows` containing multiple objects. Requires `req.body.conflictTarget`.
+- **upsertOneSubstack**: Combines `normalizeOne`, `validateOne`, and `upsert`. Use this for upsert routes with `req.body` containing a single object. Requires `req.body.conflictTarget`.
 
 Using substacks simplifies your route definitions and ensures consistent data processing.
 
 ### Query Methods
 
 - **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
+- **query.insert()**: Generates an INSERT query. Accepts an array of objects with properties matching the entity definition. Optionally appends `consumerId` and `consumerName` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of objects with `id` property. Optionally appends `consumerId` and `consumerName` for history tracking.
+- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. Accepts an array of objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Optionally appends `consumerId` and `consumerName` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of objects with `id` property. Optionally appends `consumerId` and `consumerName` for history tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
 - **getHistory()**: Retrieves modification history for rows from the `log.history` table. Expects `req.body.rows` to be an array of objects with `id` property. Returns all historical records for the specified entity IDs.
+
+### Upsert (Insert or Update)
+
+The upsert functionality uses PostgreSQL's `INSERT ... ON CONFLICT ... DO UPDATE` syntax to insert rows or update them if they already exist based on a unique constraint.
+
+#### How It Works
+
+1. **Conflict Target**: You specify which column(s) define uniqueness (e.g., `'id'`, `'email'`, or `['name', 'email']`)
+2. **Property Selection**: Properties are automatically included if they have **both** `INSERT` and `UPDATE` in their `operations` array
+3. **On Conflict**: When a conflict occurs, all columns except the conflict target are updated
+
+#### Usage Examples
+
+**Using the middleware with a single conflict target:**
+
+```javascript
+// Route definition
+router.post('/users/upsert', ...entity.upsertArraySubstack);
+
+// Request body
+{
+  rows: [
+    { id: 1, name: 'John Updated', email: 'john@example.com' },
+    { name: 'Jane New', email: 'jane@example.com' }
+  ],
+  conflictTarget: 'id'
+}
+```
+
+**Using email as conflict target:**
+
+```javascript
+// If a user with this email exists, update their name; otherwise, insert
+{
+  rows: [
+    { name: 'John', email: 'john@example.com', age: 30 }
+  ],
+  conflictTarget: 'email'
+}
+```
+
+**Using multiple columns as conflict target:**
+
+```javascript
+// Unique constraint on combination of name and email
+{
+  rows: [
+    { name: 'John', email: 'john@example.com', age: 30 }
+  ],
+  conflictTarget: ['name', 'email']
+}
+```
+
+**Using the query generator directly:**
+
+```javascript
+const { query, args } = entity.query.upsert(
+  [{ id: 1, name: 'John', email: 'john@example.com' }],
+  'id',
+  1, // consumerId (optional)
+  'admin', // consumerName (optional)
+  'RETURNING id' // return clause (optional)
+);
+// Generates:
+// INSERT INTO public.users (name, email, "consumerId", "consumerName")
+// VALUES ($1, $2, $3, $4)
+// ON CONFLICT (id) DO UPDATE SET 
+//   name = EXCLUDED.name,
+//   email = EXCLUDED.email,
+//   "consumerId" = EXCLUDED."consumerId",
+//   "consumerName" = EXCLUDED."consumerName"
+// RETURNING id
+```
+
+#### Property Configuration for Upsert
+
+Properties are automatically included in upsert if they have both INSERT and UPDATE operations:
+
+```javascript
+{
+  key: 'name',
+  operations: ['SELECT', 'INSERT', 'UPDATE'] // Included in upsert
+}
+
+{
+  key: 'id',
+  operations: ['SELECT', 'UPDATE'] // NOT included (no INSERT)
+}
+
+{
+  key: 'createdAt',
+  operations: ['SELECT', 'INSERT'] // NOT included (no UPDATE)
+}
+```
+
+#### Important Notes
+
+- **Conflict Target Required**: The `conflictTarget` parameter must specify an existing unique constraint or primary key
+- **Mixed Rows**: You can upsert rows with and without IDs in the same request if your conflict target handles it (e.g., using `SERIAL` primary key)
+- **Atomic Operation**: Unlike separate insert/update calls, upsert is a single atomic database operation
+- **Concurrent Safety**: Prevents race conditions when multiple requests try to create the same record
 
 ### Filters
 
