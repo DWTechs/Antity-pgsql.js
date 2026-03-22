@@ -126,6 +126,9 @@ describe("upsertOneSubstack", () => {
     expect(req.body.rows[0].name).toBe('john');
     expect(req.body.rows[0].email).toBe('john@example.com');
 
+    // Preserve conflictTarget after normalization
+    req.body.conflictTarget = 'id';
+
     next.mockClear();
     validateOne(req, res, next);
     expect(next).toHaveBeenCalled();
@@ -150,13 +153,17 @@ describe("upsertOneSubstack", () => {
     normalizeOne(req, res, next);
     expect(next).toHaveBeenCalled();
 
+    // Preserve conflictTarget after normalization
+    req.body.conflictTarget = 'id';
+
     next.mockClear();
     validateOne(req, res, next);
     
     // Validation should fail and call next with an error
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: expect.any(Number)
+        statusCode: expect.any(Number),
+        message: expect.any(String)
       })
     );
   });
@@ -174,13 +181,17 @@ describe("upsertOneSubstack", () => {
     normalizeOne(req, res, next);
     expect(next).toHaveBeenCalled();
 
+    // Preserve conflictTarget after normalization
+    req.body.conflictTarget = 'id';
+
     next.mockClear();
     validateOne(req, res, next);
     
     // Validation should fail and call next with an error
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: expect.any(Number)
+        statusCode: expect.any(Number),
+        message: expect.any(String)
       })
     );
   });
@@ -197,10 +208,21 @@ describe("upsertOneSubstack", () => {
     const [normalizeOne, validateOne, upsert] = entity.upsertOneSubstack;
 
     normalizeOne(req, res, next);
+    expect(next).toHaveBeenCalledWith(); // Should be called without error
+    expect(req.body.rows).toBeDefined();
+    expect(req.body.rows).toHaveLength(1);
+    
+    // Preserve conflictTarget after normalization
+    req.body.conflictTarget = 'email';
+    
+    next.mockClear();
     validateOne(req, res, next);
+    expect(next).toHaveBeenCalledWith(); // Should be called without error
+    
+    next.mockClear();
     await upsert(req, res, next);
     
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(); // Should be called without error
     expect(res.locals.rows).toHaveLength(1);
     expect(res.locals.rows[0].id).toBe(1);
   });

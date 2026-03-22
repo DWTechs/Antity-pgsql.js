@@ -369,6 +369,10 @@ export class SQLEntity extends Entity {
       return next({ status: 400, msg: "Missing conflictTarget for upsert operation" });
     }
     
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return next({ status: 400, msg: "Missing or empty rows array for upsert operation" });
+    }
+    
     log.debug(`${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
     
     const rtn = this.ups.rtn("id");

@@ -372,6 +372,75 @@ class Update {
     }
 }
 
+class Upsert {
+    constructor() {
+        this._props = [];
+        this._quotedProps = [];
+        this._nbProps = 0;
+        this._cols = "";
+    }
+    addProp(prop) {
+        this._props.push(prop);
+        this._quotedProps.push(quoteIfUppercase(prop));
+        this._nbProps++;
+        this._cols = this._quotedProps.join(", ");
+    }
+    query(schema, table, rows, conflictTarget, consumerId, consumerName, rtn = "") {
+        if (!conflictTarget ||
+            (Array.isArray(conflictTarget) && conflictTarget.length === 0) ||
+            (typeof conflictTarget === 'string' && conflictTarget.trim() === '')) {
+            throw new Error('conflictTarget must be provided for upsert operation');
+        }
+        const propsToUse = [...this._props];
+        const quotedPropsToUse = [...this._quotedProps];
+        let nbProps = this._nbProps;
+        let cols = this._cols;
+        if (consumerId !== undefined && consumerName !== undefined) {
+            propsToUse.push("consumerId", "consumerName");
+            quotedPropsToUse.push(`"consumerId"`, `"consumerName"`);
+            nbProps += 2;
+            cols += `, "consumerId", "consumerName"`;
+        }
+        const conflictColumns = Array.isArray(conflictTarget)
+            ? conflictTarget.map(col => quoteIfUppercase(col)).join(", ")
+            : quoteIfUppercase(conflictTarget);
+        let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;
+        const args = [];
+        let i = 0;
+        for (const row of rows) {
+            if (consumerId !== undefined && consumerName !== undefined) {
+                row.consumerId = consumerId;
+                row.consumerName = consumerName;
+            }
+            query += `${$i(nbProps, i)}, `;
+            for (const prop of propsToUse) {
+                args.push(row[prop]);
+            }
+            i += nbProps;
+        }
+        query = query.slice(0, -2);
+        query += ` ON CONFLICT (${conflictColumns}) DO UPDATE SET `;
+        const conflictTargetArray = Array.isArray(conflictTarget) ? conflictTarget : [conflictTarget];
+        const updateCols = quotedPropsToUse.filter((_, idx) => {
+            const propName = propsToUse[idx];
+            return !conflictTargetArray.includes(propName);
+        });
+        for (const col of updateCols) {
+            query += `${col} = EXCLUDED.${col}, `;
+        }
+        query = query.slice(0, -2);
+        if (rtn)
+            query += ` ${rtn}`;
+        return { query, args };
+    }
+    rtn(prop) {
+        return `RETURNING ${quoteIfUppercase(prop)}`;
+    }
+    execute(query, args, client) {
+        return execute(query, args, client);
+    }
+}
+
 var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -613,6 +682,7 @@ class SQLEntity extends Entity {
         this.sel = new Select();
         this.ins = new Insert();
         this.upd = new Update();
+        this.ups = new Upsert();
         this.arc = new Archive();
         this.query = {
             select: (first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
@@ -623,6 +693,9 @@ class SQLEntity extends Entity {
             },
             insert: (rows, consumerId, consumerName, rtn = "") => {
                 return this.ins.query(this.schema, this.table, rows, consumerId, consumerName, rtn);
+            },
+            upsert: (rows, conflictTarget, consumerId, consumerName, rtn = "") => {
+                return this.ups.query(this.schema, this.table, rows, conflictTarget, consumerId, consumerName, rtn);
             },
             delete: (ids) => {
                 return queryById(this.schema, this.table, ids);
@@ -704,6 +777,39 @@ class SQLEntity extends Entity {
                 }
             }
             l.rows = r;
+            next();
+        });
+        this.upsert = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            const l = res.locals;
+            const rows = req.body.rows;
+            const conflictTarget = req.body.conflictTarget;
+            const dbClient = l.dbClient || null;
+            const cId = l.consumerId;
+            const cName = l.consumerName;
+            if (!conflictTarget) {
+                return next({ status: 400, msg: "Missing conflictTarget for upsert operation" });
+            }
+            if (!rows || !Array.isArray(rows) || rows.length === 0) {
+                return next({ status: 400, msg: "Missing or empty rows array for upsert operation" });
+            }
+            log.debug(`${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
+            const rtn = this.ups.rtn("id");
+            const chunks = chunk(rows);
+            for (const c of chunks) {
+                const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cId, cName, rtn);
+                let db;
+                try {
+                    db = yield execute(query, args, dbClient);
+                }
+                catch (err) {
+                    return next(err);
+                }
+                const r = db.rows;
+                for (let i = 0; i < c.length; i++) {
+                    c[i].id = r[i].id;
+                }
+            }
+            l.rows = flatten(chunks);
             next();
         });
         this.archive = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
@@ -813,7 +919,15 @@ class SQLEntity extends Entity {
     get updateOneSubstack() {
         return [this.normalizeOne, this.validateOne, this.update];
     }
+    get upsertArraySubstack() {
+        return [this.normalizeArray, this.validateArray, this.upsert];
+    }
+    get upsertOneSubstack() {
+        return [this.normalizeOne, this.validateOne, this.upsert];
+    }
     mapProps(operations, key) {
+        let hasInsert = false;
+        let hasUpdate = false;
         for (const o of operations) {
             switch (o) {
                 case "SELECT":
@@ -821,11 +935,16 @@ class SQLEntity extends Entity {
                     break;
                 case "UPDATE":
                     this.upd.addProp(key);
+                    hasUpdate = true;
                     break;
                 case "INSERT":
                     this.ins.addProp(key);
+                    hasInsert = true;
                     break;
             }
+        }
+        if (hasInsert && hasUpdate) {
+            this.ups.addProp(key);
         }
     }
 }

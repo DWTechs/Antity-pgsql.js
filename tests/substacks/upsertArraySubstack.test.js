@@ -168,7 +168,8 @@ describe("upsertArraySubstack", () => {
     // Validation should fail and call next with an error
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: expect.any(Number)
+        statusCode: expect.any(Number),
+        message: expect.any(String)
       })
     );
   });
@@ -194,7 +195,8 @@ describe("upsertArraySubstack", () => {
     // Validation should fail and call next with an error
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: expect.any(Number)
+        statusCode: expect.any(Number),
+        message: expect.any(String)
       })
     );
   });
