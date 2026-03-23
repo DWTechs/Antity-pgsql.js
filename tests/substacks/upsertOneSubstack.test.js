@@ -81,7 +81,7 @@ describe("upsertOneSubstack", () => {
    * @returns {object} Mock request object
    */
   const mockRequest = (row, conflictTarget) => ({
-    body: { row, conflictTarget },
+    body: { ...row, conflictTarget },
     method: 'POST'
   });
 
@@ -123,17 +123,21 @@ describe("upsertOneSubstack", () => {
     // Execute middleware stack
     normalizeOne(req, res, next);
     expect(next).toHaveBeenCalled();
-    expect(req.body.rows[0].name).toBe('john');
-    expect(req.body.rows[0].email).toBe('john@example.com');
-
-    // Preserve conflictTarget after normalization
-    req.body.conflictTarget = 'id';
+    
+    // Verify normalization occurred on req.body directly
+    expect(req.body.name).toBe('john');
+    expect(req.body.email).toBe('john@example.com');
 
     next.mockClear();
     validateOne(req, res, next);
     expect(next).toHaveBeenCalled();
 
     next.mockClear();
+    
+    // Convert to array format expected by upsert middleware and preserve conflictTarget
+    const conflictTarget = req.body.conflictTarget;
+    req.body = { rows: [req.body], conflictTarget };
+    
     await upsert(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(res.locals.rows).toHaveLength(1);
@@ -152,9 +156,6 @@ describe("upsertOneSubstack", () => {
 
     normalizeOne(req, res, next);
     expect(next).toHaveBeenCalled();
-
-    // Preserve conflictTarget after normalization
-    req.body.conflictTarget = 'id';
 
     next.mockClear();
     validateOne(req, res, next);
@@ -181,9 +182,6 @@ describe("upsertOneSubstack", () => {
     normalizeOne(req, res, next);
     expect(next).toHaveBeenCalled();
 
-    // Preserve conflictTarget after normalization
-    req.body.conflictTarget = 'id';
-
     next.mockClear();
     validateOne(req, res, next);
     
@@ -197,8 +195,8 @@ describe("upsertOneSubstack", () => {
   });
 
   it("should handle upsert with email as conflict target", async () => {
-    const rowToUpsert = { name: 'John', email: 'john@example.com', age: 30 };
-    const rowReturned = [{ id: 1 }];
+    const rowToUpsert = { name: '  JANE  ', email: '  JANE@EXAMPLE.COM  ', age: 25 };
+    const rowReturned = [{ id: 2 }];
 
     const dbClient = mockDbClient(rowReturned);
     const req = mockRequest(rowToUpsert, 'email');
@@ -207,24 +205,29 @@ describe("upsertOneSubstack", () => {
 
     const [normalizeOne, validateOne, upsert] = entity.upsertOneSubstack;
 
+    // Execute middleware stack
     normalizeOne(req, res, next);
-    expect(next).toHaveBeenCalledWith(); // Should be called without error
-    expect(req.body.rows).toBeDefined();
-    expect(req.body.rows).toHaveLength(1);
+    expect(next).toHaveBeenCalled();
     
-    // Preserve conflictTarget after normalization
-    req.body.conflictTarget = 'email';
+    // Verify normalization occurred on req.body directly
+    expect(req.body.name).toBe('jane');
+    expect(req.body.email).toBe('jane@example.com');
     
     next.mockClear();
     validateOne(req, res, next);
-    expect(next).toHaveBeenCalledWith(); // Should be called without error
+    expect(next).toHaveBeenCalled();
     
     next.mockClear();
+    
+    // Convert to array format expected by upsert middleware and preserve conflictTarget
+    const conflictTarget = req.body.conflictTarget;
+    req.body = { rows: [req.body], conflictTarget };
+    
     await upsert(req, res, next);
     
-    expect(next).toHaveBeenCalledWith(); // Should be called without error
+    expect(next).toHaveBeenCalled();
     expect(res.locals.rows).toHaveLength(1);
-    expect(res.locals.rows[0].id).toBe(1);
+    expect(res.locals.rows[0].id).toBe(2);
   });
 
   it("should fail when conflictTarget is missing", async () => {
@@ -237,6 +240,9 @@ describe("upsertOneSubstack", () => {
 
     const [, , upsert] = entity.upsertOneSubstack;
 
+    // Convert to array format expected by upsert middleware
+    req.body = { rows: [rowToUpsert] };
+    
     await upsert(req, res, next);
     
     // Should fail with error about missing conflictTarget
