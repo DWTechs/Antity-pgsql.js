@@ -9,8 +9,11 @@ import { Update } from "./crud/update";
 import { Upsert } from "./crud/upsert";
 import { Archive } from "./crud/archive";
 import * as del from "./crud/delete";
+import { quoteIfUppercase } from "./crud/quote";
 import { cleanFilters } from "./filter/clean";
+import { addConditions } from "./filter/condition";
 import { execute } from "./crud/execute";
+import pool from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
 import type { PGResponse, Filters, Filter, Operation } from "./types";
@@ -181,6 +184,25 @@ export class SQLEntity extends Entity {
 
   public get upsertOneSubstack(): SubstackTuple {
     return [this.normalizeOne, this.validateOne, this.upsert];
+  }
+
+  /**
+   * Middleware stack that combines normalize, validate, and sync operations.
+   * Sends the entire resource list; the middleware inserts new rows, updates existing ones, and deletes missing ones.
+   *
+   * @returns {SubstackTuple} Array of Express middleware functions: [normalizeArray, validateArray, sync]
+   *
+   * @example
+   * // In an Express route
+   * app.put('/users/sync', ...userEntity.syncArraySubstack, (req, res) => {
+   *   res.json({ users: res.locals.rows, sync: res.locals.sync });
+   * });
+   *
+   * // Request body:
+   * // { rows: [{ id: 1, name: 'John' }, { name: 'Jane' }], idField: 'id' }
+   */
+  public get syncArraySubstack(): SubstackTuple {
+    return [this.normalizeArray, this.validateArray, this.sync];
   }
 
   public query = { 
@@ -533,6 +555,112 @@ export class SQLEntity extends Entity {
         next();
       })
       .catch((err: Error) => next(err));
+  }
+
+  /**
+   * Syncs the database table with the provided rows.
+   * Inserts new rows, updates existing rows, and deletes rows not present in the provided list.
+   *
+   * @param {Request} req - Express request object. Expected to contain `rows` array in req.body and optional `idField` (defaults to `'id'`).
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumerId, and consumerName.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {Promise<void>} Promise that resolves when the sync is complete. Synced rows are stored in res.locals.rows. A summary object { inserted, updated, deleted } is stored in res.locals.sync.
+   * @throws {Error} If any database operation fails.
+   *
+   * @example
+   * // In an Express route
+   * app.put('/users/sync', userEntity.sync, (req, res) => {
+   *   res.json({ users: res.locals.rows, sync: res.locals.sync });
+   * });
+   *
+   * // Request body:
+   * // { rows: [{ id: 1, name: 'John' }, { name: 'Jane' }], idField: 'id' }
+   *
+   * // res.locals.rows will contain all synced rows.
+   * // res.locals.sync will contain: { inserted: 1, updated: 1, deleted: 0 }
+   */
+  public sync = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
+    const l = res.locals;
+    const rows: Record<string, any>[] = req.body.rows;
+    const idField: string = req.body.idField ?? 'id';
+    const cId = l.consumerId;
+    const cName = l.consumerName;
+
+    if (!rows || !Array.isArray(rows)) {
+      return next({ status: 400, msg: "Missing or invalid rows array for sync operation" });
+    }
+
+    log.debug(`${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
+
+    // Build optional WHERE clause from filters to scope the sync
+    const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;
+    const { conditions, args: filterArgs } = addConditions(cleanedFilters);
+    const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
+
+    // Acquire a dedicated client for the transaction
+    const txClient = l.dbClient || await pool.connect();
+    let toInsert: Record<string, any>[] = [];
+    let toUpdate: Record<string, any>[] = [];
+    let idsToDelete: number[] = [];
+    try {
+      await txClient.query('BEGIN');
+
+      // Fetch all existing IDs within the filtered scope
+      const selectIdQuery = `SELECT ${quoteIfUppercase(idField)} FROM ${quoteIfUppercase(this._schema)}.${quoteIfUppercase(this._table)}${whereClause}`;
+      const existingDb: PGResponse = await execute(selectIdQuery, filterArgs, txClient);
+
+      const existingIds = new Set(existingDb.rows.map(r => r[idField]));
+      const incomingIds = new Set(rows.filter(r => r[idField] != null).map(r => r[idField]));
+
+      toInsert = rows.filter(r => r[idField] == null || !existingIds.has(r[idField]));
+      toUpdate = rows.filter(r => r[idField] != null && existingIds.has(r[idField]));
+      idsToDelete = ([...existingIds] as number[]).filter(id => !incomingIds.has(id));
+
+      // INSERT new rows
+      if (toInsert.length > 0) {
+        const rtn = this.ins.rtn(idField);
+        const chunks = chunk(toInsert);
+        for (const c of chunks) {
+          const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
+          const db: PGResponse = await execute(query, args, txClient);
+          const r = db.rows;
+          for (let i = 0; i < c.length; i++) {
+            c[i][idField] = r[i][idField];
+          }
+        }
+      }
+
+      // UPDATE existing rows
+      if (toUpdate.length > 0) {
+        const chunks = chunk(toUpdate);
+        for (const c of chunks) {
+          const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
+          await execute(query, args, txClient);
+        }
+      }
+
+      // DELETE removed rows (scoped to the same filter)
+      if (idsToDelete.length > 0) {
+        const deleteArgs: (Filter["value"])[] = [idsToDelete, ...filterArgs];
+        const scopedWhere = conditions.length
+          ? ` AND ${conditions.map(c => c.replace(/\$(\d+)/g, (_: string, n: string) => `$${parseInt(n) + 1}`)).join(' AND ')}`
+          : '';
+        const deleteQuery = `DELETE FROM ${quoteIfUppercase(this._schema)}.${quoteIfUppercase(this._table)} WHERE ${quoteIfUppercase(idField)} = ANY($1)${scopedWhere}`;
+        await execute(deleteQuery, deleteArgs, txClient);
+      }
+
+      await txClient.query('COMMIT');
+    } catch (err: unknown) {
+      await txClient.query('ROLLBACK');
+      return next(err);
+    } finally {
+      // Release only if we acquired the client ourselves
+      if (!l.dbClient) txClient.release();
+    }
+
+    l.rows = rows;
+    l.sync = { inserted: toInsert.length, updated: toUpdate.length, deleted: idsToDelete.length };
+    next();
   }
 
   private mapProps(operations: Operation[], key: string): void {

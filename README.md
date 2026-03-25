@@ -120,6 +120,7 @@ router.get("/", ..., entity.get);
 // Using substacks (recommended) - combines normalize, validate, and database operation
 router.post("/", ...entity.addArraySubstack);
 router.put("/", ...entity.updateArraySubstack);
+router.put("/preferences", ...entity.syncArraySubstack);
 
 // Or manually chain middlewares
 router.post("/manual", entity.normalizeArray, entity.validateArray, ..., entity.add);
@@ -192,6 +193,7 @@ class SQLEntity {
   get updateOneSubstack(): SubstackTuple;
   get upsertArraySubstack(): SubstackTuple;
   get upsertOneSubstack(): SubstackTuple;
+  get syncArraySubstack(): SubstackTuple;
 
   query: {
     select: (
@@ -245,6 +247,7 @@ class SQLEntity {
   add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   upsert: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  sync: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   deleteArchive: (req: Request, res: Response, next: NextFunction) => void;
@@ -271,10 +274,12 @@ function execute(
 
 ### Middleware Methods for Express.js
 
-get(), add(), update(), upsert(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
+get(), add(), update(), upsert(), sync(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
 Each method will look for data to work on in the **req.body.rows** parameter.
 
 The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
+
+The sync() method accepts an optional **req.body.idField** (defaults to `'id'`) and optional **req.body.filters** to scope which existing rows are considered part of the managed set.
 
 ### Schema Qualification
 
@@ -295,6 +300,7 @@ Substacks are pre-composed middleware chains that combine normalization, validat
 - **updateOneSubstack**: Combines `normalizeOne`, `validateOne`, and `update`. Use this for PUT routes with `req.body` containing a single object.
 - **upsertArraySubstack**: Combines `normalizeArray`, `validateArray`, and `upsert`. Use this for upsert routes with `req.body.rows` containing multiple objects. Requires `req.body.conflictTarget`.
 - **upsertOneSubstack**: Combines `normalizeOne`, `validateOne`, and `upsert`. Use this for upsert routes with `req.body` containing a single object. Requires `req.body.conflictTarget`.
+- **syncArraySubstack**: Combines `normalizeArray`, `validateArray`, and `sync`. Use this for bulk-sync routes with `req.body.rows` containing the full desired state. Rows are inserted, updated, or deleted as needed. Accepts optional `req.body.idField` and `req.body.filters`.
 
 Using substacks simplifies your route definitions and ensures consistent data processing.
 
@@ -303,11 +309,70 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 - **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
 - **query.insert()**: Generates an INSERT query. Accepts an array of objects with properties matching the entity definition. Optionally appends `consumerId` and `consumerName` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of objects with `id` property. Optionally appends `consumerId` and `consumerName` for history tracking.
-- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. Accepts an array of objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Optionally appends `consumerId` and `consumerName` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Optionally appends `consumerId` and `consumerName` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of objects with `id` property. Optionally appends `consumerId` and `consumerName` for history tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
+- **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
 - **getHistory()**: Retrieves modification history for rows from the `log.history` table. Expects `req.body.rows` to be an array of objects with `id` property. Returns all historical records for the specified entity IDs.
+
+### Bulk Sync
+
+The sync functionality atomically replaces the managed set of rows in a table with the supplied list. It combines insert, update, and delete in a single PostgreSQL **transaction** — either all changes succeed or none do.
+
+#### How It Works
+
+1. **Fetch existing IDs**: A `SELECT id FROM table` is issued, optionally scoped by `filters`.
+2. **Diff**: Incoming rows without an ID (or with an unknown ID) are inserted; rows with a known ID are updated; existing IDs absent from the incoming list are deleted — all within the same filter scope.
+3. **Transaction**: All three operations run inside `BEGIN` / `COMMIT`. A failure at any step triggers `ROLLBACK`.
+4. **Result**: `res.locals.rows` contains the full synced list (with generated IDs filled in for inserts). `res.locals.sync` contains `{ inserted, updated, deleted }` counts.
+
+#### Usage Examples
+
+**Using the middleware:**
+
+```javascript
+// Route definition
+router.put('/users/sync', ...entity.syncArraySubstack);
+
+// Request body — send the entire desired state
+{
+  rows: [
+    { id: 1, name: 'John Updated', email: 'john@example.com', age: 31 }, // update
+    { name: 'Jane New', email: 'jane@example.com', age: 25 }             // insert
+    // id: 2 is absent → will be deleted
+  ],
+  idField: 'id' // optional, defaults to 'id'
+}
+```
+
+**Scoping with filters (only manage a subset of rows):**
+
+```javascript
+// Only sync rows where age >= 18 — rows outside this filter are left untouched
+{
+  rows: [
+    { id: 1, name: 'John', email: 'john@example.com', age: 30 }
+  ],
+  filters: {
+    age: { value: 18, matchMode: 'gte' }
+  }
+}
+```
+
+**Response locals after sync:**
+
+```javascript
+res.locals.rows  // full list of synced rows (inserts have their new id)
+res.locals.sync  // { inserted: 1, updated: 1, deleted: 1 }
+```
+
+#### Important Notes
+
+- **Atomic**: All insert / update / delete operations are wrapped in a single transaction.
+- **Filter scope**: When `filters` are provided, only rows matching the filter are considered "managed". Rows outside the filter are never touched.
+- **Property selection**: Insert uses `INSERT` properties; update uses `UPDATE` properties — same as the standalone `add` and `update` middlewares.
+- **Consumer tracking**: `consumerId` and `consumerName` from `res.locals` are forwarded to inserts and updates for history tracking.
 
 ### Upsert (Insert or Update)
 

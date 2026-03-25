@@ -91,6 +91,7 @@ export declare class SQLEntity extends Entity {
   get updateOneSubstack(): SubstackTuple;
   get upsertArraySubstack(): SubstackTuple;
   get upsertOneSubstack(): SubstackTuple;
+  get syncArraySubstack(): SubstackTuple;
   
   query: {
     select: (
@@ -157,6 +158,7 @@ export declare class SQLEntity extends Entity {
   add(req: Request, res: Response, next: NextFunction): Promise<void>;
   update(req: Request, res: Response, next: NextFunction): Promise<void>;
   upsert(req: Request, res: Response, next: NextFunction): Promise<void>;
+  sync(req: Request, res: Response, next: NextFunction): Promise<void>;
   archive(req: Request, res: Response, next: NextFunction): Promise<void>;
   delete(req: Request, res: Response, next: NextFunction): Promise<void>;
   deleteArchive(req: Request, res: Response, next: NextFunction): void;

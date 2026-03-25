@@ -1,11 +1,23 @@
 
+# 0.15.0 (Mar 23th 2026)
+
+- Add bulk sync functionality:
+  - New `sync()` Express middleware atomically synchronises a table with the full provided row list inside a single PostgreSQL transaction (BEGIN / COMMIT / ROLLBACK on failure)
+  - Incoming rows without an ID (or with an unknown ID) are **inserted**; rows with a known ID are **updated**; existing rows absent from the list are **deleted**
+  - Accepts optional `idField` in request body (defaults to `'id'`) to specify the identity column
+  - Accepts optional `filters` in request body to scope the managed set — rows outside the filter are never touched
+  - Returns synced rows with generated IDs in `res.locals.rows`
+  - Returns operation summary `{ inserted, updated, deleted }` in `res.locals.sync`
+  - Supports `consumerId` / `consumerName` forwarding for history tracking on inserts and updates
+- Add `syncArraySubstack` getter returning `[normalizeArray, validateArray, sync]` middleware chain
+
 # 0.14.0 (Mar 22nd 2026)
 
 - Add UPSERT functionality using PostgreSQL's `INSERT ... ON CONFLICT ... DO UPDATE` syntax:
   - New `query.upsert()` method generates upsert queries with configurable conflict targets
   - Supports single or multiple column conflict targets (e.g., `'id'` or `['email', 'username']`)
   - Properties with both `INSERT` and `UPDATE` operations are automatically included in upsert
-  - Optionally includes `consumerId` and `consumerName` for history tracking
+  - Supports `consumerId` and `consumerName` for history tracking
   - Supports `RETURNING` clause to retrieve updated/inserted row IDs
 - Add `upsert()` Express middleware for handling upsert operations:
   - Expects `rows` and `conflictTarget` in request body
