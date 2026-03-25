@@ -880,6 +880,74 @@ class SQLEntity extends Entity {
             })
                 .catch((err) => next(err));
         };
+        this.sync = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const l = res.locals;
+            const rows = req.body.rows;
+            const idField = (_a = req.body.idField) !== null && _a !== void 0 ? _a : 'id';
+            const cId = l.consumerId;
+            const cName = l.consumerName;
+            if (!rows || !Array.isArray(rows)) {
+                return next({ status: 400, msg: "Missing or invalid rows array for sync operation" });
+            }
+            log.debug(`${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
+            const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;
+            const { conditions, args: filterArgs } = add(cleanedFilters);
+            const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
+            const txClient = l.dbClient || (yield pool.connect());
+            let toInsert = [];
+            let toUpdate = [];
+            let idsToDelete = [];
+            try {
+                yield txClient.query('BEGIN');
+                const selectIdQuery = `SELECT ${quoteIfUppercase(idField)} FROM ${quoteIfUppercase(this._schema)}.${quoteIfUppercase(this._table)}${whereClause}`;
+                const existingDb = yield execute(selectIdQuery, filterArgs, txClient);
+                const existingIds = new Set(existingDb.rows.map(r => r[idField]));
+                const incomingIds = new Set(rows.filter(r => r[idField] != null).map(r => r[idField]));
+                toInsert = rows.filter(r => r[idField] == null || !existingIds.has(r[idField]));
+                toUpdate = rows.filter(r => r[idField] != null && existingIds.has(r[idField]));
+                idsToDelete = [...existingIds].filter(id => !incomingIds.has(id));
+                if (toInsert.length > 0) {
+                    const rtn = this.ins.rtn(idField);
+                    const chunks = chunk(toInsert);
+                    for (const c of chunks) {
+                        const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
+                        const db = yield execute(query, args, txClient);
+                        const r = db.rows;
+                        for (let i = 0; i < c.length; i++) {
+                            c[i][idField] = r[i][idField];
+                        }
+                    }
+                }
+                if (toUpdate.length > 0) {
+                    const chunks = chunk(toUpdate);
+                    for (const c of chunks) {
+                        const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
+                        yield execute(query, args, txClient);
+                    }
+                }
+                if (idsToDelete.length > 0) {
+                    const deleteArgs = [idsToDelete, ...filterArgs];
+                    const scopedWhere = conditions.length
+                        ? ` AND ${conditions.map(c => c.replace(/\$(\d+)/g, (_, n) => `$${parseInt(n) + 1}`)).join(' AND ')}`
+                        : '';
+                    const deleteQuery = `DELETE FROM ${quoteIfUppercase(this._schema)}.${quoteIfUppercase(this._table)} WHERE ${quoteIfUppercase(idField)} = ANY($1)${scopedWhere}`;
+                    yield execute(deleteQuery, deleteArgs, txClient);
+                }
+                yield txClient.query('COMMIT');
+            }
+            catch (err) {
+                yield txClient.query('ROLLBACK');
+                return next(err);
+            }
+            finally {
+                if (!l.dbClient)
+                    txClient.release();
+            }
+            l.rows = rows;
+            l.sync = { inserted: toInsert.length, updated: toUpdate.length, deleted: idsToDelete.length };
+            next();
+        });
         this._table = name;
         this._schema = schema;
         log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
@@ -924,6 +992,9 @@ class SQLEntity extends Entity {
     }
     get upsertOneSubstack() {
         return [this.normalizeOne, this.validateOne, this.upsert];
+    }
+    get syncArraySubstack() {
+        return [this.normalizeArray, this.validateArray, this.sync];
     }
     mapProps(operations, key) {
         let hasInsert = false;

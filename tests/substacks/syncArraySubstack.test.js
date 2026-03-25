@@ -1,13 +1,11 @@
 import { SQLEntity } from '../../dist/antity-pgsql.js';
 
-// Mock the pool so sync can acquire a transaction client without a real DB
-jest.mock('../../dist/pool.js', () => ({
-  default: {
+// Mock pg-pool to avoid real database connections
+jest.mock('pg-pool', () => {
+  return jest.fn().mockImplementation(() => ({
     connect: jest.fn()
-  }
-}));
-
-import pool from '../../dist/pool.js';
+  }));
+});
 
 describe("syncArraySubstack", () => {
   const entity = new SQLEntity('users', [

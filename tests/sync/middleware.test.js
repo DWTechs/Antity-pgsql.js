@@ -1,13 +1,16 @@
+// Mock pg-pool to avoid real database connections
+jest.mock('pg-pool', () => {
+  const mockConnectFn = jest.fn();
+  const MockPool = jest.fn().mockImplementation(() => ({
+    connect: mockConnectFn
+  }));
+  MockPool.__mockConnect = mockConnectFn;
+  return MockPool;
+});
+
 import { SQLEntity } from '../../dist/antity-pgsql.js';
-
-// Mock the pool so sync can acquire a transaction client without a real DB
-jest.mock('../../dist/pool.js', () => ({
-  default: {
-    connect: jest.fn()
-  }
-}));
-
-import pool from '../../dist/pool.js';
+import MockPool from 'pg-pool';
+const pool = { connect: MockPool.__mockConnect };
 
 describe("sync middleware", () => {
   const entity = new SQLEntity('persons', [
