@@ -507,4 +507,118 @@ describe('filter - complex format (array-based)', () => {
         expect(args).toEqual(['active', 'pending']);
     });
 
+    it('should not include filters with empty string values in WHERE clause', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: '', matchMode: 'contains' }],
+            age: [{ value: 30, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE age = $1 ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([30]);
+    });
+
+    it('should not include filters with empty arrays in WHERE clause', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: [{ value: [], matchMode: 'in' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE archived = $1 ORDER BY status ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([false]);
+    });
+
+    it('should not include filters with null values in WHERE clause (except for IS/IS NOT)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: null, matchMode: 'equals' }],
+            age: [{ value: 30, matchMode: 'gte' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE age >= $1 ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([30]);
+    });
+
+    it('should handle mix of empty and valid filters correctly', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'id';
+        const sortOrder = 'DESC';
+        const filters = {
+            name: [{ value: '', matchMode: 'contains' }],
+            status: [{ value: [], matchMode: 'in' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+            age: [{ value: 18, matchMode: 'gte' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE archived = $1 AND age >= $2 ORDER BY id DESC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([false, 18]);
+    });
+
+    it('should return only ORDER BY and LIMIT when all filters have empty values', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'createdAt';
+        const sortOrder = 'DESC';
+        const filters = {
+            name: [{ value: '', matchMode: 'contains' }],
+            tags: [{ value: [], matchMode: 'in' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' ORDER BY "createdAt" DESC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([]);
+    });
+
+    it('should handle empty arrays in simple format (backward compatibility)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: { value: [], matchMode: 'in' },
+            name: { value: 'John', matchMode: 'contains' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE name LIKE $1 ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual(['%John%']);
+    });
+
+    it('should handle empty strings in simple format (backward compatibility)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: { value: '', matchMode: 'contains' },
+            archived: { value: false, matchMode: 'equals' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE archived = $1 ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([false]);
+    });
+
 });

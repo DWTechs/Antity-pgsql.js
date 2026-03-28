@@ -1,4 +1,11 @@
 
+# 0.15.1 (Mar 25th 2026)
+
+- Fix filter handling to exclude empty values from WHERE clauses:
+  - Filters with empty string values are now skipped
+  - Filters with empty arrays are now skipped
+  - Filters with null values are skipped except for `is` and `isNot` match modes
+
 # 0.15.0 (Mar 23th 2026)
 
 - Add bulk sync functionality:

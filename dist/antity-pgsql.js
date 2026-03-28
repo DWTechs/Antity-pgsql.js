@@ -166,6 +166,15 @@ function formatValue(value, matchMode) {
             return value;
     }
 }
+function shouldSkipValue(value, matchMode) {
+    if (isString(value, "0"))
+        return true;
+    if (isArray(value, "0"))
+        return true;
+    if (value === null && matchMode !== 'is' && matchMode !== 'isNot')
+        return true;
+    return false;
+}
 function add(filters) {
     var _a, _b;
     const conditions = [];
@@ -178,6 +187,8 @@ function add(filters) {
             const groupConditions = [];
             for (const filter of filterArray) {
                 const { value, matchMode } = filter;
+                if (shouldSkipValue(value, matchMode))
+                    continue;
                 const indexes = isArray(value) ? value.map(() => i++) : [i++];
                 const cond = addOne(k, indexes, matchMode);
                 if (cond) {

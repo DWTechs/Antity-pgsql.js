@@ -37,6 +37,38 @@ function formatValue(value: Filter["value"], matchMode: MatchMode | undefined): 
   }
 }
 
+/**
+ * Checks if a filter value should be skipped (empty or null).
+ *
+ * @param {Filter["value"]} value - The value to check.
+ * @param {MatchMode | undefined} matchMode - The mode of matching to be applied.
+ * @returns {boolean} True if the value should be skipped, false otherwise.
+ * @example
+ * // Returns true
+ * shouldSkipValue('', 'contains');
+ * @example
+ * // Returns true
+ * shouldSkipValue([], 'in');
+ * @example
+ * // Returns false (null is allowed for IS/IS NOT)
+ * shouldSkipValue(null, 'is');
+ */
+function shouldSkipValue(value: Filter["value"], matchMode: MatchMode | undefined): boolean {
+  // Empty strings should be skipped
+  if (isString(value, "0"))
+    return true;
+  
+  // Empty arrays should be skipped
+  if (isArray(value, "0"))
+    return true;
+  
+  // Null values should be skipped except for IS and IS NOT match modes
+  if (value === null && matchMode !== 'is' && matchMode !== 'isNot')
+    return true;
+  
+  return false;
+}
+
 function add(filters: Filters | null ): 
   { conditions: string[], args: (Filter["value"])[] } 
 {
@@ -53,6 +85,11 @@ function add(filters: Filters | null ):
       // Process each filter in the array for this property
       for (const filter of filterArray) {
         const { value, matchMode } = filter;
+        
+        // Skip filters with empty or null values
+        if (shouldSkipValue(value, matchMode))
+          continue;
+        
         const indexes: number[] = isArray(value) ? value.map(() => i++) : [i++];
         const cond = addOne(k, indexes, matchMode);
         if (cond) {
