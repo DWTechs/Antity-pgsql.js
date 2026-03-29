@@ -24,6 +24,8 @@ function comparator(matchMode: MatchMode | undefined): Comparator| null {
       return "<>";
     case "in":
       return "IN";
+    case "notIn":
+      return "NOT IN";
     case "lt":
       return "<";
     case "lte":

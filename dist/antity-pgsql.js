@@ -108,6 +108,7 @@ function index(index, matchMode) {
     const i = index.map((i) => `$${i}`);
     switch (matchMode) {
         case "in":
+        case "notIn":
             return `(${i})`;
         default:
             return `${i}`;
@@ -130,6 +131,8 @@ function comparator(matchMode) {
             return "<>";
         case "in":
             return "IN";
+        case "notIn":
+            return "NOT IN";
         case "lt":
             return "<";
         case "lte":
@@ -571,8 +574,8 @@ function type(type) {
 }
 
 const matchModes = {
-    string: ["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte"],
-    number: ["equals", "notEquals", "lt", "lte", "gt", "gte"],
+    string: ["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte", "in", "notIn"],
+    number: ["equals", "notEquals", "lt", "lte", "gt", "gte", "in", "notIn"],
     date: ["is", "isNot", "dateAfter"],
 };
 function matchMode(type, matchMode) {

@@ -622,3 +622,283 @@ describe('filter - complex format (array-based)', () => {
     });
 
 });
+
+describe('filter - multiselect', () => {
+    it('should generate correct SQL filter clause for multiselect with string values (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: { value: ['active', 'pending', 'approved'], matchMode: 'in' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status IN ($1,$2,$3) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['active', 'pending', 'approved']);
+    });
+
+    it('should generate correct SQL filter clause for multiselect with number values (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'id';
+        const sortOrder = 'ASC';
+        const filters = {
+            id: { value: [1, 2, 3, 4], matchMode: 'in' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE id IN ($1,$2,$3,$4) ORDER BY id ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([1, 2, 3, 4]);
+    });
+
+    it('should generate correct SQL filter clause for multiselect with a single value (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: { value: ['active'], matchMode: 'in' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status IN ($1) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['active']);
+    });
+
+    it('should generate correct SQL filter clause for multiselect combined with other filters (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: { value: 'John', matchMode: 'contains' },
+            status: { value: ['active', 'pending'], matchMode: 'in' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name LIKE $1 AND status IN ($2,$3) ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['%John%', 'active', 'pending']);
+    });
+
+    it('should generate correct SQL filter clause for multiselect with string values (array format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: [{ value: ['active', 'pending', 'approved'], matchMode: 'in' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status IN ($1,$2,$3) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['active', 'pending', 'approved']);
+    });
+
+    it('should generate correct SQL filter clause for multiselect combined with other filters (array format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: 'John', matchMode: 'contains' }],
+            status: [{ value: ['active', 'pending'], matchMode: 'in' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name LIKE $1 AND status IN ($2,$3) AND archived = $4 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['%John%', 'active', 'pending', false]);
+    });
+
+    it('should skip multiselect filter when value is an empty array', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: [{ value: [], matchMode: 'in' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE archived = $1 ORDER BY status ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([false]);
+    });
+
+    it('should generate correct SQL filter clause for multiselect on an uppercase column name', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'userId';
+        const sortOrder = 'ASC';
+        const filters = {
+            userId: [{ value: [10, 20, 30], matchMode: 'in' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE "userId" IN ($1,$2,$3) ORDER BY "userId" ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([10, 20, 30]);
+    });
+});
+
+describe('filter - notIn', () => {
+    it('should generate correct SQL filter clause for notIn with string values (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: { value: ['deleted', 'banned'], matchMode: 'notIn' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status NOT IN ($1,$2) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['deleted', 'banned']);
+    });
+
+    it('should generate correct SQL filter clause for notIn with number values (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'id';
+        const sortOrder = 'ASC';
+        const filters = {
+            id: { value: [5, 10, 15], matchMode: 'notIn' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE id NOT IN ($1,$2,$3) ORDER BY id ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([5, 10, 15]);
+    });
+
+    it('should generate correct SQL filter clause for notIn with a single value (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: { value: ['deleted'], matchMode: 'notIn' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status NOT IN ($1) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['deleted']);
+    });
+
+    it('should generate correct SQL filter clause for notIn combined with other filters (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: { value: 'John', matchMode: 'contains' },
+            status: { value: ['deleted', 'banned'], matchMode: 'notIn' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name LIKE $1 AND status NOT IN ($2,$3) ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['%John%', 'deleted', 'banned']);
+    });
+
+    it('should generate correct SQL filter clause for notIn with string values (array format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: [{ value: ['deleted', 'banned', 'archived'], matchMode: 'notIn' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE status NOT IN ($1,$2,$3) ORDER BY status ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['deleted', 'banned', 'archived']);
+    });
+
+    it('should generate correct SQL filter clause for notIn combined with other filters (array format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: 'John', matchMode: 'contains' }],
+            status: [{ value: ['deleted', 'banned'], matchMode: 'notIn' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE name LIKE $1 AND status NOT IN ($2,$3) AND archived = $4 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['%John%', 'deleted', 'banned', false]);
+    });
+
+    it('should skip notIn filter when value is an empty array', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'status';
+        const sortOrder = 'ASC';
+        const filters = {
+            status: [{ value: [], matchMode: 'notIn' }],
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(' WHERE archived = $1 ORDER BY status ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([false]);
+    });
+
+    it('should generate correct SQL filter clause for notIn on an uppercase column name', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'userId';
+        const sortOrder = 'ASC';
+        const filters = {
+            userId: [{ value: [1, 2, 3], matchMode: 'notIn' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE "userId" NOT IN ($1,$2,$3) ORDER BY "userId" ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([1, 2, 3]);
+    });
+});

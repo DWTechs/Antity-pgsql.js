@@ -18,6 +18,7 @@ function index(index: number[], matchMode: MatchMode | undefined): string {
   const i = index.map((i: number) => `$${i}`);
   switch (matchMode) {
     case "in":
+    case "notIn":
       return `(${i})`;
     default:
       return `${i}`;

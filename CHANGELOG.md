@@ -1,4 +1,9 @@
 
+# 0.15.2 (Mar 26th 2026)
+
+- Fix `notIn` match mode not working in filter SQL generation:
+- Add `"in"` and `"notIn"` to allowed match modes for `number`and `string`
+
 # 0.15.1 (Mar 25th 2026)
 
 - Fix filter handling to exclude empty values from WHERE clauses:

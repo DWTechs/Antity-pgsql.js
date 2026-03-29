@@ -25,6 +25,7 @@ export type Comparator =
   "IS" |
   "IS NOT" |
   "IN" |
+  "NOT IN" |
   "LIKE" |
   "NOT LIKE";
 
@@ -37,6 +38,7 @@ export type MatchMode =
   "notEquals" |
   "between" |
   "in" |
+  "notIn" |
   "lt" |
   "lte" |
   "gt" |
