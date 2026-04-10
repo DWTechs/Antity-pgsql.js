@@ -43,15 +43,15 @@ var pool = new Pool({
 const LOGS_PREFIX = '[Antity-PGSQL] ';
 
 function start(query, args) {
-    const a = JSON.stringify(args);
-    const q = query.replace(/[\n\r]+/g, "").replace(/\s{2,}/g, " ");
-    log.debug(`${LOGS_PREFIX}Pgsql: { Query : '${q}', Args : '${a}' }`);
+    log.debug(() => {
+        const a = JSON.stringify(args);
+        const q = query.replace(/[\n\r]+/g, "").replace(/\s{2,}/g, " ");
+        return `${LOGS_PREFIX}Pgsql: { Query : '${q}', Args : '${a}' }`;
+    });
     return Date.now();
 }
 function end(res, time) {
-    const r = JSON.stringify(res);
-    const t = Date.now() - time;
-    log.debug(`Pgsql response in ${t}ms : ${r}`);
+    log.debug(() => `Pgsql response in ${Date.now() - time}ms : ${JSON.stringify(res)}`);
 }
 var perf = {
     start,
@@ -356,7 +356,7 @@ class Update {
         const propsToUse = [...this._props];
         if (consumerId !== undefined && consumerName !== undefined)
             propsToUse.push("consumerId", "consumerName");
-        log.debug(`${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
+        log.debug(() => `${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
         const l = rows.length;
         const args = rows.map(row => row.id);
         let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET `;
@@ -466,7 +466,7 @@ var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _argu
 };
 class Archive {
     query(schema, table, rows, consumerId, consumerName) {
-        log.debug(`${LOGS_PREFIX}Archive query input rows: ${JSON.stringify(rows, null, 2)}`);
+        log.debug(() => `${LOGS_PREFIX}Archive query input rows: ${JSON.stringify(rows, null, 2)}`);
         const l = rows.length;
         const args = rows.map(row => row.id);
         let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET archived = true`;
@@ -587,12 +587,12 @@ function cleanFilters(filters, properties) {
         if (filters.hasOwnProperty(k)) {
             const prop = properties.find(p => p.key === k);
             if (!prop) {
-                log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
+                log.warn(() => `${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
                 delete filters[k];
                 continue;
             }
             if (!prop.isFilterable) {
-                log.warn(`${LOGS_PREFIX}Filters: skipping unfilterable property: ${k}`);
+                log.warn(() => `${LOGS_PREFIX}Filters: skipping unfilterable property: ${k}`);
                 delete filters[k];
                 continue;
             }
@@ -602,7 +602,7 @@ function cleanFilters(filters, properties) {
             const validFilters = filterArray.filter((f) => {
                 const { matchMode: matchMode$1 } = f;
                 if (!matchMode$1 || !matchMode(type$1, matchMode$1)) {
-                    log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode$1}" for type: "${type$1}" at property: "${k}"`);
+                    log.warn(() => `${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode$1}" for type: "${type$1}" at property: "${k}"`);
                     return false;
                 }
                 return true;
@@ -617,9 +617,8 @@ function cleanFilters(filters, properties) {
 }
 
 function logSummary(name, table, properties) {
-    const summary = generateSummary(name, table, properties);
     log.info(`${LOGS_PREFIX}Entity "${name}" created successfully`);
-    log.info(`${LOGS_PREFIX}Entity Summary:\n${summary}`);
+    log.info(() => `${LOGS_PREFIX}Entity Summary:\n${generateSummary(name, table, properties)}`);
 }
 function generateSummary(name, table, properties) {
     const lines = [];
@@ -702,20 +701,20 @@ class SQLEntity extends Entity {
             select: (first = 0, rows = null, sortField = null, sortOrder = null, filters = null) => {
                 return this.sel.query(this.schema, this.table, first, rows, sortField, sortOrder, filters);
             },
-            update: (rows, consumerId, consumerName) => {
-                return this.upd.query(this.schema, this.table, rows, consumerId, consumerName);
+            update: (rows, consumer) => {
+                return this.upd.query(this.schema, this.table, rows, consumer === null || consumer === void 0 ? void 0 : consumer.id, consumer === null || consumer === void 0 ? void 0 : consumer.nickname);
             },
-            insert: (rows, consumerId, consumerName, rtn = "") => {
-                return this.ins.query(this.schema, this.table, rows, consumerId, consumerName, rtn);
+            insert: (rows, consumer, rtn = "") => {
+                return this.ins.query(this.schema, this.table, rows, consumer === null || consumer === void 0 ? void 0 : consumer.id, consumer === null || consumer === void 0 ? void 0 : consumer.nickname, rtn);
             },
-            upsert: (rows, conflictTarget, consumerId, consumerName, rtn = "") => {
-                return this.ups.query(this.schema, this.table, rows, conflictTarget, consumerId, consumerName, rtn);
+            upsert: (rows, conflictTarget, consumer, rtn = "") => {
+                return this.ups.query(this.schema, this.table, rows, conflictTarget, consumer === null || consumer === void 0 ? void 0 : consumer.id, consumer === null || consumer === void 0 ? void 0 : consumer.nickname, rtn);
             },
             delete: (ids) => {
                 return queryById(this.schema, this.table, ids);
             },
-            archive: (rows, consumerId, consumerName) => {
-                return this.arc.query(this.schema, this.table, rows, consumerId, consumerName);
+            archive: (rows, consumer) => {
+                return this.arc.query(this.schema, this.table, rows, consumer === null || consumer === void 0 ? void 0 : consumer.id, consumer === null || consumer === void 0 ? void 0 : consumer.nickname);
             },
             deleteArchive: () => {
                 return queryByDate();
@@ -735,9 +734,7 @@ class SQLEntity extends Entity {
             const filters = cleanFilters(b.filters, this.properties) || null;
             const pagination = b.pagination || false;
             const dbClient = l.dbClient || null;
-            log.debug(`get(first='${first}', rows='${rows}', 
-      sortOrder='${sortOrder}', sortField='${sortField}', 
-      pagination=${pagination}, filters=${JSON.stringify(filters)}`);
+            log.debug(() => `get(first='${first}', rows='${rows}', sortOrder='${sortOrder}', sortField='${sortField}', pagination=${pagination}, filters=${JSON.stringify(filters)}`);
             const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters);
             this.sel.execute(query, args, dbClient)
                 .then((r) => {
@@ -748,12 +745,13 @@ class SQLEntity extends Entity {
                 .catch((err) => next(err));
         };
         this.add = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const l = res.locals;
             const rows = req.body.rows;
             const dbClient = l.dbClient || null;
-            const cId = l.consumerId;
-            const cName = l.consumerName;
-            log.debug(`${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
+            const cId = (_a = l.consumer) === null || _a === void 0 ? void 0 : _a.id;
+            const cName = (_b = l.consumer) === null || _b === void 0 ? void 0 : _b.nickname;
+            log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
             const rtn = this.ins.rtn("id");
             const chunks = chunk(rows);
             for (const c of chunks) {
@@ -774,12 +772,13 @@ class SQLEntity extends Entity {
             next();
         });
         this.update = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const l = res.locals;
             const r = req.body.rows;
             const dbClient = l.dbClient || null;
-            const cId = l.consumerId;
-            const cName = l.consumerName;
-            log.debug(`${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
+            const cId = (_a = l.consumer) === null || _a === void 0 ? void 0 : _a.id;
+            const cName = (_b = l.consumer) === null || _b === void 0 ? void 0 : _b.nickname;
+            log.debug(() => `${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
             const chunks = chunk(r);
             for (const c of chunks) {
                 const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
@@ -794,19 +793,20 @@ class SQLEntity extends Entity {
             next();
         });
         this.upsert = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const l = res.locals;
             const rows = req.body.rows;
             const conflictTarget = req.body.conflictTarget;
             const dbClient = l.dbClient || null;
-            const cId = l.consumerId;
-            const cName = l.consumerName;
+            const cId = (_a = l.consumer) === null || _a === void 0 ? void 0 : _a.id;
+            const cName = (_b = l.consumer) === null || _b === void 0 ? void 0 : _b.nickname;
             if (!conflictTarget) {
                 return next({ status: 400, msg: "Missing conflictTarget for upsert operation" });
             }
             if (!rows || !Array.isArray(rows) || rows.length === 0) {
                 return next({ status: 400, msg: "Missing or empty rows array for upsert operation" });
             }
-            log.debug(`${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
+            log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
             const rtn = this.ups.rtn("id");
             const chunks = chunk(rows);
             for (const c of chunks) {
@@ -827,12 +827,13 @@ class SQLEntity extends Entity {
             next();
         });
         this.archive = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const l = res.locals;
             let r = req.body.rows;
             const dbClient = l.dbClient || null;
-            const cId = l.consumerId;
-            const cName = l.consumerName;
-            log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
+            const cId = (_a = l.consumer) === null || _a === void 0 ? void 0 : _a.id;
+            const cName = (_b = l.consumer) === null || _b === void 0 ? void 0 : _b.nickname;
+            log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
             const chunks = chunk(r);
             for (const c of chunks) {
                 const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName);
@@ -849,7 +850,7 @@ class SQLEntity extends Entity {
             const rows = req.body.rows;
             const dbClient = res.locals.dbClient || null;
             const ids = rows.map((row) => row.id);
-            log.debug(`${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
+            log.debug(() => `${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
             const { query, args } = queryById(this._schema, this._table, ids);
             try {
                 yield execute(query, args, dbClient);
@@ -862,7 +863,7 @@ class SQLEntity extends Entity {
         this.deleteArchive = (req, res, next) => {
             const date = req.body.date;
             const dbClient = res.locals.dbClient || null;
-            log.debug(`${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
+            log.debug(() => `${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
             executeArchived(this._schema, this._table, date, queryByDate(), dbClient)
                 .then(() => next())
                 .catch((err) => next(err));
@@ -873,7 +874,7 @@ class SQLEntity extends Entity {
             if (!id) {
                 return next({ status: 400, msg: "Missing id" });
             }
-            log.debug(`${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
+            log.debug(() => `${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
             const sql = `
       SELECT id, tstamp, operation, "consumerId", "consumerName"
       FROM log.history
@@ -895,16 +896,16 @@ class SQLEntity extends Entity {
                 .catch((err) => next(err));
         };
         this.sync = (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
+            var _a, _b, _c;
             const l = res.locals;
             const rows = req.body.rows;
             const idField = (_a = req.body.idField) !== null && _a !== void 0 ? _a : 'id';
-            const cId = l.consumerId;
-            const cName = l.consumerName;
+            const cId = (_b = l.consumer) === null || _b === void 0 ? void 0 : _b.id;
+            const cName = (_c = l.consumer) === null || _c === void 0 ? void 0 : _c.nickname;
             if (!rows || !Array.isArray(rows)) {
                 return next({ status: 400, msg: "Missing or invalid rows array for sync operation" });
             }
-            log.debug(`${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
+            log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
             const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;
             const { conditions, args: filterArgs } = add(cleanedFilters);
             const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
@@ -964,7 +965,7 @@ class SQLEntity extends Entity {
         });
         this._table = name;
         this._schema = schema;
-        log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
+        log.info(() => `${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
         for (const p of properties) {
             this.mapProps(p.operations, p.key);
         }

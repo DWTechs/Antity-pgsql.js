@@ -65,10 +65,9 @@ describe("query function", () => {
       { name: 'John', age: 30 },
       { name: 'Henry', age: 40 },
     ];
-    const consumerId = 1;
-    const consumerName = 'consumer';
+    const consumer = { id: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
-    const { query, args } = entity.query.insert(chunk, consumerId, consumerName, rtn);
+    const { query, args } = entity.query.insert(chunk, consumer, rtn);
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, "consumerId", "consumerName") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8) RETURNING id'
     );
@@ -83,10 +82,9 @@ describe("query function", () => {
       { name: 'John', age: 30 },
       { name: 'Henry', age: 40 },
     ];
-    const consumerId = 1;
-    const consumerName = 'consumer';
+    const consumer = { id: 1, nickname: 'consumer' };
     const rtn = "";
-    const { query, args } = entity.query.insert(chunk, consumerId, consumerName, rtn);
+    const { query, args } = entity.query.insert(chunk, consumer, rtn);
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, "consumerId", "consumerName") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)'
     );
@@ -101,16 +99,15 @@ describe("query function", () => {
       { name: 'John', age: 30 },
       { name: 'Henry', age: 40 },
     ];
-    const consumerId = 1;
-    const consumerName = 'consumer';
+    const consumer = { id: 1, nickname: 'consumer' };
     const rtn = entity2.query.return("id");
-    const { query, args } = entity2.query.insert(chunk, consumerId, consumerName, rtn);
+    const { query, args } = entity2.query.insert(chunk, consumer, rtn);
     expect(query).toBe(
       'INSERT INTO public.persons (age, "consumerId", "consumerName") VALUES ($1, $2, $3), ($4, $5, $6) RETURNING id'
     );
     expect(args).toEqual([
-      30, consumerId, consumerName,
-      40, consumerId, consumerName
+      30, consumer.id, consumer.nickname,
+      40, consumer.id, consumer.nickname
     ]);
   });
 
@@ -120,7 +117,7 @@ describe("query function", () => {
       { name: 'Henry', age: 40 },
     ];
     const rtn = entity.query.return("id");
-    const { query, args } = entity.query.insert(chunk, undefined, undefined, rtn);
+    const { query, args } = entity.query.insert(chunk, undefined, rtn);
     expect(query).toBe(
       'INSERT INTO public.persons (name, age) VALUES ($1, $2), ($3, $4) RETURNING id'
     );

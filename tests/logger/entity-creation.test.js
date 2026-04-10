@@ -1,13 +1,36 @@
 import { SQLEntity } from '../../dist/antity-pgsql.js';
 import { log } from '@dwtechs/winstan';
 
-// Mock the logger to capture log output
-jest.mock('@dwtechs/winstan', () => ({
-  log: {
-    info: jest.fn(),
-    debug: jest.fn()
+// Mock the logger to capture log output.
+// Uses a custom resolving mock that unwraps lazy lambda arguments (e.g. log.info(() => msg))
+// so that mock.calls stores resolved strings and Jest matchers work correctly.
+jest.mock('@dwtechs/winstan', () => {
+  function createResolvingFn() {
+    const calls = [];
+    const fn = function(msgOrFn) {
+      const msg = typeof msgOrFn === 'function' ? msgOrFn() : msgOrFn;
+      calls.push([msg]);
+    };
+    fn._isMockFunction = true;
+    fn.mock = { calls, results: [], instances: [], invocationCallOrder: [] };
+    fn.getMockName = () => 'mock';
+    fn.mockClear = function() {
+      calls.length = 0;
+      fn.mock.results.length = 0;
+      fn.mock.instances.length = 0;
+      fn.mock.invocationCallOrder.length = 0;
+    };
+    fn.mockReset = fn.mockClear;
+    fn.mockRestore = fn.mockClear;
+    return fn;
   }
-}));
+  return {
+    log: {
+      info: createResolvingFn(),
+      debug: createResolvingFn()
+    }
+  };
+});
 
 describe('Logger - Entity Creation Tests', () => {
   beforeEach(() => {

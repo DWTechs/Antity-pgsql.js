@@ -577,8 +577,8 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const rows: Record<string, any>[] = req.body.rows;
     const idField: string = req.body.idField ?? 'id';
-    const cId = l.consumerId;
-    const cName = l.consumerName;
+    const cId = l.consumer?.id;
+    const cName = l.consumer?.nickname;
 
     if (!rows || !Array.isArray(rows)) {
       return next({ status: 400, msg: "Missing or invalid rows array for sync operation" });

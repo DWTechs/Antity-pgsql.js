@@ -190,7 +190,7 @@ describe("upsert query function", () => {
     ];
     const conflictTarget = 'Email';
     const rtn = entityWithUppercase.query.return("id");
-    const { query, args } = entityWithUppercase.query.upsert(rows, conflictTarget, undefined, undefined, rtn);
+    const { query, args } = entityWithUppercase.query.upsert(rows, conflictTarget, undefined, rtn);
     
     expect(query).toBe(
       'INSERT INTO public."Persons" ("Name", "Email") VALUES ($1, $2) ON CONFLICT ("Email") DO UPDATE SET "Name" = EXCLUDED."Name" RETURNING id'
