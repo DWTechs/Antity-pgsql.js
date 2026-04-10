@@ -1,4 +1,10 @@
 
+# 0.16.0 (Apr 08th 2026)
+
+- Replace separate `consumerId` / `consumerName` parameters with a single `consumer` object (`{ id?, nickname? }`) across all relevant APIs:
+  - `query.update()`, `query.insert()`, `query.upsert()`, `query.archive()` now accept `consumer?: { id?: number | string, nickname?: string }` instead of two separate arguments
+  - Express middlewares (`add`, `update`, `upsert`, `archive`, `sync`) now read `res.locals.consumer.id` and `res.locals.consumer.nickname` instead of `res.locals.consumerId` / `res.locals.consumerName`
+
 # 0.15.2 (Mar 26th 2026)
 
 - Fix `notIn` match mode not working in filter SQL generation:
