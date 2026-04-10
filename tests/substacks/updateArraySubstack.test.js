@@ -75,8 +75,7 @@ describe("updateArraySubstack", () => {
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumerId,
-      consumerName,
+      consumer: { id: consumerId, nickname: consumerName },
       rows: []
     }
   });

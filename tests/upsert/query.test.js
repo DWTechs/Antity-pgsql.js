@@ -52,10 +52,9 @@ describe("upsert query function", () => {
       { id: 2, name: 'Henry', age: 40, email: 'henry@example.com' },
     ];
     const conflictTarget = 'id';
-    const consumerId = 1;
-    const consumerName = 'consumer';
+    const consumer = { id: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
-    const { query, args } = entity.query.upsert(rows, conflictTarget, consumerId, consumerName, rtn);
+    const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, email, "consumerId", "consumerName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "consumerId" = EXCLUDED."consumerId", "consumerName" = EXCLUDED."consumerName" RETURNING id'
@@ -72,10 +71,9 @@ describe("upsert query function", () => {
       { name: 'Henry', age: 40, email: 'henry@example.com' },
     ];
     const conflictTarget = 'email';
-    const consumerId = 1;
-    const consumerName = 'consumer';
+    const consumer = { id: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
-    const { query, args } = entity.query.upsert(rows, conflictTarget, consumerId, consumerName, rtn);
+    const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, email, "consumerId", "consumerName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, "consumerId" = EXCLUDED."consumerId", "consumerName" = EXCLUDED."consumerName" RETURNING id'
@@ -91,10 +89,9 @@ describe("upsert query function", () => {
       { name: 'John', age: 30, email: 'john@example.com' },
     ];
     const conflictTarget = ['name', 'email'];
-    const consumerId = 1;
-    const consumerName = 'consumer';
+    const consumer = { id: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
-    const { query, args } = entity.query.upsert(rows, conflictTarget, consumerId, consumerName, rtn);
+    const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, email, "consumerId", "consumerName") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (name, email) DO UPDATE SET age = EXCLUDED.age, "consumerId" = EXCLUDED."consumerId", "consumerName" = EXCLUDED."consumerName" RETURNING id'
@@ -110,7 +107,7 @@ describe("upsert query function", () => {
     ];
     const conflictTarget = 'id';
     const rtn = entity.query.return("id");
-    const { query, args } = entity.query.upsert(rows, conflictTarget, undefined, undefined, rtn);
+    const { query, args } = entity.query.upsert(rows, conflictTarget, undefined, rtn);
     
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, email) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email RETURNING id'
@@ -125,9 +122,8 @@ describe("upsert query function", () => {
       { id: 1, name: 'John', age: 30, email: 'john@example.com' },
     ];
     const conflictTarget = 'id';
-    const consumerId = 1;
-    const consumerName = 'consumer';
-    const { query, args } = entity.query.upsert(rows, conflictTarget, consumerId, consumerName, "");
+    const consumer = { id: 1, nickname: 'consumer' };
+    const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, "");
     
     expect(query).toBe(
       'INSERT INTO public.persons (name, age, email, "consumerId", "consumerName") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "consumerId" = EXCLUDED."consumerId", "consumerName" = EXCLUDED."consumerName"'

@@ -95,15 +95,14 @@ describe("sync middleware", () => {
    * Creates a mock Express response object.
    *
    * @param {object} dbClient - Database client.
-   * @param {number|string} [consumerId] - Consumer ID.
-   * @param {string} [consumerName] - Consumer name.
+   * @param {{ id?: number|string, nickname?: string }} [consumer] - Consumer object.
+   * .
    * @returns {object} Mock response object.
    */
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumerId,
-      consumerName,
+      consumer: { id: consumerId, nickname: consumerName },
       rows: []
     }
   });
@@ -158,7 +157,7 @@ describe("sync middleware", () => {
 
     // Pass no dbClient so sync acquires one from the pool
     const req = mockRequest([]);
-    const res = { locals: { consumerId: 1, consumerName: 'admin', rows: [] } };
+    const res = { locals: { consumer: { id: 1, nickname: 'admin' }, rows: [] } };
 
     await entity.sync(req, res, mockNext);
 
@@ -178,7 +177,7 @@ describe("sync middleware", () => {
     pool.connect.mockResolvedValue(txClient);
 
     const req = mockRequest([{ id: 1, name: 'John', age: 30 }]);
-    const res = { locals: { consumerId: 1, consumerName: 'admin', rows: [] } };
+    const res = { locals: { consumer: { id: 1, nickname: 'admin' }, rows: [] } };
 
     await entity.sync(req, res, mockNext);
 
@@ -245,7 +244,7 @@ describe("sync middleware", () => {
     expect(mockNext).toHaveBeenCalledWith();
   });
 
-  it("should include consumerId and consumerName in INSERT query args", async () => {
+  it("should include consumer id and nickname in INSERT query args", async () => {
     const dbClient = mockDbClient([
       [],           // SELECT → no existing
       [{ id: 7 }]  // INSERT RETURNING
@@ -264,7 +263,7 @@ describe("sync middleware", () => {
     expect(insertCall[1]).toContain('superadmin');
   });
 
-  it("should not include consumerId and consumerName in INSERT args when undefined", async () => {
+  it("should not include consumer id and nickname in INSERT args when undefined", async () => {
     const dbClient = mockDbClient([
       [],
       [{ id: 1 }]
@@ -300,7 +299,7 @@ describe("sync middleware", () => {
     expect(mockNext).toHaveBeenCalledWith();
   });
 
-  it("should include consumerId and consumerName in UPDATE query args", async () => {
+  it("should include consumer id and nickname in UPDATE query args", async () => {
     const dbClient = mockDbClient([[{ id: 1 }]]); // SELECT → id 1 exists
     const req = mockRequest([{ id: 1, name: 'Dave', age: 35 }]);
     const res = mockResponse(dbClient, 7, 'editor');

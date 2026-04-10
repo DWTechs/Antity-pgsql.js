@@ -84,15 +84,14 @@ describe("archive middleware", () => {
    * Creates mock Express response object
    *
    * @param {object} dbClient - Database client
-   * @param {number|string} [consumerId] - Consumer ID
-   * @param {string} [consumerName] - Consumer name
+   * @param {{ id?: number|string, nickname?: string }} [consumer] - Consumer object
+   * 
    * @returns {object} Mock response object
    */
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumerId,
-      consumerName
+      consumer: { id: consumerId, nickname: consumerName }
     }
   });
 
@@ -115,7 +114,7 @@ describe("archive middleware", () => {
     expect(mockNext).toHaveBeenCalledWith();
   });
 
-  it("should set archived to true and include consumerId and consumerName in query args", async () => {
+  it("should set archived to true and include consumer id and nickname in query args", async () => {
     const dbClient = mockDbClient();
     const req = mockRequest([{ id: 10 }, { id: 20 }]);
     const res = mockResponse(dbClient, 123, 'adminUser');
@@ -140,7 +139,7 @@ describe("archive middleware", () => {
     expect(mockNext).toHaveBeenCalledWith();
   });
 
-  it("should omit consumerId and consumerName from query args when undefined", async () => {
+  it("should omit consumer id and nickname from query args when undefined", async () => {
     const dbClient = mockDbClient();
     const req = mockRequest([{ id: 1 }]);
     const res = mockResponse(dbClient, undefined, undefined);

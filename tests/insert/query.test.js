@@ -114,7 +114,7 @@ describe("query function", () => {
     ]);
   });
 
-  it("should generate a valid SQL INSERT query without consumerId and consumerName", () => {
+  it("should generate a valid SQL INSERT query without consumer id and nickname", () => {
     const chunk = [
       { name: 'John', age: 30 },
       { name: 'Henry', age: 40 },
@@ -130,7 +130,7 @@ describe("query function", () => {
     ]);
   });
 
-  it("should generate a valid SQL INSERT query without consumerId and consumerName and no return", () => {
+  it("should generate a valid SQL INSERT query without consumer id and nickname and no return", () => {
     const chunk = [
       { name: 'John', age: 30 },
       { name: 'Henry', age: 40 },

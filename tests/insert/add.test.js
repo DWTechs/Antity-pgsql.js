@@ -73,15 +73,14 @@ describe("add method", () => {
    * Creates mock Express response object
    * 
    * @param {object} dbClient - Database client
-   * @param {number|string} [consumerId] - Consumer ID
-   * @param {string} [consumerName] - Consumer name
+   * @param {{ id?: number|string, nickname?: string }} [consumer] - Consumer object
+   * 
    * @returns {object} Mock response object
    */
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumerId,
-      consumerName,
+      consumer: { id: consumerId, nickname: consumerName },
       rows: []
     }
   });
@@ -247,7 +246,7 @@ describe("add method", () => {
     expect(res.locals.rows.every(row => !Array.isArray(row))).toBe(true);
   });
 
-  it("should handle rows without consumerId and consumerName", async () => {
+  it("should handle rows without consumer id and nickname", async () => {
     const inputRows = [{ name: 'NoConsumer', age: 40 }];
     const generatedIds = [{ id: 10 }];
     const dbClient = mockDbClient(generatedIds);

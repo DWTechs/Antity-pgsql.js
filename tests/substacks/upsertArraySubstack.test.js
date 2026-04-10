@@ -89,15 +89,14 @@ describe("upsertArraySubstack", () => {
    * Creates mock Express response object
    * 
    * @param {object} dbClient - Database client
-   * @param {number|string} [consumerId] - Consumer ID
-   * @param {string} [consumerName] - Consumer name
+   * @param {{ id?: number|string, nickname?: string }} [consumer] - Consumer object
+   * 
    * @returns {object} Mock response object
    */
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumerId,
-      consumerName,
+      consumer: { id: consumerId, nickname: consumerName },
       rows: []
     }
   });
