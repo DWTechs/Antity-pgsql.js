@@ -78,9 +78,8 @@ import { LOGS_PREFIX } from './constants';
  * @param {Property[]} properties - Array of entity properties
  */
 export function logSummary(name: string, table: string, properties: Property[]): void {
-  const summary = generateSummary(name, table, properties);
   log.info(`${LOGS_PREFIX}Entity "${name}" created successfully`);
-  log.info(`${LOGS_PREFIX}Entity Summary:\n${summary}`);
+  log.info(() => `${LOGS_PREFIX}Entity Summary:\n${generateSummary(name, table, properties)}`);
 }
 
 /**

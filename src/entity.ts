@@ -41,7 +41,7 @@ export class SQLEntity extends Entity {
     this._table = name;
     this._schema = schema;
     
-    log.info(`${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
+    log.info(() => `${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
     
     // properties is grouped by operation type, making it easy to retrieve and process later.
     for (const p of properties) {
@@ -266,9 +266,7 @@ export class SQLEntity extends Entity {
     const dbClient = l.dbClient || null;
 
     log.debug(
-      `get(first='${first}', rows='${rows}', 
-      sortOrder='${sortOrder}', sortField='${sortField}', 
-      pagination=${pagination}, filters=${JSON.stringify(filters)}`,
+      () => `get(first='${first}', rows='${rows}', sortOrder='${sortOrder}', sortField='${sortField}', pagination=${pagination}, filters=${JSON.stringify(filters)}`,
     );
 
     const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters);
@@ -309,7 +307,7 @@ export class SQLEntity extends Entity {
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
     
-    log.debug(`${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
      
     const rtn = this.ins.rtn("id");
     const chunks = chunk(rows);
@@ -338,7 +336,7 @@ export class SQLEntity extends Entity {
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
     
-    log.debug(`${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
 
     const chunks = chunk(r);
     for (const c of chunks) {
@@ -391,7 +389,7 @@ export class SQLEntity extends Entity {
       return next({ status: 400, msg: "Missing or empty rows array for upsert operation" });
     }
     
-    log.debug(`${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
     
     const rtn = this.ups.rtn("id");
     const chunks = chunk(rows);
@@ -420,7 +418,7 @@ export class SQLEntity extends Entity {
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
     
-    log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
 
     const chunks = chunk(r);
     for (const c of chunks) {
@@ -459,7 +457,7 @@ export class SQLEntity extends Entity {
     
     const ids = rows.map((row: Record<string, unknown>) => row.id as number);
     
-    log.debug(`${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
+    log.debug(() => `${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
     
     const { query, args } = del.queryById(this._schema, this._table, ids);
     
@@ -494,7 +492,7 @@ export class SQLEntity extends Entity {
     const date = req.body.date;
     const dbClient = res.locals.dbClient || null;
     
-    log.debug(`${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
+    log.debug(() => `${LOGS_PREFIX}deleteArchive(schema=${this._schema}, table=${this._table}, date=${date})`);
     del.executeArchived(this._schema, this._table, date, del.queryByDate(), dbClient)
       .then(() => next())
       .catch((err: Error) => next(err));
@@ -529,7 +527,7 @@ export class SQLEntity extends Entity {
       return next({ status: 400, msg: "Missing id" });
     }
     
-    log.debug(`${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
+    log.debug(() => `${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
     
     const sql = `
       SELECT id, tstamp, operation, "consumerId", "consumerName"
@@ -586,7 +584,7 @@ export class SQLEntity extends Entity {
       return next({ status: 400, msg: "Missing or invalid rows array for sync operation" });
     }
 
-    log.debug(`${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
 
     // Build optional WHERE clause from filters to scope the sync
     const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;

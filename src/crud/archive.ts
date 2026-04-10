@@ -29,7 +29,7 @@ export class Archive {
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
 
-    log.debug(`${LOGS_PREFIX}Archive query input rows: ${JSON.stringify(rows, null, 2)}`);
+    log.debug(() => `${LOGS_PREFIX}Archive query input rows: ${JSON.stringify(rows, null, 2)}`);
 
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id);

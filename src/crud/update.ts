@@ -40,7 +40,7 @@ export class Update {
     if (consumerId !== undefined && consumerName !== undefined)
       propsToUse.push("consumerId", "consumerName");
     
-    log.debug(`${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
+    log.debug(() => `${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
 
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row;

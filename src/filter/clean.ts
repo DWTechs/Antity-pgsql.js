@@ -61,12 +61,12 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
     if (filters.hasOwnProperty(k)) {
       const prop = properties.find(p => (p as any).key === k);
       if (!prop) {
-        log.warn(`${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
+        log.warn(() => `${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
         delete filters[k];
         continue;
       }
       if (!prop.isFilterable) {
-        log.warn(`${LOGS_PREFIX}Filters: skipping unfilterable property: ${k}`);
+        log.warn(() => `${LOGS_PREFIX}Filters: skipping unfilterable property: ${k}`);
         delete filters[k];
         continue;
       }
@@ -80,7 +80,7 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
       const validFilters = filterArray.filter((f) => {
         const { matchMode } = f;
         if (!matchMode || !check.matchMode(type, matchMode)) {
-          log.warn(`${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
+          log.warn(() => `${LOGS_PREFIX}Filters: skipping invalid match mode: "${matchMode}" for type: "${type}" at property: "${k}"`);
           return false;
         }
         return true;
