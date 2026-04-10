@@ -217,37 +217,33 @@ export class SQLEntity extends Entity {
     },
     update: (
       rows: Record<string, unknown>[], 
-      consumerId?: number | string, 
-      consumerName?: string,
+      consumer?: { id?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
-      return this.upd.query(this.schema, this.table, rows, consumerId, consumerName);
+      return this.upd.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname);
     },
     insert: (
       rows: Record<string, unknown>[], 
-      consumerId?: number | string, 
-      consumerName?: string,
+      consumer?: { id?: number | string, nickname?: string },
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
-      return this.ins.query(this.schema, this.table, rows, consumerId, consumerName, rtn);
+      return this.ins.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname, rtn);
     },
     upsert: (
       rows: Record<string, unknown>[],
       conflictTarget: string | string[],
-      consumerId?: number | string,
-      consumerName?: string,
+      consumer?: { id?: number | string, nickname?: string },
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
-      return this.ups.query(this.schema, this.table, rows, conflictTarget, consumerId, consumerName, rtn);
+      return this.ups.query(this.schema, this.table, rows, conflictTarget, consumer?.id, consumer?.nickname, rtn);
     },
     delete: (ids: number[]): { query: string, args: number[] } => {
       return del.queryById(this.schema, this.table, ids);
     },
     archive: (
       rows: Record<string, unknown>[],
-      consumerId?: number | string,
-      consumerName?: string,
+      consumer?: { id?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
-      return this.arc.query(this.schema, this.table, rows, consumerId, consumerName);
+      return this.arc.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname);
     },
     deleteArchive: (): string => {
       return del.queryByDate();
@@ -289,7 +285,7 @@ export class SQLEntity extends Entity {
    * Adds multiple rows to the database table.
    * 
    * @param {Request} req - Express request object. Expected to contain `rows` array in req.body with data to insert.
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumerId, and consumerName.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when all rows are inserted. Added rows with generated IDs are stored in res.locals.rows.
    * @throws {Error} If database insertion fails.
@@ -310,8 +306,8 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const rows = req.body.rows;
     const dbClient = l.dbClient || null;
-    const cId = l.consumerId;
-    const cName = l.consumerName;
+    const cId = l.consumer?.id;
+    const cName = l.consumer?.nickname;
     
     log.debug(`${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
      
@@ -339,8 +335,8 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const r = req.body.rows;
     const dbClient = l.dbClient || null;
-    const cId = l.consumerId;
-    const cName = l.consumerName;
+    const cId = l.consumer?.id;
+    const cName = l.consumer?.nickname;
     
     log.debug(`${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
 
@@ -362,7 +358,7 @@ export class SQLEntity extends Entity {
    * If a row with the specified conflict target already exists, it will be updated; otherwise, it will be inserted.
    * 
    * @param {Request} req - Express request object. Expected to contain `rows` array and `conflictTarget` in req.body.
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumerId, and consumerName.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when all rows are upserted. Upserted rows with IDs are stored in res.locals.rows.
    * @throws {Error} If database upsert fails or conflictTarget is missing.
@@ -384,8 +380,8 @@ export class SQLEntity extends Entity {
     const rows = req.body.rows;
     const conflictTarget = req.body.conflictTarget;
     const dbClient = l.dbClient || null;
-    const cId = l.consumerId;
-    const cName = l.consumerName;
+    const cId = l.consumer?.id;
+    const cName = l.consumer?.nickname;
     
     if (!conflictTarget) {
       return next({ status: 400, msg: "Missing conflictTarget for upsert operation" });
@@ -421,8 +417,8 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     let r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
-    const cId = l.consumerId;
-    const cName = l.consumerName;
+    const cId = l.consumer?.id;
+    const cName = l.consumer?.nickname;
     
     log.debug(`${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
 

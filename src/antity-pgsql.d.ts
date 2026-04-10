@@ -107,8 +107,7 @@ export declare class SQLEntity extends Entity {
     
     update: (
       rows: Record<string, unknown>[],
-      consumerId?: number | string,
-      consumerName?: string
+      consumer?: { id?: number | string, nickname?: string }
     ) => {
       query: string;
       args: unknown[];
@@ -116,8 +115,7 @@ export declare class SQLEntity extends Entity {
     
     archive: (
       rows: Record<string, unknown>[],
-      consumerId?: number | string,
-      consumerName?: string
+      consumer?: { id?: number | string, nickname?: string }
     ) => {
       query: string;
       args: unknown[];
@@ -125,8 +123,7 @@ export declare class SQLEntity extends Entity {
     
     insert: (
       rows: Record<string, unknown>[],
-      consumerId?: number | string,
-      consumerName?: string,
+      consumer?: { id?: number | string, nickname?: string },
       rtn?: string
     ) => {
       query: string;
@@ -136,8 +133,7 @@ export declare class SQLEntity extends Entity {
     upsert: (
       rows: Record<string, unknown>[],
       conflictTarget: string | string[],
-      consumerId?: number | string,
-      consumerName?: string,
+      consumer?: { id?: number | string, nickname?: string },
       rtn?: string
     ) => {
       query: string;
