@@ -1,7 +1,7 @@
 import { execute as exe } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, Filter } from "../types";
+import type { PGResponse, Filter, Row, PGClient } from "../types";
 import { log } from "@dwtechs/winstan";
 import { LOGS_PREFIX } from "../constants";
 
@@ -26,7 +26,7 @@ export class Update {
   public query(
     schema: string,
     table: string, 
-    rows: Record<string, any>[],
+    rows: Row[],
     consumerId?: string | number,
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
@@ -65,7 +65,7 @@ export class Update {
   public async execute(
     query: string,
     args: (Filter["value"])[],
-    client: any): Promise<PGResponse> {
+    client: PGClient | null): Promise<PGResponse> {
     
     return exe( query, args, client );
     
@@ -73,11 +73,11 @@ export class Update {
 
   // Add consumerId and consumerName to each row
   private  addConsumer(
-    rows: Record<string, unknown>[],
+    rows: Row[],
     consumerId: string | number,
     consumerName: string
-  ): Record<string, unknown>[] {
-    return rows.map((row: Record<string, unknown>) => ({
+  ): Row[] {
+    return rows.map((row: Row) => ({
       ...row,
       consumerId,
       consumerName,

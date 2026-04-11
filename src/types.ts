@@ -65,9 +65,15 @@ export type Geometry = {
   } 
 };
 
+export type Row = Record<string, Filter["value"]>;
+
+export type PGClient = {
+  query(text: string, values?: unknown[]): Promise<PGResponse>;
+};
+
 export type PGResponse = {
   rows: Record<string, unknown>[];
-  rowCount: number;
+  rowCount: number | null;
   total?: number;
   command?: string;
   oid?: number;

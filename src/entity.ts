@@ -2,7 +2,7 @@ import { isString } from '@dwtechs/checkard';
 import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity } from "@dwtechs/antity";
-import { Property } from './property';
+import type { Property } from './property';
 import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
@@ -16,7 +16,7 @@ import { execute } from "./crud/execute";
 import pool from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, Filters, Filter, Operation } from "./types";
+import type { PGResponse, SelectResponse, Filters, Filter, Operation, Row } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
@@ -45,7 +45,7 @@ export class SQLEntity extends Entity {
     
     // properties is grouped by operation type, making it easy to retrieve and process later.
     for (const p of properties) {
-      this.mapProps(p.operations, (p as any).key);
+      this.mapProps(p.operations, p.key);
     }
     
     // Log comprehensive entity summary
@@ -216,20 +216,20 @@ export class SQLEntity extends Entity {
       return this.sel.query(this.schema, this.table, first, rows, sortField, sortOrder, filters);
     },
     update: (
-      rows: Record<string, unknown>[], 
+      rows: Row[], 
       consumer?: { id?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
       return this.upd.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname);
     },
     insert: (
-      rows: Record<string, unknown>[], 
+      rows: Row[], 
       consumer?: { id?: number | string, nickname?: string },
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
       return this.ins.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname, rtn);
     },
     upsert: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       conflictTarget: string | string[],
       consumer?: { id?: number | string, nickname?: string },
       rtn: string = ""
@@ -240,7 +240,7 @@ export class SQLEntity extends Entity {
       return del.queryById(this.schema, this.table, ids);
     },
     archive: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
       return this.arc.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname);
@@ -271,7 +271,7 @@ export class SQLEntity extends Entity {
 
     const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters);
     this.sel.execute( query, args, dbClient)
-      .then((r: PGResponse) => {
+      .then((r: SelectResponse) => {
         l.rows = r.rows;
         l.total = r.total;
         next();
@@ -413,7 +413,7 @@ export class SQLEntity extends Entity {
 
   public archive = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => { 
     const l = res.locals;
-    let r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    const r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
@@ -524,7 +524,8 @@ export class SQLEntity extends Entity {
     const dbClient = res.locals.dbClient || null;
     
     if (!id) {
-      return next({ status: 400, msg: "Missing id" });
+      next({ status: 400, msg: "Missing id" });
+      return;
     }
     
     log.debug(() => `${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
@@ -575,7 +576,7 @@ export class SQLEntity extends Entity {
    */
   public sync = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows: Record<string, any>[] = req.body.rows;
+    const rows = req.body.rows as Row[];
     const idField: string = req.body.idField ?? 'id';
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
@@ -593,8 +594,8 @@ export class SQLEntity extends Entity {
 
     // Acquire a dedicated client for the transaction
     const txClient = l.dbClient || await pool.connect();
-    let toInsert: Record<string, any>[] = [];
-    let toUpdate: Record<string, any>[] = [];
+    let toInsert: Row[] = [];
+    let toUpdate: Row[] = [];
     let idsToDelete: number[] = [];
     try {
       await txClient.query('BEGIN');

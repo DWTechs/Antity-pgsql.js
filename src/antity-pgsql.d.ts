@@ -1,7 +1,6 @@
 import { Entity, Property as BaseProperty } from "@dwtechs/antity";
 import type { Type, Method } from "@dwtechs/antity";
 import type { Request, Response, NextFunction } from 'express';
-import type { Pool, PoolClient } from 'pg';
 
 export type Operation = "SELECT" | "INSERT" | "UPDATE";
 export type Sort = "ASC" | "DESC";
@@ -49,9 +48,20 @@ export type Geometry = {
     maxLat: number;
   };
 };
+export type Row = Record<string, Filter["value"]>;
+
+export type PGClient = {
+  query(text: string, values?: unknown[]): Promise<PGResponse>;
+};
+
+export type SelectResponse = {
+  rows: Record<string, unknown>[];
+  total?: number;
+};
+
 export type PGResponse = {
   rows: Record<string, unknown>[];
-  rowCount: number;
+  rowCount: number | null;
   total?: number;
   command?: string;
   oid?: number;
@@ -106,7 +116,7 @@ export declare class SQLEntity extends Entity {
     };
     
     update: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string }
     ) => {
       query: string;
@@ -114,7 +124,7 @@ export declare class SQLEntity extends Entity {
     };
     
     archive: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string }
     ) => {
       query: string;
@@ -122,7 +132,7 @@ export declare class SQLEntity extends Entity {
     };
     
     insert: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string },
       rtn?: string
     ) => {
@@ -131,7 +141,7 @@ export declare class SQLEntity extends Entity {
     };
     
     upsert: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       conflictTarget: string | string[],
       consumer?: { id?: number | string, nickname?: string },
       rtn?: string
@@ -172,6 +182,6 @@ export declare function filter(
 export declare function execute(
   query: string, 
   args: (string | number | boolean | Date | number[])[], 
-  client: Pool | PoolClient | null
+  client: PGClient | null
 ): Promise<PGResponse>;
 

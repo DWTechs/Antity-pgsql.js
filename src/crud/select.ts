@@ -2,7 +2,7 @@ import { deleteProps } from "@dwtechs/sparray";
 import { execute as exe } from "./execute";
 import { quoteIfUppercase } from "./quote";
 import { filter } from "../filter/filter";
-import type { PGResponse, SelectResponse, Filter, Filters, Sort } from "../types";
+import type { PGResponse, SelectResponse, Filter, Filters, Sort, PGClient } from "../types";
 
 export class Select {
   
@@ -43,7 +43,7 @@ export class Select {
   public execute(
     query: string,
     args: (Filter["value"])[],
-    client: any,
+    client: PGClient | null,
   ): Promise<SelectResponse> {
 
     return exe(query, args, client)

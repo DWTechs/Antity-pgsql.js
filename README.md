@@ -25,9 +25,11 @@
 
 ## Support
 
-- node: 22
+| Runtime | Minimum version |
+| :------ | :-------------- |
+| Node.js | 22              |
 
-This is the oldest targeted versions. The library should work properly on older versions of Node.js but we do not support it officially.  
+Older versions may work but are not officially supported.
 
 
 ## Installation
@@ -140,6 +142,8 @@ router.get("/:id/history", ..., entity.getHistory);
 
 type Operation = "SELECT" | "INSERT" | "UPDATE";
 
+type Row = Record<string, string | number | boolean | Date | number[]>;
+
 type MatchMode =  
   "startsWith" | 
   "endsWith" |
@@ -149,6 +153,7 @@ type MatchMode =
   "notEquals" |
   "between" |
   "in" |
+  "notIn" |
   "lt" |
   "lte" |
   "gt" |
@@ -170,6 +175,21 @@ type Filter = {
   matchMode?: MatchMode;
   operator?: string; // 'and' | 'or' - Used when multiple filters apply to the same property
 }
+
+type PGClient = {
+  query(text: string, values?: unknown[]): Promise<PGResponse>;
+};
+
+type PGResponse = {
+  rows: Record<string, unknown>[];
+  rowCount: number | null;
+  total?: number;
+};
+
+type SelectResponse = {
+  rows: Record<string, unknown>[];
+  total?: number;
+};
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
 type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
@@ -206,26 +226,26 @@ class SQLEntity {
         args: (Filter["value"])[];
       };
     update: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string }) => {
         query: string;
         args: unknown[];
     };
     archive: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string }) => {
         query: string;
         args: unknown[];
     };
     insert: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       consumer?: { id?: number | string, nickname?: string },
       rtn?: string) => {
         query: string;
           args: unknown[];
       };
     upsert: (
-      rows: Record<string, unknown>[],
+      rows: Row[],
       conflictTarget: string | string[],
       consumer?: { id?: number | string, nickname?: string },
       rtn?: string) => {
@@ -262,7 +282,7 @@ function filter(
 function execute(
   query: string, 
   args: (string | number | boolean | Date | number[])[], 
-  client: any,
+  client: PGClient | null,
 ): Promise<PGResponse>;
 
 
@@ -303,10 +323,10 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 ### Query Methods
 
 - **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
-- **query.insert()**: Generates an INSERT query. Accepts an array of objects with properties matching the entity definition. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
-- **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of objects with `id` property. Optionally appends `consumer.id` and `consumer.nickname` for history tracking.
-- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
-- **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of objects with `id` property. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
+- **query.insert()**: Generates an INSERT query. Accepts an array of `Row` objects with properties matching the entity definition. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` and `consumer.nickname` for history tracking.
+- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
@@ -533,7 +553,8 @@ List of possible match modes :
 | notContains |       | string                  | Whether the value does not contain filter value |
 | equals	  |       | string \| number        | Whether the value equals the filter value |
 | notEquals	  |       | string \| number        | Whether the value does not equal the filter value |
-| in	      |       | string[] \| number[]    | Whether the value contains the filter value |
+| in	      |       | string[] \| number[]    | Whether the value is included in the list |
+| notIn	      |       | string[] \| number[]    | Whether the value is not included in the list |
 | lt	      |       | string \| number        | Whether the value is less than the filter value |
 | lte	      |       | string \| number        | Whether the value is less than or equals to the filter value |
 | gt	      |       | string \| number        | Whether the value is greater than the filter value |
@@ -552,8 +573,8 @@ List of compatible match modes for each property types
 
 | Name        | Match modes             |
 | :---------- | :---------------------- | 
-| string      | startsWith,<br>contains,<br>endsWith,<br>notContains,<br>equals,<br>notEquals,<br>lt,<br>lte,<br>gt,<br>gte |
-| number      | equals,<br>notEquals,<br>lt,<br>lte,<br>gt,<br>gte |
+| string      | startsWith,<br>contains,<br>endsWith,<br>notContains,<br>equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte |
+| number      | equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte |
 | date        | is,<br>isNot,<br>before,<br>after |
 | boolean     | is,<br>isNot            |
 | string[]    | in                      |
@@ -607,9 +628,9 @@ Any of these can be passed into the options object for each function.
 | isTypeChecked   |  boolean                  | Type is checked during validation                 | false
 | isFilterable    |  boolean                  | property is filterable in a SELECT operation      | true
 | operations      |  Operation[]              | Property is used for the DML operations only      | ["SELECT", "INSERT", "UPDATE"]
-| sanitizer       |  ((v:any) => any) \| null | Custom sanitizer function if sanitize is true     | null
-| normalizer      |  ((v:any) => any) \| null | Custom Normalizer function if normalize is true   | null
-| validator       |  ((v:any, min:number, max:number, typeCheck:boolean) => any) \| null | validator function if validate is true | null
+| sanitizer       |  ((v: unknown) => unknown) \| null | Custom sanitizer function if sanitize is true     | null
+| normalizer      |  ((v: unknown) => unknown) \| null | Custom Normalizer function if normalize is true   | null
+| validator       |  ((v: unknown) => unknown) \| null | validator function if validate is true | null
 
 
 * *Min and max parameters are not used for boolean type*

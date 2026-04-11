@@ -1,7 +1,7 @@
 import { execute as exe } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, Filter } from "../types";
+import type { PGResponse, Filter, Row, PGClient } from "../types";
 import { log } from "@dwtechs/winstan";
 import { LOGS_PREFIX } from "../constants";
 
@@ -24,7 +24,7 @@ export class Archive {
   public query(
     schema: string,
     table: string,
-    rows: Record<string, any>[],
+    rows: Row[],
     consumerId?: string | number,
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
@@ -57,7 +57,7 @@ export class Archive {
   public async execute(
     query: string,
     args: (Filter["value"])[],
-    client: any
+    client: PGClient | null
   ): Promise<PGResponse> {
 
     return exe(query, args, client);

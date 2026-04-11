@@ -113,8 +113,8 @@ describe("add method", () => {
 
     expect(res.locals.rows).toBeDefined();
     expect(res.locals.rows).toHaveLength(2);
-    expect(res.locals.rows[0]).toEqual({ name: 'John', age: 30, id: 1, consumerId: 1, consumerName: 'testConsumer' });
-    expect(res.locals.rows[1]).toEqual({ name: 'Jane', age: 25, id: 2, consumerId: 1, consumerName: 'testConsumer' });
+    expect(res.locals.rows[0]).toEqual({ name: 'John', age: 30, id: 1 });
+    expect(res.locals.rows[1]).toEqual({ name: 'Jane', age: 25, id: 2 });
   });
 
   it("should add rows to res.locals.rows with generated IDs for 1 row", async () => {
@@ -132,7 +132,7 @@ describe("add method", () => {
     await entity.add(req, res, mockNext);
 
     expect(res.locals.rows).toBeDefined();
-    expect(res.locals.rows[0]).toEqual({ name: 'John', age: 30, id: 1, consumerId: 1, consumerName: 'testConsumer' });
+    expect(res.locals.rows[0]).toEqual({ name: 'John', age: 30, id: 1 });
   });
 
   it("should preserve original row data while adding IDs", async () => {
@@ -153,9 +153,7 @@ describe("add method", () => {
       name: 'Alice',
       age: 28,
       email: 'alice@test.com',
-      id: 42,
-      consumerId: 1,
-      consumerName: 'testConsumer'
+      id: 42
     });
   });
 
@@ -278,8 +276,8 @@ describe("add method", () => {
 
     await entity.add(req, res, mockNext);
 
-    expect(res.locals.rows[0]).toMatchObject({ name: 'First', age: 10, id: 100, consumerId: 5, consumerName: 'orderTest' });
-    expect(res.locals.rows[1]).toMatchObject({ name: 'Second', age: 20, id: 200, consumerId: 5, consumerName: 'orderTest' });
-    expect(res.locals.rows[2]).toMatchObject({ name: 'Third', age: 30, id: 300, consumerId: 5, consumerName: 'orderTest' });
+    expect(res.locals.rows[0]).toMatchObject({ name: 'First', age: 10, id: 100 });
+    expect(res.locals.rows[1]).toMatchObject({ name: 'Second', age: 20, id: 200 });
+    expect(res.locals.rows[2]).toMatchObject({ name: 'Third', age: 30, id: 300 });
   });
 });

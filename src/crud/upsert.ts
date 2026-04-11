@@ -1,7 +1,7 @@
 import { execute as exe } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, Filter } from "../types";
+import type { PGResponse, Filter, Row, PGClient } from "../types";
 
 export class Upsert {
 
@@ -47,7 +47,7 @@ export class Upsert {
   public query(
     schema: string,
     table: string, 
-    rows: Record<string, any>[], 
+    rows: Row[], 
     conflictTarget: string | string[],
     consumerId?: string | number,
     consumerName?: string,
@@ -84,13 +84,12 @@ export class Upsert {
     
     // Add all rows to the VALUES clause
     for (const row of rows) {
-      if (consumerId !== undefined && consumerName !== undefined) {
-        row.consumerId = consumerId;
-        row.consumerName = consumerName;
-      }
       query += `${$i(nbProps, i)}, `;
-      for (const prop of propsToUse) {
-        args.push(row[prop]); // Access using original property name
+      for (const prop of this._props) {
+        args.push(row[prop]);
+      }
+      if (consumerId !== undefined && consumerName !== undefined) {
+        args.push(consumerId, consumerName);
       }
       i += nbProps;
     }
@@ -126,7 +125,7 @@ export class Upsert {
   public execute(
     query: string,
     args: (Filter["value"])[],
-    client: any): Promise<PGResponse> {
+    client: PGClient | null): Promise<PGResponse> {
     
     return exe( query, args, client );
 

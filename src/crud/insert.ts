@@ -1,7 +1,7 @@
 import { execute as exe  } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, Filter } from "../types";
+import type { PGResponse, Filter, Row, PGClient } from "../types";
 
 export class Insert {
 
@@ -32,7 +32,7 @@ export class Insert {
   public query(
     schema: string,
     table: string, 
-    rows: Record<string, any>[], 
+    rows: Row[], 
     consumerId?: string | number,
     consumerName?: string,
     rtn: string = "",
@@ -53,13 +53,11 @@ export class Insert {
     let i = 0;
     
     for (const row of rows) {
-      if (consumerId !== undefined && consumerName !== undefined) {
-        row.consumerId = consumerId;
-        row.consumerName = consumerName;
-      }
       query += `${$i(nbProps, i)}, `;
       for (const prop of propsToUse) {
-        args.push(row[prop]); // Access using original property name
+        if (prop === "consumerId") args.push(consumerId as Filter["value"]);
+        else if (prop === "consumerName") args.push(consumerName as Filter["value"]);
+        else args.push(row[prop]); // Access using original property name
       }
       i += nbProps;
     }
@@ -77,7 +75,7 @@ export class Insert {
   public execute(
     query: string,
     args: (Filter["value"])[],
-    client: any): Promise<PGResponse> {
+    client: PGClient | null): Promise<PGResponse> {
     
     return exe( query, args, client );
 

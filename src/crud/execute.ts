@@ -1,8 +1,8 @@
 import pool from "../pool";
 import perf from "./perf";
-import type { Filter, PGResponse } from "../types";
+import type { Filter, PGClient, PGResponse } from "../types";
 
-function execute(query: string, args: (Filter["value"])[], clt: any): Promise<PGResponse> {
+function execute(query: string, args: (Filter["value"])[], clt: PGClient | null): Promise<PGResponse> {
   const time = perf.start(query, args);
   const client = clt || pool;
   

@@ -17,9 +17,9 @@ export class Property extends BaseProperty {
     isTypeChecked: boolean,
     isFilterable: boolean,
     operations: Operation[] = [],
-    sanitizer: ((v:any) => any) | null,
-    normalizer: ((v:any) => any) | null,
-    validator: ((v:any) => any) | null,
+    sanitizer: ((v: unknown) => unknown) | null,
+    normalizer: ((v: unknown) => unknown) | null,
+    validator: ((v: unknown) => unknown) | null,
   ) {
     super(
       key,

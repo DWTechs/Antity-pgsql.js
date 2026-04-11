@@ -1,6 +1,7 @@
 
 node_modules/
 build/
+dist/
 .tscache/
 npm-debug.log
 tests/coverage/
