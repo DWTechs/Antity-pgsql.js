@@ -22,25 +22,13 @@
 - 🚚 Shipped as EcmaScrypt module
 - 📝 Written in Typescript
 
-
-## Support
-
-| Runtime | Minimum version |
-| :------ | :-------------- |
-| Node.js | 22              |
-
-Older versions may work but are not officially supported.
-
-
 ## Installation
 
 ```bash
 $ npm i @dwtechs/antity-pgsql
 ```
 
-
 ## Usage
-
 
 ```javascript
 
@@ -636,12 +624,16 @@ Any of these can be passed into the options object for each function.
 * *Min and max parameters are not used for boolean type*
 * *TypeCheck Parameter is not used for boolean, string and array types*
 
+## Support
+
+| Environment | Version |
+| :---------- | :-----: |
+| Node.js     |  >= 22  |
 
 ## Contributors
 
 Antity.js is still in development and we would be glad to get all the help you can provide.
 To contribute please read **[contributor.md](https://github.com/DWTechs/Antity.js/blob/main/contributor.md)** for detailed installation guide.
-
 
 ## Stack
 
