@@ -1,4 +1,10 @@
 
+# 0.17.0 (Apr 17th 2026)
+
+- Rename audit columns in INSERT and UPDATE queries to match database conventions:
+  - INSERT queries (`query.insert()`, `query.upsert()`) now write `consumer.id` into `creatorid` and `consumer.nickname` into `name` instead of `"consumerId"` / `"consumerName"`
+  - UPDATE queries (`query.update()`, `query.archive()`) now write `consumer.id` into `updaterid` and `consumer.nickname` into `name` instead of `"consumerId"` / `"consumerName"`
+
 # 0.16.0 (Apr 08th 2026)
 
 - Replace separate `consumerId` / `consumerName` parameters with a single `consumer` object (`{ id?, nickname? }`) across all relevant APIs:

@@ -18,8 +18,8 @@ export class Update {
    * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the data will be updated.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be updated. Each object should contain an 'id' property.
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer to be added to each row (for history tracking).
-   * @param {string} [consumerName] - Optional. The name of the consumer to be added to each row (for history tracking).
+   * @param {string | number} [consumerId] - Optional. The ID of the consumer, updated as `updaterid` column.
+   * @param {string} [consumerName] - Optional. The name of the consumer, updated as `name` column.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
    * 
    */
@@ -50,13 +50,14 @@ export class Update {
     for (const p of propsToUse) {
       if (rows[0][p] === undefined) // do not create case if prop is not in the first row
         continue;
-      query += `${quoteIfUppercase(p)} = CASE `;
+      const colName = p === "consumerId" ? "updaterid" : p === "consumerName" ? "name" : quoteIfUppercase(p);
+      query += `${colName} = CASE `;
       for (let j = 0; j < l; j++) {
         const row = rows[j];
         query += `WHEN id = $${j+1} THEN $${i++} `;
         args.push(row[p]);
       }
-      query += `ELSE ${quoteIfUppercase(p)} END, `;
+      query += `ELSE ${colName} END, `;
     }
     query = `${query.slice(0, -2)} WHERE id IN ${$i(l, 0)}`;
     return { query, args };

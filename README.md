@@ -311,10 +311,10 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 ### Query Methods
 
 - **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data.
-- **query.insert()**: Generates an INSERT query. Accepts an array of `Row` objects with properties matching the entity definition. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
-- **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` and `consumer.nickname` for history tracking.
-- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Supports `RETURNING` clause via the `rtn` parameter.
-- **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` and `consumer.nickname` for history tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
+- **query.insert()**: Generates an INSERT query. Accepts an array of `Row` objects with properties matching the entity definition. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` as `creatorid` and `consumer.nickname` as `name` for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` as `updaterid` and `consumer.nickname` as `name` for audit tracking.
+- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` as `creatorid` and `consumer.nickname` as `name` for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` as `updaterid` and `consumer.nickname` as `name` for audit tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
 - **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
@@ -376,7 +376,7 @@ res.locals.sync  // { inserted: 1, updated: 1, deleted: 1 }
 - **Atomic**: All insert / update / delete operations are wrapped in a single transaction.
 - **Filter scope**: When `filters` are provided, only rows matching the filter are considered "managed". Rows outside the filter are never touched.
 - **Property selection**: Insert uses `INSERT` properties; update uses `UPDATE` properties — same as the standalone `add` and `update` middlewares.
-- **Consumer tracking**: `consumer.id` and `consumer.nickname` from `res.locals.consumer` are forwarded to inserts and updates for history tracking.
+- **Consumer tracking**: `consumer.id` and `consumer.nickname` from `res.locals.consumer` are forwarded to inserts as `creatorid`/`name` and to updates as `updaterid`/`name` for audit tracking.
 
 ### Upsert (Insert or Update)
 
@@ -440,13 +440,13 @@ const { query, args } = entity.query.upsert(
   'RETURNING id' // return clause (optional)
 );
 // Generates:
-// INSERT INTO public.users (name, email, "consumerId", "consumerName")
+// INSERT INTO public.users (name, email, creatorid, name)
 // VALUES ($1, $2, $3, $4)
 // ON CONFLICT (id) DO UPDATE SET 
 //   name = EXCLUDED.name,
 //   email = EXCLUDED.email,
-//   "consumerId" = EXCLUDED."consumerId",
-//   "consumerName" = EXCLUDED."consumerName"
+//   creatorid = EXCLUDED.creatorid,
+//   name = EXCLUDED.name
 // RETURNING id
 ```
 

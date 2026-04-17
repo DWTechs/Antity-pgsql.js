@@ -23,8 +23,8 @@ export class Insert {
    * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the data will be inserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer to be added to each row (for history tracking).
-   * @param {string} [consumerName] - Optional. The name of the consumer to be added to each row (for history tracking).
+   * @param {string | number} [consumerId] - Optional. The ID of the consumer, inserted as `creatorid` column.
+   * @param {string} [consumerName] - Optional. The name of the consumer, inserted as `name` column.
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
    * 
@@ -45,7 +45,7 @@ export class Insert {
     if (consumerId !== undefined && consumerName !== undefined) {
       propsToUse.push("consumerId", "consumerName");
       nbProps += 2;
-      cols += `, "consumerId", "consumerName"`;
+      cols += `, creatorid, name`;
     }
     
     let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;

@@ -13,12 +13,12 @@ export class Archive {
    * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the rows will be archived.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to archive. Each object must contain an `id` property.
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer (for history tracking).
-   * @param {string} [consumerName] - Optional. The name of the consumer (for history tracking).
+   * @param {string | number} [consumerId] - Optional. The ID of the consumer, updated as `updaterid` column.
+   * @param {string} [consumerName] - Optional. The name of the consumer, updated as `name` column.
    * @returns {{ query: string, args: (Filter["value"])[] }} An object containing the generated SQL query string and an array of arguments.
    * @example
    * const { query, args } = archive.query("public", "Users", [{ id: 1 }, { id: 2 }], 42, "admin");
-   * // query: UPDATE public."Users" SET archived = true, "consumerId" = $3, "consumerName" = $4 WHERE id IN ($1, $2)
+   * // query: UPDATE public."Users" SET archived = true, updaterid = $3, name = $4 WHERE id IN ($1, $2)
    * // args: [1, 2, 42, "admin"]
    */
   public query(
@@ -36,7 +36,7 @@ export class Archive {
     let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET archived = true`;
 
     if (consumerId !== undefined && consumerName !== undefined) {
-      query += `, ${quoteIfUppercase("consumerId")} = $${l + 1}, ${quoteIfUppercase("consumerName")} = $${l + 2}`;
+      query += `, updaterid = $${l + 1}, name = $${l + 2}`;
       args.push(consumerId, consumerName);
     }
 
