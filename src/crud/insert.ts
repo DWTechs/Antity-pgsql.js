@@ -24,7 +24,7 @@ export class Insert {
    * @param {string} table - The name of the table where the data will be inserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
    * @param {string | number} [consumerId] - Optional. The ID of the consumer, inserted as `creatorId` column.
-   * @param {string} [consumerName] - Optional. The name of the consumer, inserted as `name` column.
+   * @param {string} [consumerName] - Optional. The name of the consumer, inserted as `creatorName` column.
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
    * 
@@ -45,7 +45,7 @@ export class Insert {
     if (consumerId !== undefined && consumerName !== undefined) {
       propsToUse.push("consumerId", "consumerName");
       nbProps += 2;
-      cols += `, creatorId, name`;
+      cols += `, "creatorId", "creatorName"`;
     }
     
     let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;

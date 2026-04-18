@@ -1,11 +1,18 @@
 
-# 0.17.1 (Apr 18th 2026)
+# 0.17.2 (Apr 18th 2026)
+
+- Fix audit column names for consumer nickname in generated SQL queries:
+  - INSERT queries (`query.insert()`, `query.upsert()`) now write `consumer.nickname` into `creatorName` instead of `name`
+  - UPDATE queries (`query.update()`, `query.archive()`) now write `consumer.nickname` into `updaterName` instead of `name`
+- Add double quotes around audit column names `creatorId`, `creatorName`, `updaterId`, `updaterName` in generated SQL queries to preserve camelCase
+
+# 0.17.1 (Apr 17th 2026)
 
 - Fix audit column names to use camelCase in generated SQL queries:
   - INSERT queries (`query.insert()`, `query.upsert()`) now write into `creatorId` instead of `creatorid`
   - UPDATE queries (`query.update()`, `query.archive()`) now write into `updaterId` instead of `updaterid`
 
-# 0.17.0 (Apr 17th 2026)
+# 0.17.0 (Apr 16th 2026)
 
 - Rename audit columns in INSERT and UPDATE queries to match database conventions:
   - INSERT queries (`query.insert()`, `query.upsert()`) now write `consumer.id` into `creatorid` and `consumer.nickname` into `name` instead of `"consumerId"` / `"consumerName"`
