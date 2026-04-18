@@ -30,24 +30,6 @@ $ npm i @dwtechs/antity-pgsql
 
 ## Usage
 
-### Expected table structure
-
-```sql
-CREATE TABLE IF NOT EXISTS "service" (
-  id SERIAL PRIMARY KEY,
-  name varchar(20) NOT NULL,
-  pattern TEXT,
-  archived BOOLEAN DEFAULT FALSE,
-  "archivedAt" TIMESTAMP,
-  "creatorId" INT,
-  "creatorName" TEXT,
-  "updaterId" INT,
-  "updaterName" TEXT,
-  "createdAt" TIMESTAMP DEFAULT NOW(),
-  "updatedAt" TIMESTAMP NULL
-);
-```
-
 ```javascript
 
 import { SQLEntity } from "@dwtechs/antity-pgsql";
@@ -139,6 +121,24 @@ router.delete("/", ..., entity.delete);
 router.delete("/archived", ..., entity.deleteArchive);
 router.get("/:id/history", ..., entity.getHistory);
 
+```
+
+### Expected table structure
+
+```sql
+CREATE TABLE IF NOT EXISTS "service" (
+  id SERIAL PRIMARY KEY,
+  name varchar(20) NOT NULL,
+  pattern TEXT,
+  archived BOOLEAN DEFAULT FALSE,
+  "archivedAt" TIMESTAMP,
+  "creatorId" INT,
+  "creatorName" TEXT,
+  "updaterId" INT,
+  "updaterName" TEXT,
+  "createdAt" TIMESTAMP DEFAULT NOW(),
+  "updatedAt" TIMESTAMP NULL
+);
 ```
 
 ## API Reference
