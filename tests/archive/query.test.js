@@ -51,7 +51,7 @@ describe("query function", () => {
     ];
     const consumer = { id: 1, nickname: 'consumer' };
     const { query, args } = entity.query.archive(chunk, consumer);
-    expect(query).toBe(`UPDATE public.persons SET archived = true, updaterid = $3, name = $4 WHERE id IN ($1, $2)`);
+    expect(query).toBe(`UPDATE public.persons SET archived = true, updaterId = $3, name = $4 WHERE id IN ($1, $2)`);
     expect(args).toEqual([1, 2, 1, 'consumer']);
   });
 
@@ -69,7 +69,7 @@ describe("query function", () => {
     const chunk = [{ id: 1 }];
     const consumer = { id: 42, nickname: 'admin' };
     const { query, args } = entity.query.archive(chunk, consumer);
-    expect(query).toBe(`UPDATE public.persons SET archived = true, updaterid = $2, name = $3 WHERE id IN ($1)`);
+    expect(query).toBe(`UPDATE public.persons SET archived = true, updaterId = $2, name = $3 WHERE id IN ($1)`);
     expect(args).toEqual([1, 42, 'admin']);
   });
 

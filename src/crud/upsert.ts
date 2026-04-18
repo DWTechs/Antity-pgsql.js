@@ -24,7 +24,7 @@ export class Upsert {
    * @param {string} table - The name of the table where the data will be upserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be upserted.
    * @param {string | string[]} conflictTarget - The column(s) that define the conflict constraint (e.g., 'id' or ['email', 'username']).
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer, inserted as `creatorid` column.
+   * @param {string | number} [consumerId] - Optional. The ID of the consumer, inserted as `creatorId` column.
    * @param {string} [consumerName] - Optional. The name of the consumer, inserted as `name` column.
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
@@ -67,9 +67,9 @@ export class Upsert {
     
     if (consumerId !== undefined && consumerName !== undefined) {
       propsToUse.push("consumerId", "consumerName");
-      quotedPropsToUse.push(`creatorid`, `name`);
+      quotedPropsToUse.push(`creatorId`, `name`);
       nbProps += 2;
-      cols += `, creatorid, name`;
+      cols += `, creatorId, name`;
     }
     
     // Build the conflict target string

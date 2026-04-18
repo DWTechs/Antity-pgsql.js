@@ -1,4 +1,10 @@
 
+# 0.17.1 (Apr 18th 2026)
+
+- Fix audit column names to use camelCase in generated SQL queries:
+  - INSERT queries (`query.insert()`, `query.upsert()`) now write into `creatorId` instead of `creatorid`
+  - UPDATE queries (`query.update()`, `query.archive()`) now write into `updaterId` instead of `updaterid`
+
 # 0.17.0 (Apr 17th 2026)
 
 - Rename audit columns in INSERT and UPDATE queries to match database conventions:
