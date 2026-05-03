@@ -902,3 +902,114 @@ describe('filter - notIn', () => {
         expect(args).toEqual([1, 2, 3]);
     });
 });
+
+describe('filter - direct SQL comparators', () => {
+    it("should handle '=' comparator directly", () => {
+        const filters = { age: { value: 30, matchMode: '=' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE age = $1');
+        expect(args).toEqual([30]);
+    });
+
+    it("should handle '<>' comparator directly", () => {
+        const filters = { age: { value: 30, matchMode: '<>' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE age <> $1');
+        expect(args).toEqual([30]);
+    });
+
+    it("should handle '<' comparator directly", () => {
+        const filters = { age: { value: 18, matchMode: '<' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE age < $1');
+        expect(args).toEqual([18]);
+    });
+
+    it("should handle '<=' comparator directly", () => {
+        const filters = { age: { value: 65, matchMode: '<=' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE age <= $1');
+        expect(args).toEqual([65]);
+    });
+
+    it("should handle '>' comparator directly", () => {
+        const filters = { age: { value: 18, matchMode: '>' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE age > $1');
+        expect(args).toEqual([18]);
+    });
+
+    it("should handle '>=' comparator directly", () => {
+        const filters = { age: { value: 18, matchMode: '>=' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE age >= $1');
+        expect(args).toEqual([18]);
+    });
+
+    it("should handle 'LIKE' comparator directly (no wildcard injection)", () => {
+        const filters = { name: { value: '%John%', matchMode: 'LIKE' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE name LIKE $1');
+        expect(args).toEqual(['%John%']);
+    });
+
+    it("should handle 'NOT LIKE' comparator directly (no wildcard injection)", () => {
+        const filters = { name: { value: '%Admin%', matchMode: 'NOT LIKE' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE name NOT LIKE $1');
+        expect(args).toEqual(['%Admin%']);
+    });
+
+    it("should handle 'IS' comparator directly with null", () => {
+        const filters = { deletedAt: { value: null, matchMode: 'IS' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE "deletedAt" IS $1');
+        expect(args).toEqual([null]);
+    });
+
+    it("should handle 'IS NOT' comparator directly with null", () => {
+        const filters = { deletedAt: { value: null, matchMode: 'IS NOT' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE "deletedAt" IS NOT $1');
+        expect(args).toEqual([null]);
+    });
+
+    it("should handle 'IN' comparator directly", () => {
+        const filters = { status: { value: ['active', 'pending'], matchMode: 'IN' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE status IN ($1,$2)');
+        expect(args).toEqual(['active', 'pending']);
+    });
+
+    it("should handle 'NOT IN' comparator directly", () => {
+        const filters = { status: { value: ['deleted', 'banned'], matchMode: 'NOT IN' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE status NOT IN ($1,$2)');
+        expect(args).toEqual(['deleted', 'banned']);
+    });
+
+    it("should combine direct comparators with semantic match modes", () => {
+        const filters = {
+            name: { value: '%John%', matchMode: 'LIKE' },
+            age: { value: 18, matchMode: '>=' },
+            archived: [{ value: false, matchMode: 'equals' }],
+        };
+        const { filterClause, args } = filter(0, 10, 'name', 'ASC', filters);
+        expect(filterClause).toBe(
+            ' WHERE name LIKE $1 AND age >= $2 AND archived = $3 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['%John%', 18, false]);
+    });
+
+    it("should handle direct comparators in array format", () => {
+        const filters = {
+            age: [
+                { value: 18, matchMode: '>=', operator: 'and' },
+                { value: 65, matchMode: '<=', operator: 'and' },
+            ],
+        };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE (age >= $1 AND age <= $2)');
+        expect(args).toEqual([18, 65]);
+    });
+});

@@ -63,7 +63,7 @@ function shouldSkipValue(value: Filter["value"], matchMode: MatchMode | undefine
     return true;
   
   // Null values should be skipped except for IS and IS NOT match modes
-  if (value === null && matchMode !== 'is' && matchMode !== 'isNot')
+  if (value === null && matchMode !== 'is' && matchMode !== 'isNot' && matchMode !== 'IS' && matchMode !== 'IS NOT')
     return true;
   
   return false;

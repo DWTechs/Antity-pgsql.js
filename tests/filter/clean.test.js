@@ -242,4 +242,79 @@ describe('cleanFilters', () => {
       expect(result.unknownProp).toBeUndefined();
     });
   });
+
+  // Tests for direct SQL comparators (0.17.3)
+  describe('direct SQL comparators as matchMode', () => {
+    it('should accept "=" as a valid matchMode for a string property', () => {
+      const filters = { name: [{ value: 'John', matchMode: '=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: 'John', matchMode: '=' }] });
+    });
+
+    it('should accept ">=" as a valid matchMode for a number property', () => {
+      const filters = { age: [{ value: 18, matchMode: '>=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ age: [{ value: 18, matchMode: '>=' }] });
+    });
+
+    it('should accept "<=" as a valid matchMode for a number property', () => {
+      const filters = { age: [{ value: 65, matchMode: '<=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ age: [{ value: 65, matchMode: '<=' }] });
+    });
+
+    it('should accept "<>" as a valid matchMode', () => {
+      const filters = { name: [{ value: 'admin', matchMode: '<>' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: 'admin', matchMode: '<>' }] });
+    });
+
+    it('should accept "LIKE" as a valid matchMode for a string property', () => {
+      const filters = { name: [{ value: '%John%', matchMode: 'LIKE' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: '%John%', matchMode: 'LIKE' }] });
+    });
+
+    it('should accept "NOT LIKE" as a valid matchMode for a string property', () => {
+      const filters = { name: [{ value: '%admin%', matchMode: 'NOT LIKE' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: '%admin%', matchMode: 'NOT LIKE' }] });
+    });
+
+    it('should accept "IS" as a valid matchMode', () => {
+      const filters = { archived: [{ value: false, matchMode: 'IS' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ archived: [{ value: false, matchMode: 'IS' }] });
+    });
+
+    it('should accept "IS NOT" as a valid matchMode', () => {
+      const filters = { archived: [{ value: false, matchMode: 'IS NOT' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ archived: [{ value: false, matchMode: 'IS NOT' }] });
+    });
+
+    it('should accept "IN" as a valid matchMode', () => {
+      const filters = { name: [{ value: ['Alice', 'Bob'], matchMode: 'IN' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: ['Alice', 'Bob'], matchMode: 'IN' }] });
+    });
+
+    it('should accept "NOT IN" as a valid matchMode', () => {
+      const filters = { age: [{ value: [1, 2], matchMode: 'NOT IN' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ age: [{ value: [1, 2], matchMode: 'NOT IN' }] });
+    });
+
+    it('should still reject truly invalid matchMode alongside valid direct comparators', () => {
+      const filters = {
+        name: [
+          { value: 'John', matchMode: 'LIKE' },
+          { value: 'Jane', matchMode: 'invalidMode' },
+        ],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.name).toHaveLength(1);
+      expect(result.name).toEqual([{ value: 'John', matchMode: 'LIKE' }]);
+    });
+  });
 });

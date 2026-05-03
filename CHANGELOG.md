@@ -1,3 +1,10 @@
+# 0.17.3 (Apr 18th 2026)
+
+- Add support for direct SQL comparators (`=`, `<`, `>`, `<=`, `>=`, `<>`, `IS`, `IS NOT`, `IN`, `NOT IN`, `LIKE`, `NOT LIKE`) as valid `matchMode` values in `Filter`
+  - `mapComparator()` now passes through direct comparators without mapping
+  - `mapIndexes()` now wraps indexes in parentheses for `IN` and `NOT IN` comparators
+  - `shouldSkipValue()` now allows `null` values for `IS` and `IS NOT` comparators
+  - `check.matchMode()` now accepts direct comparators as valid for all property types
 
 # 0.17.2 (Apr 18th 2026)
 

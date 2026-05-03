@@ -48,7 +48,8 @@ export type MatchMode =
   "before" |
   "after" |
   "st_contains" |
-  "st_dwithin";
+  "st_dwithin" |
+  Comparator;
 
 
 export type MappedType = "string" | "number" | "date";

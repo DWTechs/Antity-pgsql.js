@@ -19,6 +19,8 @@ function index(index: number[], matchMode: MatchMode | undefined): string {
   switch (matchMode) {
     case "in":
     case "notIn":
+    case "IN":
+    case "NOT IN":
       return `(${i})`;
     default:
       return `${i}`;

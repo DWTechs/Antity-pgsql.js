@@ -150,6 +150,10 @@ type Operation = "SELECT" | "INSERT" | "UPDATE";
 
 type Row = Record<string, string | number | boolean | Date | number[]>;
 
+type Comparator =
+  "=" | "<" | ">" | "<=" | ">=" | "<>" |
+  "IS" | "IS NOT" | "IN" | "NOT IN" | "LIKE" | "NOT LIKE";
+
 type MatchMode =  
   "startsWith" | 
   "endsWith" |
@@ -169,7 +173,8 @@ type MatchMode =
   "before" |
   "after" |
   "st_contains" |
-  "st_dwithin";
+  "st_dwithin" |
+  Comparator; // direct SQL comparators are also accepted
 
 
 type Filters = {
@@ -178,7 +183,7 @@ type Filters = {
 
 type Filter = {
   value: string | number | boolean | Date | number[];
-  matchMode?: MatchMode;
+  matchMode?: MatchMode; // semantic mode or direct SQL comparator
   operator?: string; // 'and' | 'or' - Used when multiple filters apply to the same property
 }
 
@@ -510,6 +515,12 @@ const filters = {
   age: { value: 30, matchMode: 'equals' },
   archived: { value: false, matchMode: 'equals' }
 };
+
+// Direct SQL comparators are also accepted
+const filters = {
+  age: { value: 30, matchMode: '>=' },
+  status: { value: null, matchMode: 'IS NOT' }
+};
 ```
 
 #### Complex Format (Multiple Filters per Property)
@@ -549,7 +560,11 @@ WHERE (name LIKE '%John%' OR name LIKE '%Jane%')
 
 ## Match modes
 
-List of possible match modes :  
+`matchMode` accepts either a **semantic match mode** (listed below) or a **direct SQL comparator** (`=`, `<`, `>`, `<=`, `>=`, `<>`, `IS`, `IS NOT`, `IN`, `NOT IN`, `LIKE`, `NOT LIKE`).
+
+Using a direct comparator bypasses the semantic layer. Note that when using `LIKE` or `NOT LIKE` directly, wildcard characters (`%`) must be included manually in the value.
+
+List of possible semantic match modes :  
 
 | Name        | alias | types                   | Description |
 | :---------- | :---- | :---------------------- | :-------------------------------------------------------- |

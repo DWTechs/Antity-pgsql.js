@@ -1,14 +1,19 @@
 
 import type { MatchMode, Comparator } from "../../types";
 
+const COMPARATORS: readonly Comparator[] = ["=", "<", ">", "<=", ">=", "<>", "IS", "IS NOT", "IN", "NOT IN", "LIKE", "NOT LIKE"];
+
 /**
  * Returns the SQL comparator string based on the provided match mode.
  *
- * @param matchMode - The match mode to determine the comparator. 
+ * @param matchMode - The match mode to determine the comparator. Accepts semantic match modes or direct SQL comparators.
  *
  * @returns The corresponding SQL comparator string or null if the match mode is undefined or not recognized.
  */
 function comparator(matchMode: MatchMode | undefined): Comparator| null {
+  if (matchMode && (COMPARATORS as readonly string[]).includes(matchMode))
+    return matchMode as Comparator;
+
   switch (matchMode) {
     case "startsWith":
       return "LIKE";
@@ -49,4 +54,5 @@ function comparator(matchMode: MatchMode | undefined): Comparator| null {
 
 export {
   comparator as mapComparator,
+  COMPARATORS,
 };
