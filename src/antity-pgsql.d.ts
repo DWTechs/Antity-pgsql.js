@@ -5,7 +5,7 @@ import type { Request, Response, NextFunction } from 'express';
 export type Operation = "SELECT" | "INSERT" | "UPDATE";
 export type Sort = "ASC" | "DESC";
 export type Filters = {
-  [key: string]: Filter;
+  [key: string]: Filter | Filter[];
 };
 export type Filter = {
   value: string | number | boolean | Date | number[];
@@ -34,8 +34,8 @@ export declare class Property extends BaseProperty {
 }
 
 export type LogicalOperator = "AND" | "OR";
-export type Comparator = "=" | "<" | ">" | "<=" | ">=" | "<>" | "IS" | "IS NOT" | "IN" | "LIKE" | "NOT LIKE";
-export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" | "equals" | "notEquals" | "between" | "in" | "lt" | "lte" | "gt" | "gte" | "is" | "isNot" | "before" | "after" | "st_contains" | "st_dwithin";
+export type Comparator = "=" | "<" | ">" | "<=" | ">=" | "<>" | "IS" | "IS NOT" | "IN" | "NOT IN" | "LIKE" | "NOT LIKE";
+export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" | "equals" | "notEquals" | "between" | "in" | "notIn" | "lt" | "lte" | "gt" | "gte" | "is" | "isNot" | "before" | "after" | "st_contains" | "st_dwithin" | Comparator;
 export type MappedType = "string" | "number" | "date";
 export type Geometry = {
   lng: number;
@@ -70,6 +70,7 @@ export type PGResponse = {
   _types?: unknown;
   RowCtor?: unknown;
   rowAsArray?: boolean;
+  _prebuiltEmptyResultObject?: Record<string, unknown>;
 };
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;

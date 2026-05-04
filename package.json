@@ -30,6 +30,9 @@
   "files": [
     "dist/"
   ],
+  "engines": {
+    "node": ">= 22"
+  },
   "dependencies": {
     "@dwtechs/checkard": "3.6.0",
     "@dwtechs/winstan": "0.7.0",

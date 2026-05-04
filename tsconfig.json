@@ -16,6 +16,7 @@
     "preserveConstEnums": true,
     "suppressImplicitAnyIndexErrors": false,
     "allowJs": false,
+    "skipLibCheck": true,
     "removeComments": true,
     "declaration": true,
     "outDir": "build/es6/",
