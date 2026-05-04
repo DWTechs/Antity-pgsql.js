@@ -1,7 +1,7 @@
 
 import type { MatchMode, Comparator } from "../../types";
 
-const COMPARATORS: readonly Comparator[] = ["=", "<", ">", "<=", ">=", "<>", "IS", "IS NOT", "IN", "NOT IN", "LIKE", "NOT LIKE"];
+const COMPARATORS = new Set<Comparator>(["=", "<", ">", "<=", ">=", "<>", "IS", "IS NOT", "IN", "NOT IN", "LIKE", "NOT LIKE"]);
 
 /**
  * Returns the SQL comparator string based on the provided match mode.
@@ -11,7 +11,7 @@ const COMPARATORS: readonly Comparator[] = ["=", "<", ">", "<=", ">=", "<>", "IS
  * @returns The corresponding SQL comparator string or null if the match mode is undefined or not recognized.
  */
 function comparator(matchMode: MatchMode | undefined): Comparator| null {
-  if (matchMode && (COMPARATORS as readonly string[]).includes(matchMode))
+  if (matchMode && COMPARATORS.has(matchMode as Comparator))
     return matchMode as Comparator;
 
   switch (matchMode) {

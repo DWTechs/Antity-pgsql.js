@@ -31,31 +31,35 @@ export class Update {
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
     
-    // Add consumer fields to rows if provided
-    if (consumerId !== undefined && consumerName !== undefined)
-      rows = this.addConsumer(rows, consumerId, consumerName);
-    
+    const hasConsumer = consumerId !== undefined && consumerName !== undefined;
+
     // Augment base props template with consumer fields if provided
-    const propsToUse = [...this._props]; // Quoted names for SQL columns
-    if (consumerId !== undefined && consumerName !== undefined)
+    const propsToUse = [...this._props];
+    if (hasConsumer)
       propsToUse.push("consumerId", "consumerName");
     
     log.debug(() => `${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
 
     const l = rows.length;
-    const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row;
+    const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row
     let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET `;
     let i = args.length+1;
     
     for (const p of propsToUse) {
-      if (rows[0][p] === undefined) // do not create case if prop is not in the first row
+      const isConsumerId = p === "consumerId";
+      const isConsumerName = p === "consumerName";
+      const isConsumerProp = isConsumerId || isConsumerName;
+
+      if (!isConsumerProp && rows[0][p] === undefined) // do not create case if prop is not in the first row
         continue;
-      const colName = p === "consumerId" ? '"updaterId"' : p === "consumerName" ? '"updaterName"' : quoteIfUppercase(p);
+
+      const colName = isConsumerId ? '"updaterId"' : isConsumerName ? '"updaterName"' : quoteIfUppercase(p);
       query += `${colName} = CASE `;
       for (let j = 0; j < l; j++) {
-        const row = rows[j];
         query += `WHEN id = $${j+1} THEN $${i++} `;
-        args.push(row[p]);
+        if (isConsumerId) args.push(consumerId as Filter["value"]);
+        else if (isConsumerName) args.push(consumerName as Filter["value"]);
+        else args.push(rows[j][p]);
       }
       query += `ELSE ${colName} END, `;
     }
@@ -70,18 +74,5 @@ export class Update {
     
     return exe( query, args, client );
     
-  }
-
-  // Add consumerId and consumerName to each row
-  private  addConsumer(
-    rows: Row[],
-    consumerId: string | number,
-    consumerName: string
-  ): Row[] {
-    return rows.map((row: Row) => ({
-      ...row,
-      consumerId,
-      consumerName,
-    }));
   }
 };

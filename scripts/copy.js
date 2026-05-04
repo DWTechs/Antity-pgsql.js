@@ -10,10 +10,6 @@ const files   = [
     src:  `${rel}src/antity-pgsql.d.ts`,
     dest: `${dest}antity-pgsql.d.ts`
   },
-  // {
-  //   src:  `${src}antity.cjs.js`,
-  //   dest: `${dest}antity.cjs.js`
-  // },
   {
     src:  `${src}antity-pgsql.mjs`,
     dest: `${dest}antity-pgsql.js`

@@ -1,4 +1,4 @@
-const reserved = [
+const reserved = new Set([
   'all', 'analyse', 'analyze', 'and', 'any', 'array', 'as', 'asc', 'asymmetric',
   'authorization', 'between', 'binary', 'both', 'case', 'cast', 'check', 'collate',
   'column', 'constraint', 'create', 'cross', 'current_catalog', 'current_date',
@@ -11,7 +11,7 @@ const reserved = [
   'references', 'returning', 'right', 'select', 'session_user', 'similar', 'some', 'symmetric',
   'table', 'tablesample', 'then', 'to', 'trailing', 'true', 'union', 'unique', 'user', 'using',
   'variadic', 'verbose', 'when', 'where', 'window', 'with'
-];
+]);
 
 /**
  * Add quotes around a word if it contains uppercase letters.
@@ -20,7 +20,7 @@ const reserved = [
  * @returns {string} The word with quotes around it if it contains uppercase letters, otherwise the original word
  */
 function quoteIfUppercase(word: string): string {
-  if (/[A-Z]/.test(word) || reserved.includes(word.toLowerCase()))
+  if (/[A-Z]/.test(word) || reserved.has(word.toLowerCase()))
     return `"${word}"`;
   return word;
 }
