@@ -1,7 +1,7 @@
 # 0.17.4 (May 08th 2026)
 
 - Update dependencies:
-  - "@dwtechs/winstan": "0.17.0"
+  - "@dwtechs/winstan": "0.7.0"
 
 # 0.17.3 (Apr 18th 2026)
 
