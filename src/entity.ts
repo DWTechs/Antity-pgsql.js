@@ -213,7 +213,8 @@ export class SQLEntity extends Entity {
       sortOrder: "ASC" | "DESC" | null = null,
       filters: Filters | null = null
     ): { query: string, args: (Filter["value"])[] } => {
-      return this.sel.query(this.schema, this.table, first, rows, sortField, sortOrder, filters);
+      const validatedSortField = sortField && this.properties.some(p => p.key === sortField) ? sortField : null;
+      return this.sel.query(this.schema, this.table, first, rows, validatedSortField, sortOrder, filters);
     },
     update: (
       rows: Row[], 

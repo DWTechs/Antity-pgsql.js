@@ -4,7 +4,7 @@
 - Update dependencies:
   - "@dwtechs/antity": "0.18.0"
 - Security: fix SQL injection via identifier manipulation in `quoteIfUppercase()` — internal double-quote characters are now escaped by doubling them (`"` → `""`) before wrapping in double quotes
-- Security: `sortField` from request body is now validated against the entity's known properties before use in `ORDER BY`; an unrecognised field is silently dropped to prevent arbitrary column names reaching the query
+- Security: `sortField` is now validated against the entity's known properties in both the `get()` middleware and `query.select()` before use in `ORDER BY`; an unrecognised field is silently dropped to prevent arbitrary column names reaching the query
 - Performance: replace string concatenation in loops with array + `join()` in `Insert.query()`, `Update.query()`, and `Upsert.query()` for faster bulk query generation
 
 # 0.17.4 (May 08th 2026)

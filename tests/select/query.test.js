@@ -139,4 +139,18 @@ describe("query function", () => {
     expect(result.args).toEqual([]);
   });
 
+  it("should ignore sortField when it is not a known entity property", () => {
+    const result = entity.query.select(0, 0, 'unknownColumn', 'ASC');
+    expect(result.query).toBe("SELECT name, age FROM public.persons");
+    expect(result.query).not.toContain('ORDER BY');
+    expect(result.args).toEqual([]);
+  });
+
+  it("should ignore sortField containing SQL injection characters", () => {
+    const result = entity.query.select(0, 0, 'name; DROP TABLE persons --', 'ASC');
+    expect(result.query).not.toContain('DROP TABLE');
+    expect(result.query).not.toContain('ORDER BY');
+    expect(result.args).toEqual([]);
+  });
+
 });
