@@ -259,7 +259,8 @@ export class SQLEntity extends Entity {
     const b = req.body;
     const first: number = b?.first ?? 0;
     const rows: number | null = b.rows || null;
-    const sortField: string | null = b.sortField || null;
+    const rawSortField: string | null = b.sortField || null;
+    const sortField: string | null = rawSortField && this.properties.some(p => p.key === rawSortField) ? rawSortField : null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
     const filters: Filters | null = cleanFilters(b.filters, this.properties) || null;
     const pagination: boolean = b.pagination || false;

@@ -14,14 +14,15 @@ const reserved = new Set([
 ]);
 
 /**
- * Add quotes around a word if it contains uppercase letters.
+ * Add quotes around a word if it contains uppercase letters or is a reserved word.
+ * Internal double-quote characters are escaped by doubling them to prevent SQL injection.
  * 
  * @param {string} word - The word to process
- * @returns {string} The word with quotes around it if it contains uppercase letters, otherwise the original word
+ * @returns {string} The word with quotes around it if it contains uppercase letters or is reserved, otherwise the original word
  */
 function quoteIfUppercase(word: string): string {
   if (/[A-Z]/.test(word) || reserved.has(word.toLowerCase()))
-    return `"${word}"`;
+    return `"${word.replace(/"/g, '""')}"`;
   return word;
 }
 

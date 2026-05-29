@@ -97,8 +97,6 @@ export class Upsert {
     query = query.slice(0, -2);
     
     // Add ON CONFLICT clause
-    query += ` ON CONFLICT (${conflictColumns}) DO UPDATE SET `;
-    
     // Build the UPDATE SET clause (exclude conflict target columns from being updated)
     const conflictTargetArray = Array.isArray(conflictTarget) ? conflictTarget : [conflictTarget];
     const updateCols = quotedPropsToUse.filter((_, idx) => {
@@ -106,11 +104,8 @@ export class Upsert {
       return !conflictTargetArray.includes(propName);
     });
     
-    for (const col of updateCols) {
-      query += `${col} = EXCLUDED.${col}, `;
-    }
-    
-    query = query.slice(0, -2);
+    const updateSetClause = updateCols.map(col => `${col} = EXCLUDED.${col}`).join(", ");
+    query += ` ON CONFLICT (${conflictColumns}) DO UPDATE SET ${updateSetClause}`;
     
     if (rtn) 
       query += ` ${rtn}`;

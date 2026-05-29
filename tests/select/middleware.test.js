@@ -166,4 +166,39 @@ describe("get middleware", () => {
     expect(mockNext).toHaveBeenCalledTimes(1);
     expect(mockNext).toHaveBeenCalledWith(dbError);
   });
+
+  it("should apply ORDER BY when sortField is a known entity property", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({ sortField: 'name', sortOrder: 'ASC' }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).toContain('ORDER BY name ASC');
+  });
+
+  it("should ignore sortField when it is not a known entity property", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({ sortField: 'unknownColumn', sortOrder: 'ASC' }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).not.toContain('ORDER BY');
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should ignore sortField containing SQL injection characters", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({ sortField: 'name; DROP TABLE persons --', sortOrder: 'ASC' }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).not.toContain('DROP TABLE');
+    expect(sql).not.toContain('ORDER BY');
+  });
 });

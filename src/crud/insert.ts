@@ -48,12 +48,12 @@ export class Insert {
       cols += `, "creatorId", "creatorName"`;
     }
     
-    let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;
     const args: (Filter["value"])[] = [];
+    const valueParts: string[] = [];
     let i = 0;
     
     for (const row of rows) {
-      query += `${$i(nbProps, i)}, `;
+      valueParts.push($i(nbProps, i));
       for (const prop of propsToUse) {
         if (prop === "consumerId") args.push(consumerId as Filter["value"]);
         else if (prop === "consumerName") args.push(consumerName as Filter["value"]);
@@ -62,7 +62,7 @@ export class Insert {
       i += nbProps;
     }
     
-    query = query.slice(0, -2);
+    let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES ${valueParts.join(", ")}`;
     if (rtn) 
       query += ` ${rtn}`;
     return { query, args };

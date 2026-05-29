@@ -59,13 +59,7 @@ async function executeArchived(
   query: string,
   client: any): Promise<PGResponse> {
   
-  let db: PGResponse;
-  try {
-    db = await exe(query, [schema, table, date], client);
-  } catch (err: unknown) {
-    throw err;
-  }
-  return db; 
+  return exe(query, [schema, table, date], client);
 }
 
 export {

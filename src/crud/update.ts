@@ -42,8 +42,8 @@ export class Update {
 
     const l = rows.length;
     const args: (Filter["value"])[] = rows.map(row => row.id); // Extract the 'id' field from each row
-    let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET `;
     let i = args.length+1;
+    const setClauses: string[] = [];
     
     for (const p of propsToUse) {
       const isConsumerId = p === "consumerId";
@@ -54,16 +54,16 @@ export class Update {
         continue;
 
       const colName = isConsumerId ? '"updaterId"' : isConsumerName ? '"updaterName"' : quoteIfUppercase(p);
-      query += `${colName} = CASE `;
+      const whenParts: string[] = [];
       for (let j = 0; j < l; j++) {
-        query += `WHEN id = $${j+1} THEN $${i++} `;
+        whenParts.push(`WHEN id = $${j+1} THEN $${i++}`);
         if (isConsumerId) args.push(consumerId as Filter["value"]);
         else if (isConsumerName) args.push(consumerName as Filter["value"]);
         else args.push(rows[j][p]);
       }
-      query += `ELSE ${colName} END, `;
+      setClauses.push(`${colName} = CASE ${whenParts.join(" ")} ELSE ${colName} END`);
     }
-    query = `${query.slice(0, -2)} WHERE id IN ${$i(l, 0)}`;
+    const query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET ${setClauses.join(", ")} WHERE id IN ${$i(l, 0)}`;
     return { query, args };
   } 
 
