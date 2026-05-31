@@ -36,6 +36,11 @@ describe('cleanFilters', () => {
       type: 'string',
       isFilterable: false,
     },
+    {
+      key: 'tags',
+      type: 'array',
+      isFilterable: true,
+    },
   ];
 
   it('should validate filters with array structure', () => {
@@ -315,6 +320,37 @@ describe('cleanFilters', () => {
       const result = cleanFilters(filters, mockProperties);
       expect(result.name).toHaveLength(1);
       expect(result.name).toEqual([{ value: 'John', matchMode: 'LIKE' }]);
+    });
+  });
+
+  // Tests for array-typed columns (PostgreSQL && overlap operator)
+  describe('array type with && matchMode', () => {
+    it('should convert "in" matchMode to "&&" for array-typed properties', () => {
+      const filters = {
+        tags: [{ value: [1, 2, 3], matchMode: 'in' }],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({
+        tags: [{ value: [1, 2, 3], matchMode: '&&' }],
+      });
+    });
+
+    it('should convert "in" matchMode to "&&" in old format for array-typed properties', () => {
+      const filters = {
+        tags: { value: [1, 2], matchMode: 'in' },
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({
+        tags: [{ value: [1, 2], matchMode: '&&' }],
+      });
+    });
+
+    it('should reject invalid matchMode for array-typed properties', () => {
+      const filters = {
+        tags: [{ value: [1, 2], matchMode: 'contains' }],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.tags).toBeUndefined();
     });
   });
 });

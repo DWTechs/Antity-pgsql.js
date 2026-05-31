@@ -5,6 +5,7 @@ const matchModes = {
   string: new Set(["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte", "in", "notIn"]),
   number: new Set(["equals", "notEquals", "lt", "lte", "gt", "gte", "in", "notIn"]),
   date: new Set(["is", "isNot", "dateAfter"]),
+  array: new Set(["&&"]),
 };
 
 function matchMode(type: MappedType, matchMode: MatchMode): boolean {

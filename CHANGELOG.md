@@ -1,4 +1,14 @@
 
+# 0.17.6 (May 31st 2026)
+
+- Add support for PostgreSQL array overlap operator (`&&`) on `array`-typed properties:
+  - `"in"` matchMode is automatically converted to `"&&"` in `cleanFilters()` when the property type is `"array"`
+  - `mapIndexes()` now wraps indexes in `ARRAY[...]` for the `"&&"` matchMode, generating `column && ARRAY[$1,$2]`
+  - `mapComparator()` now returns `"&&"` for the `"&&"` matchMode
+  - `"&&"` added to `Comparator` type and `COMPARATORS` set
+  - `"array"` added to `MappedType`; `map.type()` now maps entity type `"array"` to `"array"`
+  - `check.matchMode()` now validates `"&&"` as the only allowed matchMode for `array`-typed properties
+
 # 0.17.5 (May 28th 2026)
 
 - Update dependencies:

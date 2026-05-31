@@ -27,7 +27,8 @@ export type Comparator =
   "IN" |
   "NOT IN" |
   "LIKE" |
-  "NOT LIKE";
+  "NOT LIKE" |
+  "&&";
 
 export type MatchMode =  
   "startsWith" | 
@@ -39,6 +40,7 @@ export type MatchMode =
   "between" |
   "in" |
   "notIn" |
+  "&&" |
   "lt" |
   "lte" |
   "gt" |
@@ -52,7 +54,7 @@ export type MatchMode =
   Comparator;
 
 
-export type MappedType = "string" | "number" | "date";
+export type MappedType = "string" | "number" | "date" | "array";
 
 export type Geometry = { 
   lng: number,

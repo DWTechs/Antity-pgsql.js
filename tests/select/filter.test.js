@@ -1012,4 +1012,87 @@ describe('filter - direct SQL comparators', () => {
         expect(filterClause).toBe(' WHERE (age >= $1 AND age <= $2)');
         expect(args).toEqual([18, 65]);
     });
+
+    it("should handle '&&' comparator directly for array overlap", () => {
+        const filters = { tags: { value: [1, 2, 3], matchMode: '&&' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2,$3]');
+        expect(args).toEqual([1, 2, 3]);
+    });
+
+    it("should handle '&&' comparator in array format for array overlap", () => {
+        const filters = { tags: [{ value: [1, 2], matchMode: '&&' }] };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2]');
+        expect(args).toEqual([1, 2]);
+    });
+});
+
+describe('filter - array overlap (&&)', () => {
+    it('should generate correct SQL for && with multiple values (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            tags: { value: [1, 2, 3], matchMode: '&&' },
+        };
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2,$3] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([1, 2, 3]);
+    });
+
+    it('should generate correct SQL for && with a single value (simple format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            tags: { value: [5], matchMode: '&&' },
+        };
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([5]);
+    });
+
+    it('should generate correct SQL for && combined with other filters (array format)', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            name: [{ value: 'John', matchMode: 'contains' }],
+            tags: [{ value: [1, 2], matchMode: '&&' }],
+        };
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        expect(filterClause).toBe(' WHERE name LIKE $1 AND tags && ARRAY[$2,$3] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual(['%John%', 1, 2]);
+    });
+
+    it('should skip && filter when value is an empty array', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            tags: [{ value: [], matchMode: '&&' }],
+            name: [{ value: 'John', matchMode: 'contains' }],
+        };
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        expect(filterClause).toBe(' WHERE name LIKE $1 ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual(['%John%']);
+    });
+
+    it('should generate correct SQL for && on an uppercase column name', () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            tagIds: [{ value: [10, 20], matchMode: '&&' }],
+        };
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+        expect(filterClause).toBe(' WHERE "tagIds" && ARRAY[$1,$2] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual([10, 20]);
+    });
 });

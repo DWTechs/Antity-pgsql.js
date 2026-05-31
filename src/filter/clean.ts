@@ -75,6 +75,13 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
       // Normalize to array format (handle both old and new formats)
       const filterValue = filters[k];
       const filterArray = isArray(filterValue) ? filterValue : [filterValue];
+      // For array-typed columns, translate the user-facing "in" matchMode to the
+      // PostgreSQL array overlap operator "&&", which generates: column && ARRAY[$1,$2]
+      if (type === "array") {
+        for (const f of filterArray) {
+          if (f.matchMode === "in") f.matchMode = "&&";
+        }
+      }
       
       // Validate each filter in the array
       const validFilters = filterArray.filter((f) => {

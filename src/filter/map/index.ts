@@ -13,6 +13,9 @@ import type { MatchMode } from "../../types";
  * @example
  * // Returns "($1,$2)"
  * index([1, 2], "in");
+ * @example
+ * // Returns "($1,$2)"
+ * index([1, 2], "IN");
  */
 function index(index: number[], matchMode: MatchMode | undefined): string {
   const i = index.map((i: number) => `$${i}`);
@@ -22,6 +25,8 @@ function index(index: number[], matchMode: MatchMode | undefined): string {
     case "IN":
     case "NOT IN":
       return `(${i})`;
+    case "&&":
+      return `ARRAY[${i}]`;
     default:
       return `${i}`;
   }

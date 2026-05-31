@@ -152,7 +152,7 @@ type Row = Record<string, string | number | boolean | Date | number[]>;
 
 type Comparator =
   "=" | "<" | ">" | "<=" | ">=" | "<>" |
-  "IS" | "IS NOT" | "IN" | "NOT IN" | "LIKE" | "NOT LIKE";
+  "IS" | "IS NOT" | "IN" | "NOT IN" | "LIKE" | "NOT LIKE" | "&&";
 
 type MatchMode =  
   "startsWith" | 
@@ -164,6 +164,7 @@ type MatchMode =
   "between" |
   "in" |
   "notIn" |
+  "&&" | // array overlap — use with array-typed columns; generates: column && ARRAY[$1,$2]
   "lt" |
   "lte" |
   "gt" |

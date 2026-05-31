@@ -62,6 +62,8 @@ function type(type: Type): MappedType {
       return s;
     case "object": 
       return s;
+    case "array":
+      return "array";
     default:
       return s;
   }
