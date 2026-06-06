@@ -1,4 +1,8 @@
 
+# 0.17.7 (June 4th 2026)
+
+- Add `::integer[]` type cast to `ARRAY[...]` in the `&&` (overlap) operator when the filter value is an array of integers
+
 # 0.17.6 (May 31st 2026)
 
 - Add support for PostgreSQL array overlap operator (`&&`) on `array`-typed properties:

@@ -91,7 +91,7 @@ function add(filters: Filters | null ):
           continue;
         
         const indexes: number[] = isArray(value) ? value.map(() => i++) : [i++];
-        const cond = addOne(k, indexes, matchMode);
+        const cond = addOne(k, indexes, matchMode, value);
         if (cond) {
           groupConditions.push(cond);
           if (isArray(value))
@@ -118,11 +118,12 @@ function add(filters: Filters | null ):
 function addOne(
   key: string, 
   indexes: number[],
-  matchMode: MatchMode | undefined 
+  matchMode: MatchMode | undefined,
+  value: unknown
 ): string { 
   const sqlKey = `${quoteIfUppercase(key)}`; // escaped property name for sql query
   const comparator = mapComparator(matchMode);
-  const index = mapIndexes(indexes, matchMode);
+  const index = mapIndexes(indexes, matchMode, value);
   return comparator ? `${sqlKey} ${comparator} ${index}` : "";
 }
 

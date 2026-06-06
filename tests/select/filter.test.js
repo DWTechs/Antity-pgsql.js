@@ -1016,14 +1016,14 @@ describe('filter - direct SQL comparators', () => {
     it("should handle '&&' comparator directly for array overlap", () => {
         const filters = { tags: { value: [1, 2, 3], matchMode: '&&' } };
         const { filterClause, args } = filter(0, null, null, null, filters);
-        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2,$3]');
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2,$3]::integer[]');
         expect(args).toEqual([1, 2, 3]);
     });
 
     it("should handle '&&' comparator in array format for array overlap", () => {
         const filters = { tags: [{ value: [1, 2], matchMode: '&&' }] };
         const { filterClause, args } = filter(0, null, null, null, filters);
-        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2]');
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2]::integer[]');
         expect(args).toEqual([1, 2]);
     });
 });
@@ -1038,7 +1038,7 @@ describe('filter - array overlap (&&)', () => {
             tags: { value: [1, 2, 3], matchMode: '&&' },
         };
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2,$3] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1,$2,$3]::integer[] ORDER BY name ASC LIMIT 10 OFFSET 0');
         expect(args).toEqual([1, 2, 3]);
     });
 
@@ -1051,7 +1051,7 @@ describe('filter - array overlap (&&)', () => {
             tags: { value: [5], matchMode: '&&' },
         };
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-        expect(filterClause).toBe(' WHERE tags && ARRAY[$1] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(filterClause).toBe(' WHERE tags && ARRAY[$1]::integer[] ORDER BY name ASC LIMIT 10 OFFSET 0');
         expect(args).toEqual([5]);
     });
 
@@ -1065,7 +1065,7 @@ describe('filter - array overlap (&&)', () => {
             tags: [{ value: [1, 2], matchMode: '&&' }],
         };
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-        expect(filterClause).toBe(' WHERE name LIKE $1 AND tags && ARRAY[$2,$3] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(filterClause).toBe(' WHERE name LIKE $1 AND tags && ARRAY[$2,$3]::integer[] ORDER BY name ASC LIMIT 10 OFFSET 0');
         expect(args).toEqual(['%John%', 1, 2]);
     });
 
@@ -1092,7 +1092,7 @@ describe('filter - array overlap (&&)', () => {
             tagIds: [{ value: [10, 20], matchMode: '&&' }],
         };
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
-        expect(filterClause).toBe(' WHERE "tagIds" && ARRAY[$1,$2] ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(filterClause).toBe(' WHERE "tagIds" && ARRAY[$1,$2]::integer[] ORDER BY name ASC LIMIT 10 OFFSET 0');
         expect(args).toEqual([10, 20]);
     });
 });
