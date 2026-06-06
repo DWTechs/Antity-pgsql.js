@@ -243,7 +243,7 @@ describe("upsertArraySubstack", () => {
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 400,
-        msg: "Missing conflictTarget for upsert operation"
+        message: "Missing conflictTarget for upsert operation"
       })
     );
   });

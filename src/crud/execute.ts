@@ -13,8 +13,8 @@ function execute(query: string, args: (Filter["value"])[], clt: PGClient | null)
       perf.end(res, time);
       return res;
     })
-    .catch((err: { msg: string; message: string; }) => {
-      err.msg = `Postgre error: ${err.message}`;
+    .catch((err: { message: string; }) => {
+      err.message = `Postgre error: ${err.message}`;
       throw err;
     });
 }

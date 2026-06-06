@@ -384,11 +384,11 @@ export class SQLEntity extends Entity {
     const cName = l.consumer?.nickname;
     
     if (!conflictTarget) {
-      return next({ status: 400, msg: "Missing conflictTarget for upsert operation" });
+      return next({ status: 400, message: "Missing conflictTarget for upsert operation" });
     }
     
     if (!rows || !Array.isArray(rows) || rows.length === 0) {
-      return next({ status: 400, msg: "Missing or empty rows array for upsert operation" });
+      return next({ status: 400, message: "Missing or empty rows array for upsert operation" });
     }
     
     log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
@@ -526,7 +526,7 @@ export class SQLEntity extends Entity {
     const dbClient = res.locals.dbClient || null;
     
     if (!id) {
-      next({ status: 400, msg: "Missing id" });
+      next({ status: 400, message: "Missing id" });
       return;
     }
     
@@ -545,7 +545,7 @@ export class SQLEntity extends Entity {
       .then((r: PGResponse) => {
         const { rowCount, rows } = r;
         if (!rowCount) {
-          return next({ status: 404, msg: "History not found" });
+          return next({ status: 404, message: "History not found" });
         }
         res.locals.history = rows;
         res.locals.total = rowCount;
@@ -584,7 +584,7 @@ export class SQLEntity extends Entity {
     const cName = l.consumer?.nickname;
 
     if (!rows || !Array.isArray(rows)) {
-      return next({ status: 400, msg: "Missing or invalid rows array for sync operation" });
+      return next({ status: 400, message: "Missing or invalid rows array for sync operation" });
     }
 
     log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);

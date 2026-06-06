@@ -1,4 +1,8 @@
 
+# 0.18.0 (June 5th 2026)
+
+- **Breaking:** rename `msg` to `message` in all error objects passed to Express `next()` or thrown, aligning with the standard `Error.message` convention
+
 # 0.17.7 (June 4th 2026)
 
 - Add `::integer[]` type cast to `ARRAY[...]` in the `&&` (overlap) operator when the filter value is an array of integers
