@@ -1,4 +1,4 @@
-import { isArray, isInteger } from "@dwtechs/checkard";
+import { isArray, isInteger, isBoolean, isNumber } from "@dwtechs/checkard";
 import type { MatchMode } from "../../types";
 
 /**
@@ -27,8 +27,18 @@ function index(index: number[], matchMode: MatchMode | undefined, value: unknown
     case "NOT IN":
       return `(${i})`;
     case "&&": {
-      const cast = isArray(value, ">", 0) && isInteger(value[0]) ? '::integer[]' : '';
-      return `ARRAY[${i}]${cast}`;
+      let cast = '';
+      if (isArray(value, ">", 0)) {
+        if (isInteger(value[0]))
+          cast = 'integer';
+        else if (isNumber(value[0]))
+          cast = 'numeric';
+        else if (isBoolean(value[0]))
+          cast = 'boolean';
+        else
+          cast = 'varchar';
+      }
+      return `ARRAY[${i}]::${cast}[]`;
     }
     default:
       return `${i}`;

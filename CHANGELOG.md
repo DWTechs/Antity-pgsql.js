@@ -1,4 +1,8 @@
 
+# 0.18.1 (June 6th 2026)
+
+- Add `::numeric[]`, `::boolean[]` and `::varchar[]` type casts to `ARRAY[...]` in the `&&` (overlap) operator depending on the filter value type
+
 # 0.18.0 (June 5th 2026)
 
 - **Breaking:** rename `msg` to `message` in all error objects passed to Express `next()` or thrown, aligning with the standard `Error.message` convention
