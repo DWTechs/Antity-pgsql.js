@@ -1,3 +1,9 @@
+# 0.18.2 (July 3rd 2026)
+
+- Update dependencies:
+  - "@dwtechs/checkard": "3.6.1",
+  - "@dwtechs/winstan": "0.7.1",
+  - "@dwtechs/antity": "0.18.1"
 
 # 0.18.1 (June 6th 2026)
 
