@@ -1,13 +1,20 @@
 {
   "name": "@dwtechs/antity-pgsql",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "description": "Open source library to add PostgreSQL support to @dwtechs/Antity entities.",
   "keywords": [
     "entities"
   ],
   "homepage": "https://github.com/DWTechs/Antity-pgsql.js",
+  "type": "module",
   "main": "dist/antity-pgsql.js",
   "types": "dist/antity-pgsql.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/antity-pgsql.d.ts",
+      "import": "./dist/antity-pgsql.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/DWTechs/Antity-pgsql.js" 
@@ -23,7 +30,7 @@
   },
   "scripts": {
     "prebuild": "npm install",
-    "build": "node ./scripts/clear && tsc && npm run rollup && node ./scripts/copy && npm run test",
+    "build": "node ./scripts/clear.js && tsc && npm run rollup && node ./scripts/copy.js && npm run test",
     "rollup": "rollup --config rollup.config.mjs",
     "test": "jest --coverage"
   },

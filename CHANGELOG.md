@@ -1,3 +1,7 @@
+# 0.18.3 (July 4th 2026)
+
+- Declare package as ESM-only by adding `"type": "module"` and an `"exports"` map to `package.json`
+
 # 0.18.2 (July 3rd 2026)
 
 - Update dependencies:
