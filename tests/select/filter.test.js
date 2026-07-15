@@ -1096,3 +1096,70 @@ describe('filter - array overlap (&&)', () => {
         expect(args).toEqual([10, 20]);
     });
 });
+
+describe('filter - top-level logical operator parameter', () => {
+    it('should default to AND when operator is not provided', () => {
+        const filters = {
+            name: { value: 'John', matchMode: 'equals' },
+            age: { value: 30, matchMode: 'equals' },
+        };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE name = $1 AND age = $2');
+        expect(args).toEqual(['John', 30]);
+    });
+
+    it('should join top-level conditions with OR when operator is "OR"', () => {
+        const filters = {
+            name: { value: 'John', matchMode: 'equals' },
+            age: { value: 30, matchMode: 'equals' },
+        };
+        const { filterClause, args } = filter(0, null, null, null, filters, 'OR');
+        expect(filterClause).toBe(' WHERE name = $1 OR age = $2');
+        expect(args).toEqual(['John', 30]);
+    });
+
+    it('should join top-level conditions with AND when operator is explicitly "AND"', () => {
+        const filters = {
+            name: { value: 'John', matchMode: 'equals' },
+            age: { value: 30, matchMode: 'equals' },
+        };
+        const { filterClause, args } = filter(0, null, null, null, filters, 'AND');
+        expect(filterClause).toBe(' WHERE name = $1 AND age = $2');
+        expect(args).toEqual(['John', 30]);
+    });
+
+    it('should combine the top-level OR operator with ORDER BY and LIMIT clauses', () => {
+        const filters = {
+            name: { value: 'John', matchMode: 'equals' },
+            age: { value: 30, matchMode: 'equals' },
+        };
+        const { filterClause, args } = filter(0, 10, 'name', 'ASC', filters, 'OR');
+        expect(filterClause).toBe(' WHERE name = $1 OR age = $2 ORDER BY name ASC LIMIT 10 OFFSET 0');
+        expect(args).toEqual(['John', 30]);
+    });
+
+    it('should not affect the per-property operator used to combine multiple filters on the same property', () => {
+        const filters = {
+            name: [
+                { value: 'John', matchMode: 'contains', operator: 'or' },
+                { value: 'Jane', matchMode: 'contains', operator: 'or' }
+            ],
+            age: { value: 30, matchMode: 'equals' },
+        };
+        const { filterClause, args } = filter(0, null, null, null, filters, 'OR');
+        expect(filterClause).toBe(' WHERE (name LIKE $1 OR name LIKE $2) OR age = $3');
+        expect(args).toEqual(['%John%', '%Jane%', 30]);
+    });
+
+    it('should have no effect on the filter clause when there are no conditions', () => {
+        const { filterClause, args } = filter(0, null, null, null, null, 'OR');
+        expect(filterClause).toBe('');
+        expect(args).toEqual([]);
+    });
+
+    it('should only apply the operator to the WHERE clause, not affect ORDER BY or LIMIT clauses', () => {
+        const { filterClause, args } = filter(5, 20, 'createdAt', 'DESC', null, 'OR');
+        expect(filterClause).toBe(' ORDER BY "createdAt" DESC LIMIT 20 OFFSET 5');
+        expect(args).toEqual([]);
+    });
+});

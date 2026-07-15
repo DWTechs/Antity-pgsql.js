@@ -201,4 +201,52 @@ describe("get middleware", () => {
     expect(sql).not.toContain('DROP TABLE');
     expect(sql).not.toContain('ORDER BY');
   });
+
+  it("should default to AND operator when combining filters on multiple properties", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({ filters: {
+      name: { value: 'John', matchMode: 'equals' },
+      age: { value: 30, matchMode: 'equals' },
+    } }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).toContain('name = $1 AND age = $2');
+  });
+
+  it("should join filters on multiple properties with OR when operator is 'OR'", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({
+      filters: {
+        name: { value: 'John', matchMode: 'equals' },
+        age: { value: 30, matchMode: 'equals' },
+      },
+      operator: 'OR'
+    }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).toContain('name = $1 OR age = $2');
+  });
+
+  it("should default to AND when operator is an unsupported value", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({
+      filters: {
+        name: { value: 'John', matchMode: 'equals' },
+        age: { value: 30, matchMode: 'equals' },
+      },
+      operator: 'INVALID'
+    }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).toContain('name = $1 AND age = $2');
+  });
 });

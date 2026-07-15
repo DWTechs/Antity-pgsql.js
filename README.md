@@ -236,7 +236,8 @@ class SQLEntity {
       filters?: Filters | null) => {
         query: string;
         args: (Filter["value"])[];
-      };
+      },
+      operator?: LogicalOperator;
     update: (
       rows: Row[],
       consumer?: { id?: number | string, nickname?: string }) => {
@@ -289,6 +290,7 @@ function filter(
   sortField: string | null,
   sortOrder: Sort | null,
   filters: Filters | null,
+  operator?: LogicalOperator,
 ): { filterClause: string, args: (Filter["value"])[] };
 
 function execute(

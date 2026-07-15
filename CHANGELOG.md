@@ -1,3 +1,10 @@
+# 0.19.0 (July 15th 2026)
+
+- Add `operator` parameter (`"AND" | "OR"`, defaults to `"AND"`) to control how top-level filter properties are combined in the generated `WHERE` clause:
+  - `filter()` now accepts an optional 6th `operator` argument
+  - `query.select()` now accepts an optional 6th `operator` argument
+  - `get()` middleware now reads `operator` from `req.body.operator`, falling back to `"AND"` for missing or invalid values
+
 # 0.18.3 (July 4th 2026)
 
 - Declare package as ESM-only by adding `"type": "module"` and an `"exports"` map to `package.json`

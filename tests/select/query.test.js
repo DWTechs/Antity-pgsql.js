@@ -153,4 +153,34 @@ describe("query function", () => {
     expect(result.args).toEqual([]);
   });
 
+  it("should default to AND when combining filters on multiple properties", () => {
+    const filters = {
+      name: { value: 'John', matchMode: 'equals' },
+      age: { value: 30, matchMode: 'equals' },
+    };
+    const result = entity.query.select(0, null, null, null, filters);
+    expect(result.query).toBe("SELECT name, age FROM public.persons WHERE name = $1 AND age = $2");
+    expect(result.args).toEqual(['John', 30]);
+  });
+
+  it("should join filters on multiple properties with OR when operator is 'OR'", () => {
+    const filters = {
+      name: { value: 'John', matchMode: 'equals' },
+      age: { value: 30, matchMode: 'equals' },
+    };
+    const result = entity.query.select(0, null, null, null, filters, 'OR');
+    expect(result.query).toBe("SELECT name, age FROM public.persons WHERE name = $1 OR age = $2");
+    expect(result.args).toEqual(['John', 30]);
+  });
+
+  it("should join filters on multiple properties with AND when operator is explicitly 'AND'", () => {
+    const filters = {
+      name: { value: 'John', matchMode: 'equals' },
+      age: { value: 30, matchMode: 'equals' },
+    };
+    const result = entity.query.select(0, null, null, null, filters, 'AND');
+    expect(result.query).toBe("SELECT name, age FROM public.persons WHERE name = $1 AND age = $2");
+    expect(result.args).toEqual(['John', 30]);
+  });
+
 });

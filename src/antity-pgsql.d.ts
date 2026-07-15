@@ -110,7 +110,8 @@ export declare class SQLEntity extends Entity {
       rows?: number | null,
       sortField?: string | null,
       sortOrder?: "ASC" | "DESC" | null,
-      filters?: Filters | null
+      filters?: Filters | null,
+      operator?: LogicalOperator,
     ) => {
       query: string;
       args: (Filter["value"])[];
@@ -178,6 +179,7 @@ export declare function filter(
   sortField: string | null,
   sortOrder: Sort | null,
   filters: Filters | null,
+  operator?: LogicalOperator,
 ): { filterClause: string, args: (Filter["value"])[] };
   
 export declare function execute(

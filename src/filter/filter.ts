@@ -8,11 +8,12 @@ function filter(
   sortField: string | null,
   sortOrder: Sort | null,
   filters: Filters | null,
+  operator: LogicalOperator = "AND",
 ): { filterClause: string, args: (Filter["value"])[] } {
   
   const { conditions, args } = addConditions(filters);
   const filterClause = 
-      where(conditions) 
+      where(conditions, operator)
     + orderBy(sortField, sortOrder) 
     + limit(rows, first);
 

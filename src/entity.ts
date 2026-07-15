@@ -16,7 +16,7 @@ import { execute } from "./crud/execute";
 import pool from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, SelectResponse, Filters, Filter, Operation, Row } from "./types";
+import type { PGResponse, SelectResponse, Filters, Filter, Operation, Row, LogicalOperator } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
@@ -211,10 +211,11 @@ export class SQLEntity extends Entity {
       rows: number | null = null,
       sortField: string | null = null,
       sortOrder: "ASC" | "DESC" | null = null,
-      filters: Filters | null = null
+      filters: Filters | null = null,
+      operator: LogicalOperator = "AND",
     ): { query: string, args: (Filter["value"])[] } => {
       const validatedSortField = sortField && this.properties.some(p => p.key === sortField) ? sortField : null;
-      return this.sel.query(this.schema, this.table, first, rows, validatedSortField, sortOrder, filters);
+      return this.sel.query(this.schema, this.table, first, rows, validatedSortField, sortOrder, filters, operator);
     },
     update: (
       rows: Row[], 
@@ -264,14 +265,15 @@ export class SQLEntity extends Entity {
     const sortField: string | null = rawSortField && this.properties.some(p => p.key === rawSortField) ? rawSortField : null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
     const filters: Filters | null = cleanFilters(b.filters, this.properties) || null;
+    const operator: LogicalOperator = b.operator === "OR" ? "OR" : "AND";
     const pagination: boolean = b.pagination || false;
     const dbClient = l.dbClient || null;
 
     log.debug(
-      () => `get(first='${first}', rows='${rows}', sortOrder='${sortOrder}', sortField='${sortField}', pagination=${pagination}, filters=${JSON.stringify(filters)}`,
+      () => `get(first='${first}', rows='${rows}', sortOrder='${sortOrder}', sortField='${sortField}', pagination=${pagination}, filters=${JSON.stringify(filters)}, , operator='${operator}`,
     );
 
-    const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters);
+    const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters, operator);
     this.sel.execute( query, args, dbClient)
       .then((r: SelectResponse) => {
         l.rows = r.rows;

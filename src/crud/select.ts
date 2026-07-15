@@ -2,7 +2,7 @@ import { deleteProps } from "@dwtechs/sparray";
 import { execute as exe } from "./execute";
 import { quoteIfUppercase } from "./quote";
 import { filter } from "../filter/filter";
-import type { PGResponse, SelectResponse, Filter, Filters, Sort, PGClient } from "../types";
+import type { PGResponse, SelectResponse, Filter, Filters, Sort, PGClient, LogicalOperator } from "../types";
 
 export class Select {
   
@@ -26,13 +26,14 @@ export class Select {
     rows: number | null = null,
     sortField: string | null = null,
     sortOrder: Sort | null = null,
-    filters: Filters | null = null
+    filters: Filters | null = null,
+    operator: LogicalOperator = "AND"
   ): { query: string, args: (Filter["value"])[] } {
     const p = rows ? this._count : '';
     const c = this._cols ? this._cols : '*';
     const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)}`;
     
-    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters, operator);
     
     return {
       query: baseQuery + filterClause,
