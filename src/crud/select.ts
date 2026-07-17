@@ -23,17 +23,17 @@ export class Select {
     schema: string,
     table: string,
     first: number = 0,
-    rows: number | null = null,
+    limit: number | null = null,
     sortField: string | null = null,
     sortOrder: Sort | null = null,
     filters: Filters | null = null,
     operator: LogicalOperator = "AND"
   ): { query: string, args: (Filter["value"])[] } {
-    const p = rows ? this._count : '';
+    const p = limit ? this._count : '';
     const c = this._cols ? this._cols : '*';
     const baseQuery = `SELECT ${c}${p} FROM ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)}`;
     
-    const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters, operator);
+    const { filterClause, args } = filter(first, limit, sortField, sortOrder, filters, operator);
     
     return {
       query: baseQuery + filterClause,

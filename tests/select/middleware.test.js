@@ -133,7 +133,19 @@ describe("get middleware", () => {
     expect(sql).toContain('DESC');
   });
 
-  it("should apply LIMIT and OFFSET when rows and first are provided", async () => {
+  it("should apply LIMIT and OFFSET when limit and first are provided", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({ first: 10, limit: 5 }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).toContain('LIMIT');
+    expect(sql).toContain('OFFSET');
+  });
+
+  it("should not apply LIMIT when a numeric rows is provided instead of limit (rows is no longer used for pagination)", async () => {
     const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
     const res = mockResponse(dbClient);
 
@@ -141,8 +153,20 @@ describe("get middleware", () => {
     await new Promise(resolve => setTimeout(resolve, 0));
 
     const [sql] = dbClient.query.mock.calls[0];
-    expect(sql).toContain('LIMIT');
-    expect(sql).toContain('OFFSET');
+    expect(sql).not.toContain('LIMIT');
+  });
+
+  it("should safely ignore a stray rows array left over from a different request shape", async () => {
+    const dbClient = mockDbClient([{ id: 1, name: 'John', age: 30 }]);
+    const res = mockResponse(dbClient);
+
+    // e.g. req.body.rows populated by an add/update/delete-style payload
+    entity.get(mockRequest({ rows: [{ id: 1, name: 'John' }] }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).not.toContain('LIMIT');
+    expect(mockNext).toHaveBeenCalledWith();
   });
 
   it("should call next with 404 when no rows are found", async () => {

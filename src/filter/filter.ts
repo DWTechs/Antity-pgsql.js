@@ -4,7 +4,7 @@ import type { Filters, Filter, Sort, LogicalOperator } from "../types";
 
 function filter(
   first: number,
-  rows: number | null,
+  limit: number | null,
   sortField: string | null,
   sortOrder: Sort | null,
   filters: Filters | null,
@@ -15,7 +15,7 @@ function filter(
   const filterClause = 
       where(conditions, operator)
     + orderBy(sortField, sortOrder) 
-    + limit(rows, first);
+    + limitClause(limit, first);
 
   return { filterClause, args };
     
@@ -40,8 +40,8 @@ function orderBy(sortField: string | null, sortOrder: Sort | null): string {
 }
 
 // Adds limit clause
-function limit(rows: number | null, first: number): string {
-  return rows ? ` LIMIT ${rows} OFFSET ${first}` : "";
+function limitClause(limit: number | null, first: number): string {
+  return limit ? ` LIMIT ${limit} OFFSET ${first}` : "";
 }
 
 export {

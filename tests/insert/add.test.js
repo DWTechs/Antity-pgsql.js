@@ -280,4 +280,28 @@ describe("add method", () => {
     expect(res.locals.rows[1]).toMatchObject({ name: 'Second', age: 20, id: 200 });
     expect(res.locals.rows[2]).toMatchObject({ name: 'Third', age: 30, id: 300 });
   });
+
+  it("should support the addOneSubstack shape (req.body is the single row, no rows wrapper)", async () => {
+    const generatedIds = [{ id: 1 }];
+    const dbClient = mockDbClient(generatedIds);
+    const req = { body: { name: 'John', age: 30 } };
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.add(req, res, mockNext);
+
+    expect(res.locals.rows).toHaveLength(1);
+    expect(res.locals.rows[0]).toEqual({ name: 'John', age: 30, id: 1 });
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should call next with 400 when req.body.rows is an invalid (non-array) value", async () => {
+    const dbClient = mockDbClient([]);
+    const req = { body: { rows: null } };
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.add(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(dbClient.query).not.toHaveBeenCalled();
+  });
 });

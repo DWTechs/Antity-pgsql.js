@@ -1,4 +1,4 @@
-import { isString } from '@dwtechs/checkard';
+import { isString, isNumber, isObject, isArray } from '@dwtechs/checkard';
 import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
 import { Entity } from "@dwtechs/antity";
@@ -208,14 +208,14 @@ export class SQLEntity extends Entity {
   public query = { 
     select: (
       first: number = 0,
-      rows: number | null = null,
+      limit: number | null = null,
       sortField: string | null = null,
       sortOrder: "ASC" | "DESC" | null = null,
       filters: Filters | null = null,
       operator: LogicalOperator = "AND",
     ): { query: string, args: (Filter["value"])[] } => {
       const validatedSortField = sortField && this.properties.some(p => p.key === sortField) ? sortField : null;
-      return this.sel.query(this.schema, this.table, first, rows, validatedSortField, sortOrder, filters, operator);
+      return this.sel.query(this.schema, this.table, first, limit, validatedSortField, sortOrder, filters, operator);
     },
     update: (
       rows: Row[], 
@@ -256,11 +256,35 @@ export class SQLEntity extends Entity {
   };
 
   
+  /**
+   * Fetches multiple rows from the database table, with optional filtering,
+   * sorting and pagination.
+   *
+   * @param {Request} req - Express request object. Reads `first`, `limit`,
+   * `sortField`, `sortOrder`, `filters`, `operator` and `pagination` from
+   * req.body. Page size is req.body.limit (a number) - NOT req.body.rows,
+   * which add/update/upsert/delete/archive/sync all use to mean "array of
+   * entities to act on" instead. Keeping one shared key with two different
+   * meanings across methods was error-prone, so get() no longer reads
+   * req.body.rows at all.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient.
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {void}
+   *
+   * @example
+   * // In an Express route
+   * app.post('/users/search', userEntity.get, (req, res) => {
+   *   res.json({ users: res.locals.rows, total: res.locals.total });
+   * });
+   *
+   * // Request body:
+   * // { first: 0, limit: 10, sortField: 'name', sortOrder: 'ASC', filters: {...} }
+   */
   public get = ( req: Request, res: Response, next: NextFunction ): void => {
     const l = res.locals;
     const b = req.body;
     const first: number = b?.first ?? 0;
-    const rows: number | null = b.rows || null;
+    const limit: number | null = isNumber(b?.limit) ? b.limit : null;
     const rawSortField: string | null = b.sortField || null;
     const sortField: string | null = rawSortField && this.properties.some(p => p.key === rawSortField) ? rawSortField : null;
     const sortOrder: "ASC" | "DESC" = b.sortOrder === -1 || b.sortOrder === "DESC" ? "DESC" : "ASC";
@@ -270,10 +294,10 @@ export class SQLEntity extends Entity {
     const dbClient = l.dbClient || null;
 
     log.debug(
-      () => `get(first='${first}', rows='${rows}', sortOrder='${sortOrder}', sortField='${sortField}', pagination=${pagination}, filters=${JSON.stringify(filters)}, , operator='${operator}`,
+      () => `get(first='${first}', limit='${limit}', sortOrder='${sortOrder}', sortField='${sortField}', pagination=${pagination}, filters=${JSON.stringify(filters)}, , operator='${operator}`,
     );
 
-    const { query, args } = this.sel.query(this._schema, this._table, first, rows, sortField, sortOrder, filters, operator);
+    const { query, args } = this.sel.query(this._schema, this._table, first, limit, sortField, sortOrder, filters, operator);
     this.sel.execute( query, args, dbClient)
       .then((r: SelectResponse) => {
         l.rows = r.rows;
@@ -284,9 +308,43 @@ export class SQLEntity extends Entity {
   }
 
   /**
+   * Resolves the array of row objects to act on from the request body,
+   * supporting both the Array substacks (req.body.rows is an array) and the
+   * One substacks (normalizeOne/validateOne from @dwtechs/antity operate
+   * directly on req.body itself, with no rows wrapper at all).
+   *
+   * Distinguishes the two shapes by whether a `rows` key exists on the body
+   * at all: if it does, this is an Array substack call and `rows` must be a
+   * valid array (an invalid value like `null` is a genuine error, not a
+   * signal to fall back to treating the whole body as a single row).
+   *
+   * @param {Request} req - Express request object.
+   * @returns {Row[] | null} The rows to act on, or null if none could be resolved.
+   * @example
+   * // Array substack: req.body = { rows: [{ name: 'John' }] }
+   * this.resolveRows(req); // [{ name: 'John' }]
+   * @example
+   * // One substack: req.body = { name: 'John' }
+   * this.resolveRows(req); // [{ name: 'John' }]
+   * @example
+   * // Array substack with an invalid rows value
+   * this.resolveRows({ body: { rows: null } }); // null
+   */
+  private resolveRows(req: Request): unknown[] | null {
+    const b = req.body;
+    if (!isObject(b, true))
+      return null;
+    if ('rows' in b)
+      return isArray(b.rows, '!0') ? b.rows : null;
+    return [b as Row];
+  }
+
+  /**
    * Adds multiple rows to the database table.
    * 
-   * @param {Request} req - Express request object. Expected to contain `rows` array in req.body with data to insert.
+   * @param {Request} req - Express request object. Reads rows to insert from
+   * `req.body.rows` (array, from addArraySubstack) or `req.body` itself
+   * (single object, from addOneSubstack).
    * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when all rows are inserted. Added rows with generated IDs are stored in res.locals.rows.
@@ -306,7 +364,10 @@ export class SQLEntity extends Entity {
    */
   public add = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows = req.body.rows;
+    const rows = this.resolveRows(req);
+    if (!rows || rows.length === 0) {
+      return next({ status: 400, message: "Missing rows in req.body for add operation" });
+    }
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
@@ -333,9 +394,22 @@ export class SQLEntity extends Entity {
     next();
   }
 
+  /**
+   * Updates multiple rows in the database table.
+   *
+   * @param {Request} req - Express request object. Reads rows to update from
+   * `req.body.rows` (array, from updateArraySubstack) or `req.body` itself
+   * (single object, from updateOneSubstack).
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
+   * @param {NextFunction} next - Express next function for middleware chaining.
+   * @returns {Promise<void>}
+   */
   public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const r = req.body.rows;
+    const r = this.resolveRows(req);
+    if (!r || r.length === 0) {
+      return next({ status: 400, message: "Missing rows in req.body for update operation" });
+    }
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.id;
     const cName = l.consumer?.nickname;
@@ -359,7 +433,9 @@ export class SQLEntity extends Entity {
    * Upserts (inserts or updates) rows in the database table.
    * If a row with the specified conflict target already exists, it will be updated; otherwise, it will be inserted.
    * 
-   * @param {Request} req - Express request object. Expected to contain `rows` array and `conflictTarget` in req.body.
+   * @param {Request} req - Express request object. Reads rows to upsert from
+   * `req.body.rows` (array, from upsertArraySubstack) or `req.body` itself
+   * (single object, from upsertOneSubstack). Expects `req.body.conflictTarget`.
    * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when all rows are upserted. Upserted rows with IDs are stored in res.locals.rows.
@@ -379,7 +455,7 @@ export class SQLEntity extends Entity {
    */
   public upsert = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows = req.body.rows;
+    const rows = this.resolveRows(req);
     const conflictTarget = req.body.conflictTarget;
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.id;
@@ -389,8 +465,8 @@ export class SQLEntity extends Entity {
       return next({ status: 400, message: "Missing conflictTarget for upsert operation" });
     }
     
-    if (!rows || !Array.isArray(rows) || rows.length === 0) {
-      return next({ status: 400, message: "Missing or empty rows array for upsert operation" });
+    if (!rows || rows.length === 0) {
+      return next({ status: 400, message: "Missing or empty rows in req.body for upsert operation" });
     }
     
     log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
@@ -440,23 +516,35 @@ export class SQLEntity extends Entity {
   /**
    * Deletes rows from the database table by their IDs.
    * 
-   * @param {Request} req - Express request object. Expected to contain `rows` array in req.body with IDs to delete: [{id: 1}, {id: 2}].
+   * @param {Request} req - Express request object. Reads IDs to delete from
+   * `req.body.rows` ([{id: 1}, {id: 2}]) if present, otherwise falls back to
+   * a single `req.params.id` (e.g. a `DELETE /resource/:id` route).
    * @param {Response} res - Express response object. Uses res.locals to access dbClient.
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when rows are deleted.
    * @throws {Error} If database deletion fails.
    * 
    * @example
-   * // In an Express route
+   * // In an Express route, bulk delete via body
    * app.delete('/users', userEntity.delete, (req, res) => {
    *   res.json({ success: true });
    * });
-   * 
    * // Request body:
    * // { rows: [{ id: 1 }, { id: 2 }] }
+   *
+   * @example
+   * // In an Express route, single delete via URL param
+   * app.delete('/users/:id', userEntity.delete, (req, res) => {
+   *   res.json({ success: true });
+   * });
    */
   public delete = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
-    const rows = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    const rows = req.body?.rows ?? (req.params?.id ? [{ id: req.params.id }] : null);
+
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" });
+    }
+
     const dbClient = res.locals.dbClient || null;
     
     const ids = rows.map((row: Record<string, unknown>) => row.id as number);

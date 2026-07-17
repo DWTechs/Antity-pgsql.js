@@ -8,7 +8,7 @@ export type Filters = {
   [key: string]: Filter | Filter[];
 };
 export type Filter = {
-  value: string | number | boolean | Date | number[];
+  value: string | number | boolean | Date | number[] | null;
   matchMode?: MatchMode;
   operator?: string;
 };
@@ -107,7 +107,7 @@ export declare class SQLEntity extends Entity {
   query: {
     select: (
       first?: number,
-      rows?: number | null,
+      limit?: number | null,
       sortField?: string | null,
       sortOrder?: "ASC" | "DESC" | null,
       filters?: Filters | null,
@@ -175,7 +175,7 @@ export declare class SQLEntity extends Entity {
 
 export declare function filter(
   first: number,
-  rows: number | null,
+  limit: number | null,
   sortField: string | null,
   sortOrder: Sort | null,
   filters: Filters | null,

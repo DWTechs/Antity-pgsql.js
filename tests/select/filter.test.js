@@ -466,9 +466,47 @@ describe('filter - complex format (array-based)', () => {
         const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
 
         expect(filterClause).toBe(
-            ' WHERE "deletedAt" IS $1 AND "archivedAt" IS NOT $2 ORDER BY name ASC LIMIT 10 OFFSET 0'
+            ' WHERE "deletedAt" IS NULL AND "archivedAt" IS NOT NULL ORDER BY name ASC LIMIT 10 OFFSET 0'
         );
-        expect(args).toEqual([null, null]);
+        expect(args).toEqual([]);
+    });
+
+    it("should handle IS / IS NOT with true and false literal values", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            archived: [{ value: false, matchMode: 'is' }],
+            core: [{ value: true, matchMode: 'isNot' }],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE archived IS FALSE AND core IS NOT TRUE ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([]);
+    });
+
+    it("should combine an equals filter with an IS NULL filter on the same property using OR", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            userId: [
+                { value: 5, matchMode: 'equals', operator: 'OR' },
+                { value: null, matchMode: 'is', operator: 'OR' },
+            ],
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE ("userId" = $1 OR "userId" IS NULL) ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual([5]);
     });
 
     it("should handle array format with before and after (date comparisons)", () => {
@@ -963,15 +1001,36 @@ describe('filter - direct SQL comparators', () => {
     it("should handle 'IS' comparator directly with null", () => {
         const filters = { deletedAt: { value: null, matchMode: 'IS' } };
         const { filterClause, args } = filter(0, null, null, null, filters);
-        expect(filterClause).toBe(' WHERE "deletedAt" IS $1');
-        expect(args).toEqual([null]);
+        expect(filterClause).toBe(' WHERE "deletedAt" IS NULL');
+        expect(args).toEqual([]);
+    });
+
+    it("should handle 'IS' comparator directly with false", () => {
+        const filters = { locked: { value: false, matchMode: 'IS' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE locked IS FALSE');
+        expect(args).toEqual([]);
+    });
+
+    it("should handle 'IS' comparator directly with true", () => {
+        const filters = { locked: { value: true, matchMode: 'IS' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE locked IS TRUE');
+        expect(args).toEqual([]);
     });
 
     it("should handle 'IS NOT' comparator directly with null", () => {
         const filters = { deletedAt: { value: null, matchMode: 'IS NOT' } };
         const { filterClause, args } = filter(0, null, null, null, filters);
-        expect(filterClause).toBe(' WHERE "deletedAt" IS NOT $1');
-        expect(args).toEqual([null]);
+        expect(filterClause).toBe(' WHERE "deletedAt" IS NOT NULL');
+        expect(args).toEqual([]);
+    });
+
+    it("should handle 'IS NOT' comparator directly with false", () => {
+        const filters = { locked: { value: false, matchMode: 'IS NOT' } };
+        const { filterClause, args } = filter(0, null, null, null, filters);
+        expect(filterClause).toBe(' WHERE locked IS NOT FALSE');
+        expect(args).toEqual([]);
     });
 
     it("should handle 'IN' comparator directly", () => {

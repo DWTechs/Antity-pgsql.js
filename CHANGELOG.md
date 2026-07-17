@@ -1,3 +1,14 @@
+# 0.20.0 (July 17th 2026)
+
+- **Breaking:** `SQLEntity.get()` no longer reads `req.body.rows` for pagination. `req.body.rows` means "array of entities to act on" everywhere else in this class (`add`, `update`, `upsert`, `delete`, `archive`, `sync`) - reusing the same key for `get()`'s page size was error-prone (e.g. a stray `rows` array left over from a different request shape could get misread as a numeric `LIMIT`, producing invalid SQL). Page size is now exclusively `req.body.limit` (a number). Callers relying on `{ rows: <number> }` for pagination must switch to `{ limit: <number> }`.
+- Renamed the internal/public `rows` parameter to `limit` in `Select.query()`, the exported `filter()` function, and `SQLEntity.query.select()` for clarity, matching the `req.body.limit` field name above - purely a parameter rename (still positional), no behavior change for those.
+- Fix `addOneSubstack`/`updateOneSubstack`/`upsertOneSubstack`: `normalizeOne`/`validateOne` (from `@dwtechs/antity`) operate directly on `req.body` as the single entity object with no `rows` wrapper, but `add()`/`update()`/`upsert()` unconditionally read `req.body.rows`, which doesn't exist in that shape - calling any `*OneSubstack` crashed (`rows.map`/`chunk` on `undefined`). Added a `resolveRows()` helper so `add()`/`update()`/`upsert()` now accept either `req.body.rows` (array, Array substacks) or `req.body` itself (single object, One substacks), and return a clean `400` instead of crashing when neither shape is present or `req.body.rows` is an invalid (non-array) value.
+
+# 0.19.1 (July 16th 2026)
+
+- Fix `"is"`/`"isNot"`/`"IS"`/`"IS NOT"` match modes generating an invalid bound parameter (`col IS $n`) when the filter value is `null`, `true` or `false`. PostgreSQL's `IS` operator only accepts the `NULL`/`TRUE`/`FALSE`/`UNKNOWN` keywords, never a `$n` placeholder. These comparisons now inline the literal directly (`col IS NULL` / `col IS NOT NULL` / `col IS TRUE` / `col IS NOT FALSE`, etc.) and no longer consume a placeholder index or push a value into `args`. Non-literal usage of `"is"`/`"isNot"` (e.g. against strings) is unchanged.
+- `SQLEntity.delete` now falls back to a single `req.params.id` (e.g. a `DELETE /resource/:id` route) when `req.body.rows` is missing or empty, instead of throwing on `rows.map(...)` of `undefined`. `req.body.rows` still takes priority when present (bulk delete via body, e.g. `DELETE /resource`). Calling `delete` with neither now returns `next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" })` instead of crashing.
+
 # 0.19.0 (July 15th 2026)
 
 - Add `operator` parameter (`"AND" | "OR"`, defaults to `"AND"`) to control how top-level filter properties are combined in the generated `WHERE` clause:

@@ -183,7 +183,7 @@ type Filters = {
 }
 
 type Filter = {
-  value: string | number | boolean | Date | number[];
+  value: string | number | boolean | Date | number[] | null;
   matchMode?: MatchMode; // semantic mode or direct SQL comparator
   operator?: string; // 'and' | 'or' - Used when multiple filters apply to the same property
 }
@@ -230,7 +230,7 @@ class SQLEntity {
   query: {
     select: (
       first?: number,
-      rows?: number | null,
+      limit?: number | null,
       sortField?: string | null,
       sortOrder?: "ASC" | "DESC" | null,
       filters?: Filters | null) => {
@@ -305,7 +305,11 @@ function execute(
 ### Middleware Methods for Express.js
 
 get(), add(), update(), upsert(), sync(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
-Each method will look for data to work on in the **req.body.rows** parameter.
+add(), update(), upsert(), archive() and sync() look for data to work on in the **req.body.rows** parameter (array of entities).
+
+get() does **not** use req.body.rows - it reads req.body.first, req.body.limit, req.body.sortField, req.body.sortOrder, req.body.filters and req.body.operator instead. Page size is exclusively **req.body.limit** (a number); req.body.rows is intentionally ignored by get(), since that same key means "array of entities" for every other method above and reusing it for pagination was error-prone.
+
+delete() reads req.body.rows ([{id: 1}, {id: 2}]) if present, otherwise falls back to a single req.params.id.
 
 The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
 
@@ -336,13 +340,13 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 
 ### Query Methods
 
-- **query.select()**: Generates a SELECT query. When the `rows` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data. The `sortField` parameter is validated against the entity's known properties; an unrecognised value is silently dropped.
+- **query.select()**: Generates a SELECT query. When the `limit` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data. The `sortField` parameter is validated against the entity's known properties; an unrecognised value is silently dropped.
 - **query.insert()**: Generates an INSERT query. Accepts an array of `Row` objects with properties matching the entity definition. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` as `creatorId` and `consumer.nickname` as `creatorName` for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking.
 - **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.id` as `creatorId` and `consumer.nickname` as `creatorName` for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.id` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
-- **delete()**: Deletes rows by their IDs. Expects `req.body.rows` to be an array of objects with `id` property: `[{id: 1}, {id: 2}]`
+- **delete()**: Deletes rows by their IDs. Reads ids from `req.body.rows` (array of objects with `id` property: `[{id: 1}, {id: 2}]`) if present, otherwise falls back to a single `req.params.id` (e.g. a `DELETE /resource/:id` route). Calls `next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" })` if neither is provided.
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
 - **getHistory()**: Retrieves modification history for rows from the `log.history` table. Expects `req.body.rows` to be an array of objects with `id` property. Returns all historical records for the specified entity IDs.
 
@@ -526,6 +530,8 @@ const filters = {
 };
 ```
 
+**`is` / `isNot` with `null`, `true` or `false`:** these are rendered as a SQL literal (`col IS NULL`, `col IS NOT NULL`, `col IS TRUE`, `col IS NOT FALSE`, etc.) rather than a bound parameter, since PostgreSQL's `IS` operator only accepts the `NULL`/`TRUE`/`FALSE`/`UNKNOWN` keywords - never a `$n` placeholder. These filters don't consume a placeholder index or push a value into the returned `args`. Using `is`/`isNot` with any other value type (e.g. a string or number) still generates a bound parameter, unchanged.
+
 #### Complex Format (Multiple Filters per Property)
 
 Array-based format supporting multiple filters with logical operators:
@@ -583,8 +589,8 @@ List of possible semantic match modes :
 | lte	      |       | string \| number        | Whether the value is less than or equals to the filter value |
 | gt	      |       | string \| number        | Whether the value is greater than the filter value |
 | gte	      |       | string \| number        | Whether the value is greater than or equals to the filter value |
-| is	      |       | date \| boolean \| null | Whether the value equals the filter value, alias to equals |
-| isNot	      |       | date \| boolean \| null | Whether the value does not equal the filter value, alias to notEquals |
+| is	      |       | date \| boolean \| null | Whether the value equals the filter value, alias to equals. Renders as an `IS` literal (`IS NULL` / `IS TRUE` / `IS FALSE`) when value is `null`, `true` or `false` |
+| isNot	      |       | date \| boolean \| null | Whether the value does not equal the filter value, alias to notEquals. Renders as an `IS NOT` literal (`IS NOT NULL` / `IS NOT TRUE` / `IS NOT FALSE`) when value is `null`, `true` or `false` |
 | before      |       | date                    | Whether the date value is before the filter date |
 | after	      |       | date                    | Whether the date value is after the filter date |
 | between     |       | date[2] \| number[2]    | Whether the value is between the filter values | 

@@ -200,4 +200,26 @@ describe("update middleware", () => {
     expect(inputRow).not.toHaveProperty('consumerId');
     expect(inputRow).not.toHaveProperty('consumerName');
   });
+
+  it("should support the updateOneSubstack shape (req.body is the single row, no rows wrapper)", async () => {
+    const dbClient = mockDbClient();
+    const req = { body: { id: 1, name: 'John', age: 31 } };
+    const res = mockResponse(dbClient, 1, 'admin');
+
+    await entity.update(req, res, mockNext);
+
+    expect(dbClient.query).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should call next with 400 when req.body.rows is an invalid (non-array) value", async () => {
+    const dbClient = mockDbClient();
+    const req = { body: { rows: null } };
+    const res = mockResponse(dbClient, 1, 'admin');
+
+    await entity.update(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(dbClient.query).not.toHaveBeenCalled();
+  });
 });

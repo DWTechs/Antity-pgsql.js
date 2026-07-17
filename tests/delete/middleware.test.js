@@ -126,6 +126,65 @@ describe("delete middleware", () => {
     await expect(entity.delete(req, res, mockNext)).resolves.toBeUndefined();
   });
 
+  it("should fall back to req.params.id when req.body.rows is missing", async () => {
+    const dbClient = mockDbClient();
+    const req = { body: {}, params: { id: 7 } };
+    const res = mockResponse(dbClient);
+
+    await entity.delete(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args[0]).toEqual([7]);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should fall back to req.params.id when req.body is undefined", async () => {
+    const dbClient = mockDbClient();
+    const req = { params: { id: 9 } };
+    const res = mockResponse(dbClient);
+
+    await entity.delete(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args[0]).toEqual([9]);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should prefer req.body.rows over req.params.id when both are present", async () => {
+    const dbClient = mockDbClient();
+    const req = { body: { rows: [{ id: 1 }, { id: 2 }] }, params: { id: 999 } };
+    const res = mockResponse(dbClient);
+
+    await entity.delete(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args[0]).toEqual([1, 2]);
+  });
+
+  it("should call next with 400 when neither req.body.rows nor req.params.id is provided", async () => {
+    const req = { body: {}, params: {} };
+    const res = mockResponse(mockDbClient());
+
+    await entity.delete(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith({
+      status: 400,
+      message: "Missing rows in req.body or id in req.params for delete operation",
+    });
+  });
+
+  it("should call next with 400 when req.body.rows is an empty array and no req.params.id", async () => {
+    const req = { body: { rows: [] }, params: {} };
+    const res = mockResponse(mockDbClient());
+
+    await entity.delete(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith({
+      status: 400,
+      message: "Missing rows in req.body or id in req.params for delete operation",
+    });
+  });
+
   // ─── deleteArchive ────────────────────────────────────────────────────────
 
   describe("deleteArchive middleware", () => {

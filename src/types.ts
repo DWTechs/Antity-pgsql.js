@@ -8,7 +8,7 @@ export type Filters = {
 }
 
 export type Filter = {
-  value: string | number | boolean | Date | number[];
+  value: string | number | boolean | Date | number[] | null;
   matchMode?: MatchMode;
   operator?: string;
 }

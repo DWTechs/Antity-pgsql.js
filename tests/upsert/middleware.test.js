@@ -255,4 +255,15 @@ describe("upsert middleware", () => {
     expect(mockNext).toHaveBeenCalledTimes(1);
     expect(mockNext).toHaveBeenCalledWith(dbError);
   });
+
+  it("should support the upsertOneSubstack shape (req.body is the single row, no rows wrapper)", async () => {
+    const dbClient = mockDbClient([{ id: 1 }]);
+    const req = { body: { name: 'John', age: 30, email: 'john@example.com', conflictTarget: 'email' } };
+    const res = mockResponse(dbClient, 1, 'admin');
+
+    await entity.upsert(req, res, mockNext);
+
+    expect(res.locals.rows).toHaveLength(1);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
 });

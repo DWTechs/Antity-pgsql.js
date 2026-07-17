@@ -90,6 +90,19 @@ function add(filters: Filters | null ):
         if (shouldSkipValue(value, matchMode))
           continue;
         
+        // IS / IS NOT against NULL or a boolean must use a literal
+        // ("col IS NULL" / "col IS TRUE" / "col IS FALSE"), not a bind
+        // parameter - PostgreSQL's IS operator only accepts the NULL/TRUE/
+        // FALSE/UNKNOWN keywords on its right side, never a $n placeholder.
+        // So this branch doesn't consume a placeholder index nor push
+        // anything to args.
+        if (isIsMatchMode(matchMode) && isIsLiteralValue(value)) {
+          const cond = addOneLiteral(k, matchMode, value);
+          if (cond)
+            groupConditions.push(cond);
+          continue;
+        }
+        
         const indexes: number[] = isArray(value) ? value.map(() => i++) : [i++];
         const cond = addOne(k, indexes, matchMode, value);
         if (cond) {
@@ -112,6 +125,67 @@ function add(filters: Filters | null ):
     }
   }
   return { conditions, args };
+}
+
+/**
+ * Checks whether a match mode maps to the SQL "IS" / "IS NOT" comparator.
+ *
+ * @param {MatchMode | undefined} matchMode - The mode of matching to be applied.
+ * @returns {boolean} True if the match mode is "is", "isNot", "IS" or "IS NOT".
+ * @example
+ * // Returns true
+ * isIsMatchMode("is");
+ * @example
+ * // Returns false
+ * isIsMatchMode("equals");
+ */
+function isIsMatchMode(matchMode: MatchMode | undefined): boolean {
+  return matchMode === 'is' || matchMode === 'isNot' || matchMode === 'IS' || matchMode === 'IS NOT';
+}
+
+/**
+ * Checks whether a value must be rendered as a SQL literal (NULL/TRUE/FALSE)
+ * when used with the IS / IS NOT comparator, instead of a bind parameter.
+ *
+ * @param {Filter["value"]} value - The value to check.
+ * @returns {boolean} True if value is null, true or false.
+ * @example
+ * // Returns true
+ * isIsLiteralValue(null);
+ * @example
+ * // Returns true
+ * isIsLiteralValue(false);
+ * @example
+ * // Returns false
+ * isIsLiteralValue("John");
+ */
+function isIsLiteralValue(value: Filter["value"]): value is boolean | null {
+  return value === null || value === true || value === false;
+}
+
+/**
+ * Builds an "IS NULL" / "IS NOT NULL" / "IS TRUE" / "IS NOT FALSE" condition
+ * with the NULL/TRUE/FALSE keyword inlined as a literal rather than bound as
+ * a query parameter, since PostgreSQL's IS operator doesn't accept a $n
+ * placeholder on its right side.
+ *
+ * @param {string} key - The property/column name.
+ * @param {MatchMode | undefined} matchMode - "is"/"IS" or "isNot"/"IS NOT".
+ * @param {boolean | null} value - null, true or false.
+ * @returns {string} The SQL condition, e.g. `"userId" IS NULL`, or "" if the
+ * match mode doesn't map to a comparator.
+ * @example
+ * // Returns '"userId" IS NULL'
+ * addOneLiteral("userId", "is", null);
+ * @example
+ * // Returns '"archived" IS NOT FALSE'
+ * addOneLiteral("archived", "isNot", false);
+ */
+function addOneLiteral(key: string, matchMode: MatchMode | undefined, value: boolean | null): string {
+  const sqlKey = `${quoteIfUppercase(key)}`;
+  const comparator = mapComparator(matchMode);
+  const literal = value === null ? "NULL" : value ? "TRUE" : "FALSE";
+  return comparator ? `${sqlKey} ${comparator} ${literal}` : "";
 }
 
 // Add condition
