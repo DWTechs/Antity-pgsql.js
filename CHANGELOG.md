@@ -3,6 +3,7 @@
 - **Breaking:** rename the `id` field to `userId` in the `consumer` object across all relevant APIs:
   - `query.update()`, `query.insert()`, `query.upsert()`, `query.archive()` now accept `consumer?: { userId?: number | string, nickname?: string }` instead of `{ id?: number | string, nickname?: string }`
   - Express middlewares (`add`, `update`, `upsert`, `archive`, `sync`) now read `res.locals.consumer.userId` instead of `res.locals.consumer.id`
+- Fix `query.upsert()` writing the current consumer into `"creatorId"`/`"creatorName"` on the `ON CONFLICT DO UPDATE` branch, overwriting the original row creator's audit trail and never recording an updater. On conflict, the consumer is now written into `"updaterId"`/`"updaterName"` instead, while `"creatorId"`/`"creatorName"` are left untouched on the existing row.
 
 # 0.20.0 (July 17th 2026)
 

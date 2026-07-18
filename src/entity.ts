@@ -369,15 +369,15 @@ export class SQLEntity extends Entity {
       return next({ status: 400, message: "Missing rows in req.body for add operation" });
     }
     const dbClient = l.dbClient || null;
-    const cUserId = l.consumer?.userId;
+    const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cUserId})`);
+    log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumer=${cId})`);
      
     const rtn = this.ins.rtn("id");
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.ins.query(this._schema, this._table, c, cUserId, cName, rtn);
+      const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
       let db: PGResponse;
       try {
         db = await execute(query, args, dbClient);
@@ -407,18 +407,18 @@ export class SQLEntity extends Entity {
   public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const r = this.resolveRows(req);
-    if (!r || r.length === 0) {
+    if (!r || r.length === 0)
       return next({ status: 400, message: "Missing rows in req.body for update operation" });
-    }
+    
     const dbClient = l.dbClient || null;
-    const cUserId = l.consumer?.userId;
+    const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cUserId})`);
+    log.debug(() => `${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
 
     const chunks = chunk(r);
     for (const c of chunks) {
-      const { query, args } = this.upd.query(this._schema, this._table, c, cUserId, cName);
+      const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
@@ -458,7 +458,7 @@ export class SQLEntity extends Entity {
     const rows = this.resolveRows(req);
     const conflictTarget = req.body.conflictTarget;
     const dbClient = l.dbClient || null;
-    const cUserId = l.consumer?.userId;
+    const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
     if (!conflictTarget) {
@@ -469,12 +469,12 @@ export class SQLEntity extends Entity {
       return next({ status: 400, message: "Missing or empty rows in req.body for upsert operation" });
     }
     
-    log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cUserId})`);
+    log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumer=${cId})`);
     
     const rtn = this.ups.rtn("id");
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cUserId, cName, rtn);
+      const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cId, cName, rtn);
       let db: PGResponse;
       try {
         db = await execute(query, args, dbClient);
@@ -495,14 +495,14 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
-    const cUserId = l.consumer?.userId;
+    const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cUserId})`);
+    log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumer=${cId})`);
 
     const chunks = chunk(r);
     for (const c of chunks) {
-      const { query, args } = this.arc.query(this._schema, this._table, c, cUserId, cName);
+      const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
@@ -541,12 +541,10 @@ export class SQLEntity extends Entity {
   public delete = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const rows = req.body?.rows ?? (req.params?.id ? [{ id: req.params.id }] : null);
 
-    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+    if (!rows || !Array.isArray(rows) || rows.length === 0)
       return next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" });
-    }
 
     const dbClient = res.locals.dbClient || null;
-    
     const ids = rows.map((row: Record<string, unknown>) => row.id as number);
     
     log.debug(() => `${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
@@ -670,14 +668,13 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const rows = req.body.rows as Row[];
     const idField: string = req.body.idField ?? 'id';
-    const cUserId = l.consumer?.userId;
+    const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
 
-    if (!rows || !Array.isArray(rows)) {
+    if (!rows || !Array.isArray(rows))
       return next({ status: 400, message: "Missing or invalid rows array for sync operation" });
-    }
 
-    log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cUserId})`);
+    log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumer=${cId})`);
 
     // Build optional WHERE clause from filters to scope the sync
     const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;
@@ -708,7 +705,7 @@ export class SQLEntity extends Entity {
         const rtn = this.ins.rtn(idField);
         const chunks = chunk(toInsert);
         for (const c of chunks) {
-          const { query, args } = this.ins.query(this._schema, this._table, c, cUserId, cName, rtn);
+          const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
           const db: PGResponse = await execute(query, args, txClient);
           const r = db.rows;
           for (let i = 0; i < c.length; i++) {
@@ -721,7 +718,7 @@ export class SQLEntity extends Entity {
       if (toUpdate.length > 0) {
         const chunks = chunk(toUpdate);
         for (const c of chunks) {
-          const { query, args } = this.upd.query(this._schema, this._table, c, cUserId, cName);
+          const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
           await execute(query, args, txClient);
         }
       }

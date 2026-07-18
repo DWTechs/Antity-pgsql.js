@@ -18,8 +18,8 @@ export class Update {
    * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the data will be updated.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be updated. Each object should contain an 'id' property.
-   * @param {string | number} [consumerUserId] - Optional. The ID of the consumer, updated as `updaterId` column.
-   * @param {string} [consumerName] - Optional. The name of the consumer, updated as `updaterName` column.
+   * @param {string | number} [updaterId] - Optional. The ID of the consumer, updated as `updaterId` column.
+   * @param {string} [updaterName] - Optional. The name of the consumer, updated as `updaterName` column.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
    * 
    */
@@ -27,16 +27,16 @@ export class Update {
     schema: string,
     table: string, 
     rows: Row[],
-    consumerUserId?: string | number,
-    consumerName?: string
+    updaterId?: string | number,
+    updaterName?: string
   ): { query: string, args: (Filter["value"])[] } {
     
-    const hasConsumer = consumerUserId !== undefined && consumerName !== undefined;
+    const hasConsumer = updaterId !== undefined && updaterName !== undefined;
 
     // Augment base props template with consumer fields if provided
     const propsToUse = [...this._props];
     if (hasConsumer)
-      propsToUse.push("consumerUserId", "consumerName");
+      propsToUse.push("updaterId", "updaterName");
     
     log.debug(() => `${LOGS_PREFIX}Update query input rows: ${JSON.stringify(rows, null, 2)}`);
 
@@ -46,19 +46,19 @@ export class Update {
     const setClauses: string[] = [];
     
     for (const p of propsToUse) {
-      const isConsumerUserId = p === "consumerUserId";
-      const isConsumerName = p === "consumerName";
-      const isConsumerProp = isConsumerUserId || isConsumerName;
+      const isUpdaterId = p === "updaterId";
+      const isUpdaterName = p === "updaterName";
+      const isUpdaterProp = isUpdaterId || isUpdaterName;
 
-      if (!isConsumerProp && rows[0][p] === undefined) // do not create case if prop is not in the first row
+      if (!isUpdaterProp && rows[0][p] === undefined) // do not create case if prop is not in the first row
         continue;
 
-      const colName = isConsumerUserId ? '"updaterId"' : isConsumerName ? '"updaterName"' : quoteIfUppercase(p);
+      const colName = isUpdaterId ? '"updaterId"' : isUpdaterName ? '"updaterName"' : quoteIfUppercase(p);
       const whenParts: string[] = [];
       for (let j = 0; j < l; j++) {
         whenParts.push(`WHEN id = $${j+1} THEN $${i++}`);
-        if (isConsumerUserId) args.push(consumerUserId as Filter["value"]);
-        else if (isConsumerName) args.push(consumerName as Filter["value"]);
+        if (isUpdaterId) args.push(updaterId as Filter["value"]);
+        else if (isUpdaterName) args.push(updaterName as Filter["value"]);
         else args.push(rows[j][p]);
       }
       setClauses.push(`${colName} = CASE ${whenParts.join(" ")} ELSE ${colName} END`);

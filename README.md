@@ -339,7 +339,7 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 - **query.select()**: Generates a SELECT query. When the `limit` parameter is provided (not null), pagination is automatically enabled and the query includes `COUNT(*) OVER () AS total` to return the total number of rows. The total count is extracted from results and returned separately from the row data. The `sortField` parameter is validated against the entity's known properties; an unrecognised value is silently dropped.
 - **query.insert()**: Generates an INSERT query. Accepts an array of `Row` objects with properties matching the entity definition. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.userId` as `creatorId` and `consumer.nickname` as `creatorName` for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.userId` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking.
-- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.userId` as `creatorId` and `consumer.nickname` as `creatorName` for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
+- **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.userId` as `creatorId` and `consumer.nickname` as `creatorName` on INSERT, and as `updaterId`/`updaterName` on CONFLICT UPDATE, for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.archive()**: Generates a simplified `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.userId` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
 - **delete()**: Deletes rows by their IDs. Reads ids from `req.body.rows` (array of objects with `id` property: `[{id: 1}, {id: 2}]`) if present, otherwise falls back to a single `req.params.id` (e.g. a `DELETE /resource/:id` route). Calls `next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" })` if neither is provided.
@@ -465,13 +465,13 @@ const { query, args } = entity.query.upsert(
   'RETURNING id' // return clause (optional)
 );
 // Generates:
-// INSERT INTO public.users (name, email, creatorId, name)
+// INSERT INTO public.users (name, email, "creatorId", "creatorName")
 // VALUES ($1, $2, $3, $4)
 // ON CONFLICT (id) DO UPDATE SET 
 //   name = EXCLUDED.name,
 //   email = EXCLUDED.email,
-//   creatorId = EXCLUDED.creatorId,
-//   name = EXCLUDED.name
+//   "updaterId" = EXCLUDED."creatorId",
+//   "updaterName" = EXCLUDED."creatorName"
 // RETURNING id
 ```
 

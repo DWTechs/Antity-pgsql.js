@@ -57,7 +57,7 @@ describe("upsert query function", () => {
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
     expect(query).toBe(
-      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "creatorId" = EXCLUDED."creatorId", "creatorName" = EXCLUDED."creatorName" RETURNING id'
+      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "updaterId" = EXCLUDED."creatorId", "updaterName" = EXCLUDED."creatorName" RETURNING id'
     );
     expect(args).toEqual([
       'John', 30, 'john@example.com', 1, 'consumer',
@@ -76,7 +76,7 @@ describe("upsert query function", () => {
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
     expect(query).toBe(
-      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, "creatorId" = EXCLUDED."creatorId", "creatorName" = EXCLUDED."creatorName" RETURNING id'
+      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, "updaterId" = EXCLUDED."creatorId", "updaterName" = EXCLUDED."creatorName" RETURNING id'
     );
     expect(args).toEqual([
       'John', 30, 'john@example.com', 1, 'consumer',
@@ -94,7 +94,7 @@ describe("upsert query function", () => {
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
     expect(query).toBe(
-      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (name, email) DO UPDATE SET age = EXCLUDED.age, "creatorId" = EXCLUDED."creatorId", "creatorName" = EXCLUDED."creatorName" RETURNING id'
+      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (name, email) DO UPDATE SET age = EXCLUDED.age, "updaterId" = EXCLUDED."creatorId", "updaterName" = EXCLUDED."creatorName" RETURNING id'
     );
     expect(args).toEqual([
       'John', 30, 'john@example.com', 1, 'consumer'
@@ -126,10 +126,29 @@ describe("upsert query function", () => {
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, "");
     
     expect(query).toBe(
-      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "creatorId" = EXCLUDED."creatorId", "creatorName" = EXCLUDED."creatorName"'
+      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "updaterId" = EXCLUDED."creatorId", "updaterName" = EXCLUDED."creatorName"'
     );
     expect(args).toEqual([
       'John', 30, 'john@example.com', 1, 'consumer'
+    ]);
+  });
+
+  it("should include creatorId/creatorName and keep placeholders aligned across rows when userId is 0", () => {
+    const rows = [
+      { id: 1, name: 'John', age: 30, email: 'john@example.com' },
+      { id: 2, name: 'Henry', age: 40, email: 'henry@example.com' },
+    ];
+    const conflictTarget = 'id';
+    const consumer = { userId: 0, nickname: 'consumer' };
+    const rtn = entity.query.return("id");
+    const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
+    
+    expect(query).toBe(
+      'INSERT INTO public.persons (name, age, email, "creatorId", "creatorName") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age, email = EXCLUDED.email, "updaterId" = EXCLUDED."creatorId", "updaterName" = EXCLUDED."creatorName" RETURNING id'
+    );
+    expect(args).toEqual([
+      'John', 30, 'john@example.com', 0, 'consumer',
+      'Henry', 40, 'henry@example.com', 0, 'consumer'
     ]);
   });
 
