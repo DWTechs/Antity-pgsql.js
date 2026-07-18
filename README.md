@@ -304,16 +304,12 @@ function execute(
 
 ### Middleware Methods for Express.js
 
-get(), add(), update(), upsert(), sync(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
-add(), update(), upsert(), archive() and sync() look for data to work on in the **req.body.rows** parameter (array of entities).
-
-get() does **not** use req.body.rows - it reads req.body.first, req.body.limit, req.body.sortField, req.body.sortOrder, req.body.filters and req.body.operator instead. Page size is exclusively **req.body.limit** (a number); req.body.rows is intentionally ignored by get(), since that same key means "array of entities" for every other method above and reusing it for pagination was error-prone.
-
-delete() reads req.body.rows ([{id: 1}, {id: 2}]) if present, otherwise falls back to a single req.params.id.
-
-The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
-
-The sync() method accepts an optional **req.body.idField** (defaults to `'id'`) and optional **req.body.filters** to scope which existing rows are considered part of the managed set.
+- get(), add(), update(), upsert(), sync(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
+- add(), update() and upsert() accept either **req.body.rows** (as an array of entities for bulk operations) or **req.body** itself (as a single entity).
+- archive() and sync() look for data to work on exclusively in the **req.body.rows** parameter (as an array).
+- get() reads req.body.first, req.body.limit, req.body.sortField, req.body.sortOrder, req.body.filters and req.body.operator instead. Page size is exclusively **req.body.limit** (a number); req.body.rows is intentionally ignored by get(), since that same key means "array of entities" for every other method above and reusing it for pagination was error-prone.
+- delete() reads req.body.rows ([{id: 1}, {id: 2}]) if present, otherwise falls back to a single req.params.id.- The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
+- The sync() method accepts an optional **req.body.idField** (defaults to `'id'`) and optional **req.body.filters** to scope which existing rows are considered part of the managed set.
 
 ### Schema Qualification
 
@@ -405,7 +401,6 @@ res.locals.sync  // { inserted: 1, updated: 1, deleted: 1 }
 
 - **Atomic**: All insert / update / delete operations are wrapped in a single transaction.
 - **Filter scope**: When `filters` are provided, only rows matching the filter are considered "managed". Rows outside the filter are never touched.
-- **Property selection**: Insert uses `INSERT` properties; update uses `UPDATE` properties — same as the standalone `add` and `update` middlewares.
 - **Consumer tracking**: `consumer.id` and `consumer.nickname` from `res.locals.consumer` are forwarded to inserts as `creatorId`/`creatorName` and to updates as `updaterId`/`updaterName` for audit tracking.
 
 ### Upsert (Insert or Update)
@@ -530,8 +525,6 @@ const filters = {
 };
 ```
 
-**`is` / `isNot` with `null`, `true` or `false`:** these are rendered as a SQL literal (`col IS NULL`, `col IS NOT NULL`, `col IS TRUE`, `col IS NOT FALSE`, etc.) rather than a bound parameter, since PostgreSQL's `IS` operator only accepts the `NULL`/`TRUE`/`FALSE`/`UNKNOWN` keywords - never a `$n` placeholder. These filters don't consume a placeholder index or push a value into the returned `args`. Using `is`/`isNot` with any other value type (e.g. a string or number) still generates a bound parameter, unchanged.
-
 #### Complex Format (Multiple Filters per Property)
 
 Array-based format supporting multiple filters with logical operators:
@@ -560,11 +553,67 @@ WHERE (name LIKE '%John%' OR name LIKE '%Jane%')
   AND archived = false
 ```
 
+
+#### Top-level Logical Operator
+
+By default, top-level filter properties are combined with `AND`. You can pass an optional `operator` argument to `filter()` or `query.select()` (or read from `req.body.operator` when using the `get()` middleware) to combine them with `OR` instead:
+
+```javascript
+import { filter } from "@dwtechs/antity-pgsql";
+
+const filters = {
+  name: [{ value: 'John', matchMode: 'contains' }],
+  age: [{ value: 30, matchMode: 'equals' }]
+};
+
+const result = filter(
+  0,
+  null,
+  null,
+  null,
+  filters,
+  "OR" // top-level logical operator
+);
+```
+
+This generates SQL like:
+```sql
+WHERE name LIKE '%John%' OR age = 30
+```
+
+
+#### Mixing Property-Level & Top-Level Logical Operators
+
+You can specify logical operators between conditions on the same property to build compound rules, and combine these top-level property filters with a different top-level logical operator (such as `OR`):
+
+```javascript
+import { filter } from "@dwtechs/antity-pgsql";
+
+const filters = {
+  name: [{ value: 'John', matchMode: 'equals' }],
+  nickname: [
+    { value: null, matchMode: 'is', operator: 'or' },
+    { value: 'John', matchMode: 'equals', operator: 'or' }
+  ]
+};
+
+const result = filter(
+  0,
+  null,
+  null,
+  null,
+  filters,
+  "OR" // top-level logical operator combining 'name' and 'nickname' conditions
+);
+```
+
+This generates SQL like:
+```sql
+WHERE name = $1 OR (nickname IS NULL OR nickname = $2)
+```
+
 **Notes:**
-- Both formats can be mixed in the same filters object
-- When using arrays with a single filter, the operator is optional
-- Default operator is 'AND' if not specified
-- The operator field is case-insensitive
+**`is` / `isNot` with `null`, `true` or `false`:** these are rendered as a SQL literal (`col IS NULL`, `col IS NOT NULL`, `col IS TRUE`, `col IS NOT FALSE`, etc.) rather than a bound parameter, since PostgreSQL's `IS` operator only accepts the `NULL`/`TRUE`/`FALSE`/`UNKNOWN` keywords. These filters don't consume a placeholder index or push a value into the returned `args`. Using `is`/`isNot` with any other value type (e.g. a string or number) still generates a bound parameter, unchanged.
 
 
 ## Match modes
@@ -599,18 +648,21 @@ List of possible semantic match modes :
 
 ## Types
 
-List of compatible match modes for each property types
+List of compatible match modes for each property types. 
+
 
 | Name        | Match modes             |
 | :---------- | :---------------------- | 
-| string      | startsWith,<br>contains,<br>endsWith,<br>notContains,<br>equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte |
-| number      | equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte |
+| string      | startsWith,<br>contains,<br>endsWith,<br>notContains,<br>equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte,<br>is,<br>isNot |
+| number      | equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte,<br>is,<br>isNot |
 | date        | is,<br>isNot,<br>before,<br>after |
 | boolean     | is,<br>isNot            |
 | string[]    | in                      |
 | number[]    | in,<br>between          |
 | date[]      | between                 |
 | geometry    | st_contains,<br>st_dwithin |
+
+*Note: All types support the semantic match modes `is`/`isNot` or direct comparators `IS`/`IS NOT` when querying for `null` or `not null` values.*
 
 List of secondary types : 
 
