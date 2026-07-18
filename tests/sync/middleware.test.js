@@ -95,14 +95,14 @@ describe("sync middleware", () => {
    * Creates a mock Express response object.
    *
    * @param {object} dbClient - Database client.
-   * @param {{ id?: number|string, nickname?: string }} [consumer] - Consumer object.
+   * @param {{ userId?: number|string, nickname?: string }} [consumer] - Consumer object.
    * .
    * @returns {object} Mock response object.
    */
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumer: { id: consumerId, nickname: consumerName },
+      consumer: { userId: consumerId, nickname: consumerName },
       rows: []
     }
   });
@@ -157,7 +157,7 @@ describe("sync middleware", () => {
 
     // Pass no dbClient so sync acquires one from the pool
     const req = mockRequest([]);
-    const res = { locals: { consumer: { id: 1, nickname: 'admin' }, rows: [] } };
+    const res = { locals: { consumer: { userId: 1, nickname: 'admin' }, rows: [] } };
 
     await entity.sync(req, res, mockNext);
 
@@ -177,7 +177,7 @@ describe("sync middleware", () => {
     pool.connect.mockResolvedValue(txClient);
 
     const req = mockRequest([{ id: 1, name: 'John', age: 30 }]);
-    const res = { locals: { consumer: { id: 1, nickname: 'admin' }, rows: [] } };
+    const res = { locals: { consumer: { userId: 1, nickname: 'admin' }, rows: [] } };
 
     await entity.sync(req, res, mockNext);
 

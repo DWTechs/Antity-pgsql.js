@@ -23,7 +23,7 @@ export class Insert {
    * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the data will be inserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be inserted. Each object should contain the properties matching the table columns.
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer, inserted as `creatorId` column.
+   * @param {string | number} [consumerUserId] - Optional. The ID of the consumer, inserted as `creatorId` column.
    * @param {string} [consumerName] - Optional. The name of the consumer, inserted as `creatorName` column.
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
@@ -33,7 +33,7 @@ export class Insert {
     schema: string,
     table: string, 
     rows: Row[], 
-    consumerId?: string | number,
+    consumerUserId?: string | number,
     consumerName?: string,
     rtn: string = "",
   ): { query: string, args: (Filter["value"])[] } {
@@ -42,8 +42,8 @@ export class Insert {
     let nbProps = this._nbProps;
     let cols = this._cols;
     
-    if (consumerId !== undefined && consumerName !== undefined) {
-      propsToUse.push("consumerId", "consumerName");
+    if (consumerUserId !== undefined && consumerName !== undefined) {
+      propsToUse.push("consumerUserId", "consumerName");
       nbProps += 2;
       cols += `, "creatorId", "creatorName"`;
     }
@@ -55,7 +55,7 @@ export class Insert {
     for (const row of rows) {
       valueParts.push($i(nbProps, i));
       for (const prop of propsToUse) {
-        if (prop === "consumerId") args.push(consumerId as Filter["value"]);
+        if (prop === "consumerUserId") args.push(consumerUserId as Filter["value"]);
         else if (prop === "consumerName") args.push(consumerName as Filter["value"]);
         else args.push(row[prop]); // Access using original property name
       }

@@ -49,7 +49,7 @@ describe("query function", () => {
       { id: 1 },
       { id: 2 },
     ];
-    const consumer = { id: 1, nickname: 'consumer' };
+    const consumer = { userId: 1, nickname: 'consumer' };
     const { query, args } = entity.query.archive(chunk, consumer);
     expect(query).toBe(`UPDATE public.persons SET archived = true, "updaterId" = $3, "updaterName" = $4 WHERE id IN ($1, $2)`);
     expect(args).toEqual([1, 2, 1, 'consumer']);
@@ -67,7 +67,7 @@ describe("query function", () => {
 
   it("should generate a valid SQL archive query for a single row with consumer", () => {
     const chunk = [{ id: 1 }];
-    const consumer = { id: 42, nickname: 'admin' };
+    const consumer = { userId: 42, nickname: 'admin' };
     const { query, args } = entity.query.archive(chunk, consumer);
     expect(query).toBe(`UPDATE public.persons SET archived = true, "updaterId" = $2, "updaterName" = $3 WHERE id IN ($1)`);
     expect(args).toEqual([1, 42, 'admin']);

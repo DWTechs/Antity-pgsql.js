@@ -52,7 +52,7 @@ describe("upsert query function", () => {
       { id: 2, name: 'Henry', age: 40, email: 'henry@example.com' },
     ];
     const conflictTarget = 'id';
-    const consumer = { id: 1, nickname: 'consumer' };
+    const consumer = { userId: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
@@ -71,7 +71,7 @@ describe("upsert query function", () => {
       { name: 'Henry', age: 40, email: 'henry@example.com' },
     ];
     const conflictTarget = 'email';
-    const consumer = { id: 1, nickname: 'consumer' };
+    const consumer = { userId: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
@@ -89,7 +89,7 @@ describe("upsert query function", () => {
       { name: 'John', age: 30, email: 'john@example.com' },
     ];
     const conflictTarget = ['name', 'email'];
-    const consumer = { id: 1, nickname: 'consumer' };
+    const consumer = { userId: 1, nickname: 'consumer' };
     const rtn = entity.query.return("id");
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, rtn);
     
@@ -122,7 +122,7 @@ describe("upsert query function", () => {
       { id: 1, name: 'John', age: 30, email: 'john@example.com' },
     ];
     const conflictTarget = 'id';
-    const consumer = { id: 1, nickname: 'consumer' };
+    const consumer = { userId: 1, nickname: 'consumer' };
     const { query, args } = entity.query.upsert(rows, conflictTarget, consumer, "");
     
     expect(query).toBe(

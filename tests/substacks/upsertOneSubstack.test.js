@@ -89,14 +89,14 @@ describe("upsertOneSubstack", () => {
    * Creates mock Express response object
    * 
    * @param {object} dbClient - Database client
-   * @param {{ id?: number|string, nickname?: string }} [consumer] - Consumer object
+   * @param {{ userId?: number|string, nickname?: string }} [consumer] - Consumer object
    * 
    * @returns {object} Mock response object
    */
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumer: { id: consumerId, nickname: consumerName },
+      consumer: { userId: consumerId, nickname: consumerName },
       rows: []
     }
   });

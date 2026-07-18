@@ -81,7 +81,7 @@ describe("upsert middleware", () => {
   const mockResponse = (dbClient, consumerId, consumerName) => ({
     locals: {
       dbClient,
-      consumer: { id: consumerId, nickname: consumerName },
+      consumer: { userId: consumerId, nickname: consumerName },
       rows: []
     }
   });

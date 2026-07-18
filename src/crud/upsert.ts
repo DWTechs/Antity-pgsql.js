@@ -24,7 +24,7 @@ export class Upsert {
    * @param {string} table - The name of the table where the data will be upserted.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to be upserted.
    * @param {string | string[]} conflictTarget - The column(s) that define the conflict constraint (e.g., 'id' or ['email', 'username']).
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer, inserted as `creatorId` column.
+   * @param {string | number} [consumerUserId] - Optional. The ID of the consumer, inserted as `creatorId` column.
    * @param {string} [consumerName] - Optional. The name of the consumer, inserted as `creatorName` column.
    * @param {string} [rtn] - Optional. A string to append to the query, such as a RETURNING clause. Defaults to an empty string.
    * @returns {{ query: string, args: unknown[] }} An object containing the generated SQL query string and an array of arguments to be used with the query.
@@ -49,7 +49,7 @@ export class Upsert {
     table: string, 
     rows: Row[], 
     conflictTarget: string | string[],
-    consumerId?: string | number,
+    consumerUserId?: string | number,
     consumerName?: string,
     rtn: string = "",
   ): { query: string, args: (Filter["value"])[] } {
@@ -65,8 +65,8 @@ export class Upsert {
     let nbProps = this._nbProps;
     let cols = this._cols;
     
-    if (consumerId !== undefined && consumerName !== undefined) {
-      propsToUse.push("consumerId", "consumerName");
+    if (consumerUserId !== undefined && consumerName !== undefined) {
+      propsToUse.push("consumerUserId", "consumerName");
       quotedPropsToUse.push(`"creatorId"`, `"creatorName"`);
       nbProps += 2;
       cols += `, "creatorId", "creatorName"`;
@@ -88,8 +88,8 @@ export class Upsert {
       for (const prop of this._props) {
         args.push(row[prop]);
       }
-      if (consumerId !== undefined && consumerName !== undefined) {
-        args.push(consumerId, consumerName);
+      if (consumerUserId !== undefined && consumerName !== undefined) {
+        args.push(consumerUserId, consumerName);
       }
       i += nbProps;
     }

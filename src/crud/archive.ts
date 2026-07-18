@@ -13,7 +13,7 @@ export class Archive {
    * @param {string} schema - The name of the schema.
    * @param {string} table - The name of the table where the rows will be archived.
    * @param {Record<string, any>[]} rows - An array of objects representing the rows to archive. Each object must contain an `id` property.
-   * @param {string | number} [consumerId] - Optional. The ID of the consumer, updated as `updaterId` column.
+   * @param {string | number} [consumerUserId] - Optional. The ID of the consumer, updated as `updaterId` column.
    * @param {string} [consumerName] - Optional. The name of the consumer, updated as `updaterName` column.
    * @returns {{ query: string, args: (Filter["value"])[] }} An object containing the generated SQL query string and an array of arguments.
    * @example
@@ -25,7 +25,7 @@ export class Archive {
     schema: string,
     table: string,
     rows: Row[],
-    consumerId?: string | number,
+    consumerUserId?: string | number,
     consumerName?: string
   ): { query: string, args: (Filter["value"])[] } {
 
@@ -35,9 +35,9 @@ export class Archive {
     const args: (Filter["value"])[] = rows.map(row => row.id);
     let query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET archived = true`;
 
-    if (consumerId !== undefined && consumerName !== undefined) {
+    if (consumerUserId !== undefined && consumerName !== undefined) {
       query += `, "updaterId" = $${l + 1}, "updaterName" = $${l + 2}`;
-      args.push(consumerId, consumerName);
+      args.push(consumerUserId, consumerName);
     }
 
     query += ` WHERE id IN ${$i(l, 0)}`;

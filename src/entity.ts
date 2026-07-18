@@ -219,33 +219,33 @@ export class SQLEntity extends Entity {
     },
     update: (
       rows: Row[], 
-      consumer?: { id?: number | string, nickname?: string },
+      consumer?: { userId?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
-      return this.upd.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname);
+      return this.upd.query(this.schema, this.table, rows, consumer?.userId, consumer?.nickname);
     },
     insert: (
       rows: Row[], 
-      consumer?: { id?: number | string, nickname?: string },
+      consumer?: { userId?: number | string, nickname?: string },
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
-      return this.ins.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname, rtn);
+      return this.ins.query(this.schema, this.table, rows, consumer?.userId, consumer?.nickname, rtn);
     },
     upsert: (
       rows: Row[],
       conflictTarget: string | string[],
-      consumer?: { id?: number | string, nickname?: string },
+      consumer?: { userId?: number | string, nickname?: string },
       rtn: string = ""
     ): { query: string, args: unknown[] } => {
-      return this.ups.query(this.schema, this.table, rows, conflictTarget, consumer?.id, consumer?.nickname, rtn);
+      return this.ups.query(this.schema, this.table, rows, conflictTarget, consumer?.userId, consumer?.nickname, rtn);
     },
     delete: (ids: number[]): { query: string, args: number[] } => {
       return del.queryById(this.schema, this.table, ids);
     },
     archive: (
       rows: Row[],
-      consumer?: { id?: number | string, nickname?: string },
+      consumer?: { userId?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
-      return this.arc.query(this.schema, this.table, rows, consumer?.id, consumer?.nickname);
+      return this.arc.query(this.schema, this.table, rows, consumer?.userId, consumer?.nickname);
     },
     deleteArchive: (): string => {
       return del.queryByDate();
@@ -345,7 +345,7 @@ export class SQLEntity extends Entity {
    * @param {Request} req - Express request object. Reads rows to insert from
    * `req.body.rows` (array, from addArraySubstack) or `req.body` itself
    * (single object, from addOneSubstack).
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ userId, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when all rows are inserted. Added rows with generated IDs are stored in res.locals.rows.
    * @throws {Error} If database insertion fails.
@@ -369,15 +369,15 @@ export class SQLEntity extends Entity {
       return next({ status: 400, message: "Missing rows in req.body for add operation" });
     }
     const dbClient = l.dbClient || null;
-    const cId = l.consumer?.id;
+    const cUserId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumerId=${cUserId})`);
      
     const rtn = this.ins.rtn("id");
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
+      const { query, args } = this.ins.query(this._schema, this._table, c, cUserId, cName, rtn);
       let db: PGResponse;
       try {
         db = await execute(query, args, dbClient);
@@ -400,7 +400,7 @@ export class SQLEntity extends Entity {
    * @param {Request} req - Express request object. Reads rows to update from
    * `req.body.rows` (array, from updateArraySubstack) or `req.body` itself
    * (single object, from updateOneSubstack).
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ userId, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>}
    */
@@ -411,14 +411,14 @@ export class SQLEntity extends Entity {
       return next({ status: 400, message: "Missing rows in req.body for update operation" });
     }
     const dbClient = l.dbClient || null;
-    const cId = l.consumer?.id;
+    const cUserId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}update(rows=${r.length}, consumerId=${cUserId})`);
 
     const chunks = chunk(r);
     for (const c of chunks) {
-      const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
+      const { query, args } = this.upd.query(this._schema, this._table, c, cUserId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
@@ -436,7 +436,7 @@ export class SQLEntity extends Entity {
    * @param {Request} req - Express request object. Reads rows to upsert from
    * `req.body.rows` (array, from upsertArraySubstack) or `req.body` itself
    * (single object, from upsertOneSubstack). Expects `req.body.conflictTarget`.
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ id, nickname }).
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient and consumer ({ userId, nickname }).
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when all rows are upserted. Upserted rows with IDs are stored in res.locals.rows.
    * @throws {Error} If database upsert fails or conflictTarget is missing.
@@ -458,7 +458,7 @@ export class SQLEntity extends Entity {
     const rows = this.resolveRows(req);
     const conflictTarget = req.body.conflictTarget;
     const dbClient = l.dbClient || null;
-    const cId = l.consumer?.id;
+    const cUserId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
     if (!conflictTarget) {
@@ -469,12 +469,12 @@ export class SQLEntity extends Entity {
       return next({ status: 400, message: "Missing or empty rows in req.body for upsert operation" });
     }
     
-    log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumerId=${cUserId})`);
     
     const rtn = this.ups.rtn("id");
     const chunks = chunk(rows);
     for (const c of chunks) {
-      const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cId, cName, rtn);
+      const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cUserId, cName, rtn);
       let db: PGResponse;
       try {
         db = await execute(query, args, dbClient);
@@ -495,14 +495,14 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
-    const cId = l.consumer?.id;
+    const cUserId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumerId=${cUserId})`);
 
     const chunks = chunk(r);
     for (const c of chunks) {
-      const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName);
+      const { query, args } = this.arc.query(this._schema, this._table, c, cUserId, cName);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
@@ -649,7 +649,7 @@ export class SQLEntity extends Entity {
    * Inserts new rows, updates existing rows, and deletes rows not present in the provided list.
    *
    * @param {Request} req - Express request object. Expected to contain `rows` array in req.body and optional `idField` (defaults to `'id'`).
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumerId, and consumerName.
+   * @param {Response} res - Express response object. Uses res.locals to access dbClient, consumer.userId, and consumer.nickname.
    * @param {NextFunction} next - Express next function for middleware chaining.
    * @returns {Promise<void>} Promise that resolves when the sync is complete. Synced rows are stored in res.locals.rows. A summary object { inserted, updated, deleted } is stored in res.locals.sync.
    * @throws {Error} If any database operation fails.
@@ -670,14 +670,14 @@ export class SQLEntity extends Entity {
     const l = res.locals;
     const rows = req.body.rows as Row[];
     const idField: string = req.body.idField ?? 'id';
-    const cId = l.consumer?.id;
+    const cUserId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
 
     if (!rows || !Array.isArray(rows)) {
       return next({ status: 400, message: "Missing or invalid rows array for sync operation" });
     }
 
-    log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumerId=${cUserId})`);
 
     // Build optional WHERE clause from filters to scope the sync
     const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;
@@ -708,7 +708,7 @@ export class SQLEntity extends Entity {
         const rtn = this.ins.rtn(idField);
         const chunks = chunk(toInsert);
         for (const c of chunks) {
-          const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
+          const { query, args } = this.ins.query(this._schema, this._table, c, cUserId, cName, rtn);
           const db: PGResponse = await execute(query, args, txClient);
           const r = db.rows;
           for (let i = 0; i < c.length; i++) {
@@ -721,7 +721,7 @@ export class SQLEntity extends Entity {
       if (toUpdate.length > 0) {
         const chunks = chunk(toUpdate);
         for (const c of chunks) {
-          const { query, args } = this.upd.query(this._schema, this._table, c, cId, cName);
+          const { query, args } = this.upd.query(this._schema, this._table, c, cUserId, cName);
           await execute(query, args, txClient);
         }
       }

@@ -1,3 +1,9 @@
+# 0.21.0 (July 18th 2026)
+
+- **Breaking:** rename the `id` field to `userId` in the `consumer` object across all relevant APIs:
+  - `query.update()`, `query.insert()`, `query.upsert()`, `query.archive()` now accept `consumer?: { userId?: number | string, nickname?: string }` instead of `{ id?: number | string, nickname?: string }`
+  - Express middlewares (`add`, `update`, `upsert`, `archive`, `sync`) now read `res.locals.consumer.userId` instead of `res.locals.consumer.id`
+
 # 0.20.0 (July 17th 2026)
 
 - **Breaking:** `SQLEntity.get()` no longer reads `req.body.rows` for pagination. `req.body.rows` means "array of entities to act on" everywhere else in this class (`add`, `update`, `upsert`, `delete`, `archive`, `sync`) - reusing the same key for `get()`'s page size was error-prone (e.g. a stray `rows` array left over from a different request shape could get misread as a numeric `LIMIT`, producing invalid SQL). Page size is now exclusively `req.body.limit` (a number). Callers relying on `{ rows: <number> }` for pagination must switch to `{ limit: <number> }`.
