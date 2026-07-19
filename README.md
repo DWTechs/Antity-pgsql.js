@@ -182,8 +182,11 @@ type Filters = {
   [key: string]: Filter | Filter[]; // Supports both simple (object) and complex (array) formats
 }
 
+// Any scalar value that can be bound as a query parameter or stored in a row/column.
+type SqlValue = string | number | boolean | Date | number[] | null;
+
 type Filter = {
-  value: string | number | boolean | Date | number[] | null;
+  value: SqlValue;
   matchMode?: MatchMode; // semantic mode or direct SQL comparator
   operator?: string; // 'and' | 'or' - Used when multiple filters apply to the same property
 }
@@ -235,7 +238,7 @@ class SQLEntity {
       sortOrder?: "ASC" | "DESC" | null,
       filters?: Filters | null) => {
         query: string;
-        args: (Filter["value"])[];
+        args: SqlValue[];
       },
       operator?: LogicalOperator;
     update: (
@@ -291,11 +294,11 @@ function filter(
   sortOrder: Sort | null,
   filters: Filters | null,
   operator?: LogicalOperator,
-): { filterClause: string, args: (Filter["value"])[] };
+): { filterClause: string, args: SqlValue[] };
 
 function execute(
   query: string, 
-  args: (string | number | boolean | Date | number[])[], 
+  args: SqlValue[], 
   client: PGClient | null,
 ): Promise<PGResponse>;
 

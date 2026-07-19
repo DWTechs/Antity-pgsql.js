@@ -1,8 +1,8 @@
 import { log } from "@dwtechs/winstan";
 import { LOGS_PREFIX } from "../constants";
-import type { Filter, PGResponse } from "../types";
+import type { SqlValue, PGResponse } from "../types";
 
-function start(query: string, args: (Filter["value"])[]): number {
+function start(query: string, args: SqlValue[]): number {
   log.debug(() => {
     const a = JSON.stringify(args);
     const q = query.replace(/[\n\r]+/g, "").replace(/\s{2,}/g, " ");

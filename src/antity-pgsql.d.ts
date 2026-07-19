@@ -7,8 +7,10 @@ export type Sort = "ASC" | "DESC";
 export type Filters = {
   [key: string]: Filter | Filter[];
 };
+// Any scalar value that can be bound as a query parameter or stored in a row/column.
+export type SqlValue = string | number | boolean | Date | number[] | null;
 export type Filter = {
-  value: string | number | boolean | Date | number[] | null;
+  value: SqlValue;
   matchMode?: MatchMode;
   operator?: string;
 };
@@ -48,7 +50,7 @@ export type Geometry = {
     maxLat: number;
   };
 };
-export type Row = Record<string, Filter["value"]>;
+export type Row = Record<string, SqlValue>;
 
 export type PGClient = {
   query(text: string, values?: unknown[]): Promise<PGResponse>;
@@ -114,7 +116,7 @@ export declare class SQLEntity extends Entity {
       operator?: LogicalOperator,
     ) => {
       query: string;
-      args: (Filter["value"])[];
+      args: SqlValue[];
     };
     
     update: (
@@ -180,11 +182,11 @@ export declare function filter(
   sortOrder: Sort | null,
   filters: Filters | null,
   operator?: LogicalOperator,
-): { filterClause: string, args: (Filter["value"])[] };
+): { filterClause: string, args: SqlValue[] };
   
 export declare function execute(
   query: string, 
-  args: (string | number | boolean | Date | number[])[], 
+  args: SqlValue[], 
   client: PGClient | null
 ): Promise<PGResponse>;
 

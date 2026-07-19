@@ -2,7 +2,7 @@ import { isArray, isString } from "@dwtechs/checkard";
 import { execute as exe } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, Filter, Row, PGClient } from "../types";
+import type { PGResponse, SqlValue, Row, PGClient } from "../types";
 
 export class Upsert {
 
@@ -53,7 +53,7 @@ export class Upsert {
     userId?: string | number,
     userName?: string,
     rtn: string = "",
-  ): { query: string, args: (Filter["value"])[] } {
+  ): { query: string, args: SqlValue[] } {
     if (!isArray(conflictTarget, '!0') && !isString(conflictTarget, '!0'))
       throw new Error('conflictTarget must be provided for upsert operation');
 
@@ -73,7 +73,7 @@ export class Upsert {
     
     // Start building the query
     let query = `INSERT INTO ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} (${cols}) VALUES `;
-    const args: (Filter["value"])[] = [];
+    const args: SqlValue[] = [];
     let i = 0;
     
     // Add all rows to the VALUES clause
@@ -122,7 +122,7 @@ export class Upsert {
 
   public execute(
     query: string,
-    args: (Filter["value"])[],
+    args: SqlValue[],
     client: PGClient | null): Promise<PGResponse> {
     
     return exe( query, args, client );

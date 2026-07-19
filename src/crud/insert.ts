@@ -1,7 +1,7 @@
 import { execute as exe  } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, Filter, Row, PGClient } from "../types";
+import type { PGResponse, SqlValue, Row, PGClient } from "../types";
 
 export class Insert {
 
@@ -36,7 +36,7 @@ export class Insert {
     creatorId?: string | number,
     creatorName?: string,
     rtn: string = "",
-  ): { query: string, args: (Filter["value"])[] } {
+  ): { query: string, args: SqlValue[] } {
     // Augment base props template with consumer fields if provided
     const propsToUse = [...this._props]; // Original names for data access
     let nbProps = this._nbProps;
@@ -48,15 +48,15 @@ export class Insert {
       cols += `, "creatorId", "creatorName"`;
     }
     
-    const args: (Filter["value"])[] = [];
+    const args: SqlValue[] = [];
     const valueParts: string[] = [];
     let i = 0;
     
     for (const row of rows) {
       valueParts.push($i(nbProps, i));
       for (const prop of propsToUse) {
-        if (prop === "creatorId") args.push(creatorId as Filter["value"]);
-        else if (prop === "creatorName") args.push(creatorName as Filter["value"]);
+        if (prop === "creatorId") args.push(creatorId as SqlValue);
+        else if (prop === "creatorName") args.push(creatorName as SqlValue);
         else args.push(row[prop]); // Access using original property name
       }
       i += nbProps;
@@ -74,7 +74,7 @@ export class Insert {
 
   public execute(
     query: string,
-    args: (Filter["value"])[],
+    args: SqlValue[],
     client: PGClient | null): Promise<PGResponse> {
     
     return exe( query, args, client );

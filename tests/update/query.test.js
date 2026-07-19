@@ -181,4 +181,42 @@ describe("query function", () => {
     ]);
   });
 
+  it("should still include a column when only the LAST row provides it, and leave other rows' column untouched", () => {
+    const chunk = [
+      { id: 1, name: 'John' },
+      { id: 2, name: 'Henry' },
+      { id: 3, name: 'test', age: 25 },
+    ];
+    const { query, args } = entity.query.update(chunk);
+    expect(query).toBe(`UPDATE public.persons SET name = CASE WHEN id = $1 THEN $4 WHEN id = $2 THEN $5 WHEN id = $3 THEN $6 ELSE name END, age = CASE WHEN id = $3 THEN $7 ELSE age END WHERE id IN ($1, $2, $3)`);
+    expect(args).toEqual([
+      1, 2, 3, 'John', 'Henry', 'test', 25
+    ]);
+  });
+
+  it("should still include a column when only the FIRST row provides it (regression, previously the only working case)", () => {
+    const chunk = [
+      { id: 1, name: 'John', age: 30 },
+      { id: 2, name: 'Henry' },
+    ];
+    const { query, args } = entity.query.update(chunk);
+    expect(query).toBe(`UPDATE public.persons SET name = CASE WHEN id = $1 THEN $3 WHEN id = $2 THEN $4 ELSE name END, age = CASE WHEN id = $1 THEN $5 ELSE age END WHERE id IN ($1, $2)`);
+    expect(args).toEqual([
+      1, 2, 'John', 'Henry', 30
+    ]);
+  });
+
+  it("should handle two different sparse props each provided by a different subset of rows", () => {
+    const chunk = [
+      { id: 1, age: 30 },
+      { id: 2, name: 'Henry' },
+      { id: 3, name: 'test', age: 25 },
+    ];
+    const { query, args } = entity.query.update(chunk);
+    expect(query).toBe(`UPDATE public.persons SET name = CASE WHEN id = $2 THEN $4 WHEN id = $3 THEN $5 ELSE name END, age = CASE WHEN id = $1 THEN $6 WHEN id = $3 THEN $7 ELSE age END WHERE id IN ($1, $2, $3)`);
+    expect(args).toEqual([
+      1, 2, 3, 'Henry', 'test', 30, 25
+    ]);
+  });
+
 });

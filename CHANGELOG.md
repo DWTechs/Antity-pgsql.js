@@ -1,3 +1,8 @@
+# 0.21.1 (July 19th 2026)
+
+- Improve `query.update()` dropping a column from the whole batch whenever the first row didn't provide it, even if other rows in the same batch did (e.g. rows sent with only the properties that actually changed). The column-inclusion check now looks across all rows instead of only `rows[0]`, and rows that omit a given property keep their current database value for that column instead of being forced to `NULL`.
+- Add exported `SqlValue` type (`string | number | boolean | Date | number[] | null`) representing any scalar value usable as a query parameter or row/column value. Replaces the internal/public `Filter["value"]` pattern used across `query.select()`, `query.update()`, `query.insert()`, `query.upsert()`, `query.archive()`, `filter()` and `execute()`. Also fixes `execute()`'s public declaration, which previously omitted `null` from its inline argument type.
+
 # 0.21.0 (July 18th 2026)
 
 - **Breaking:** rename the `id` field to `userId` in the `consumer` object across all relevant APIs:
@@ -9,7 +14,7 @@
 
 - **Breaking:** `SQLEntity.get()` no longer reads `req.body.rows` for pagination. `req.body.rows` means "array of entities to act on" everywhere else in this class (`add`, `update`, `upsert`, `delete`, `archive`, `sync`) - reusing the same key for `get()`'s page size was error-prone (e.g. a stray `rows` array left over from a different request shape could get misread as a numeric `LIMIT`, producing invalid SQL). Page size is now exclusively `req.body.limit` (a number). Callers relying on `{ rows: <number> }` for pagination must switch to `{ limit: <number> }`.
 - Renamed the internal/public `rows` parameter to `limit` in `Select.query()`, the exported `filter()` function, and `SQLEntity.query.select()` for clarity, matching the `req.body.limit` field name above.
-- Fix `addOneSubstack`/`updateOneSubstack`/`upsertOneSubstack`: `normalizeOne`/`validateOne` (from `@dwtechs/antity`) operate directly on `req.body` as the single entity object with no `rows` wrapper, but `add()`/`update()`/`upsert()` unconditionally read `req.body.rows`, which doesn't exist in that shape - calling any `*OneSubstack` crashed (`rows.map`/`chunk` on `undefined`). Added a `resolveRows()` helper so `add()`/`update()`/`upsert()` now accept either `req.body.rows` (array, Array substacks) or `req.body` itself (single object, One substacks), and return a clean `400` instead of crashing when neither shape is present or `req.body.rows` is an invalid (non-array) value.
+- Improve `addOneSubstack`/`updateOneSubstack`/`upsertOneSubstack`: `normalizeOne`/`validateOne` (from `@dwtechs/antity`) operate directly on `req.body` as the single entity object with no `rows` wrapper, but `add()`/`update()`/`upsert()` unconditionally read `req.body.rows`, which doesn't exist in that shape - calling any `*OneSubstack` crashed (`rows.map`/`chunk` on `undefined`). Added a `resolveRows()` helper so `add()`/`update()`/`upsert()` now accept either `req.body.rows` (array, Array substacks) or `req.body` itself (single object, One substacks), and return a clean `400` instead of crashing when neither shape is present or `req.body.rows` is an invalid (non-array) value.
 
 # 0.19.1 (July 16th 2026)
 

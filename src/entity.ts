@@ -16,7 +16,7 @@ import { execute } from "./crud/execute";
 import pool from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, SelectResponse, Filters, Filter, Operation, Row, LogicalOperator } from "./types";
+import type { PGResponse, SelectResponse, Filters, SqlValue, Operation, Row, LogicalOperator } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
@@ -213,7 +213,7 @@ export class SQLEntity extends Entity {
       sortOrder: "ASC" | "DESC" | null = null,
       filters: Filters | null = null,
       operator: LogicalOperator = "AND",
-    ): { query: string, args: (Filter["value"])[] } => {
+    ): { query: string, args: SqlValue[] } => {
       const validatedSortField = sortField && this.properties.some(p => p.key === sortField) ? sortField : null;
       return this.sel.query(this.schema, this.table, first, limit, validatedSortField, sortOrder, filters, operator);
     },
@@ -725,7 +725,7 @@ export class SQLEntity extends Entity {
 
       // DELETE removed rows (scoped to the same filter)
       if (idsToDelete.length > 0) {
-        const deleteArgs: (Filter["value"])[] = [idsToDelete, ...filterArgs];
+        const deleteArgs: SqlValue[] = [idsToDelete, ...filterArgs];
         const scopedWhere = conditions.length
           ? ` AND ${conditions.map(c => c.replace(/\$(\d+)/g, (_: string, n: string) => `$${parseInt(n) + 1}`)).join(' AND ')}`
           : '';

@@ -1,6 +1,6 @@
 import { addConditions } from "./condition";
 import { quoteIfUppercase } from "../crud/quote";
-import type { Filters, Filter, Sort, LogicalOperator } from "../types";
+import type { Filters, SqlValue, Sort, LogicalOperator } from "../types";
 
 function filter(
   first: number,
@@ -9,7 +9,7 @@ function filter(
   sortOrder: Sort | null,
   filters: Filters | null,
   operator: LogicalOperator = "AND",
-): { filterClause: string, args: (Filter["value"])[] } {
+): { filterClause: string, args: SqlValue[] } {
   
   const { conditions, args } = addConditions(filters);
   const filterClause = 

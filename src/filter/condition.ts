@@ -1,15 +1,15 @@
 import { mapIndexes } from "./map/index";
 import { mapComparator } from "./map/comparator";
 import { quoteIfUppercase } from "../crud/quote";
-import type { MatchMode, Filters, Filter } from "../types";
+import type { MatchMode, Filters, SqlValue } from "../types";
 import { isArray, isString } from "@dwtechs/checkard";
 
 /**
  * Formats a value by adding wildcards based on match mode.
  *
- * @param {Filter["value"]} value - The value to format.
+ * @param {SqlValue} value - The value to format.
  * @param {MatchMode | undefined} matchMode - The mode of matching to be applied.
- * @returns {Filter["value"]} The formatted value with wildcards if applicable.
+ * @returns {SqlValue} The formatted value with wildcards if applicable.
  * @example
  * // Returns "abc%"
  * formatValue("abc", "startsWith");
@@ -20,7 +20,7 @@ import { isArray, isString } from "@dwtechs/checkard";
  * // Returns "%abc%"
  * formatValue("abc", "contains");
  */
-function formatValue(value: Filter["value"], matchMode: MatchMode | undefined): Filter["value"] {
+function formatValue(value: SqlValue, matchMode: MatchMode | undefined): SqlValue {
   if (!isString(value))
     return value;
   
@@ -40,7 +40,7 @@ function formatValue(value: Filter["value"], matchMode: MatchMode | undefined): 
 /**
  * Checks if a filter value should be skipped (empty or null).
  *
- * @param {Filter["value"]} value - The value to check.
+ * @param {SqlValue} value - The value to check.
  * @param {MatchMode | undefined} matchMode - The mode of matching to be applied.
  * @returns {boolean} True if the value should be skipped, false otherwise.
  * @example
@@ -53,7 +53,7 @@ function formatValue(value: Filter["value"], matchMode: MatchMode | undefined): 
  * // Returns false (null is allowed for IS/IS NOT)
  * shouldSkipValue(null, 'is');
  */
-function shouldSkipValue(value: Filter["value"], matchMode: MatchMode | undefined): boolean {
+function shouldSkipValue(value: SqlValue, matchMode: MatchMode | undefined): boolean {
   // Empty strings should be skipped
   if (isString(value, "0"))
     return true;
@@ -70,10 +70,10 @@ function shouldSkipValue(value: Filter["value"], matchMode: MatchMode | undefine
 }
 
 function add(filters: Filters | null ): 
-  { conditions: string[], args: (Filter["value"])[] } 
+  { conditions: string[], args: SqlValue[] } 
 {
   const conditions: string[] = [];
-  const args: (Filter["value"])[] = [];
+  const args: SqlValue[] = [];
   if (filters) {
     let i = 1;
     for (const k in filters) {
@@ -147,7 +147,7 @@ function isIsMatchMode(matchMode: MatchMode | undefined): boolean {
  * Checks whether a value must be rendered as a SQL literal (NULL/TRUE/FALSE)
  * when used with the IS / IS NOT comparator, instead of a bind parameter.
  *
- * @param {Filter["value"]} value - The value to check.
+ * @param {SqlValue} value - The value to check.
  * @returns {boolean} True if value is null, true or false.
  * @example
  * // Returns true
@@ -159,7 +159,7 @@ function isIsMatchMode(matchMode: MatchMode | undefined): boolean {
  * // Returns false
  * isIsLiteralValue("John");
  */
-function isIsLiteralValue(value: Filter["value"]): value is boolean | null {
+function isIsLiteralValue(value: SqlValue): value is boolean | null {
   return value === null || value === true || value === false;
 }
 

@@ -7,8 +7,11 @@ export type Filters = {
   [key: string]: Filter | Filter[];
 }
 
+// Any scalar value that can be bound as a query parameter or stored in a row/column.
+export type SqlValue = string | number | boolean | Date | number[] | null;
+
 export type Filter = {
-  value: string | number | boolean | Date | number[] | null;
+  value: SqlValue;
   matchMode?: MatchMode;
   operator?: string;
 }
@@ -68,7 +71,7 @@ export type Geometry = {
   } 
 };
 
-export type Row = Record<string, Filter["value"]>;
+export type Row = Record<string, SqlValue>;
 
 export type PGClient = {
   query(text: string, values?: unknown[]): Promise<PGResponse>;
