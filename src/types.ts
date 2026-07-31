@@ -52,6 +52,10 @@ export type MatchMode =
   "isNot" |
   "before" |
   "after" |
+  "dateIs" |
+  "dateIsNot" |
+  "dateBefore" |
+  "dateAfter" |
   "st_contains" |
   "st_dwithin" |
   Comparator;

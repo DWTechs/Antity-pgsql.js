@@ -41,6 +41,11 @@ describe('cleanFilters', () => {
       type: 'array',
       isFilterable: true,
     },
+    {
+      key: 'date',
+      type: 'date',
+      isFilterable: true,
+    },
   ];
 
   it('should validate filters with array structure', () => {
@@ -351,6 +356,67 @@ describe('cleanFilters', () => {
       };
       const result = cleanFilters(filters, mockProperties);
       expect(result.tags).toBeUndefined();
+    });
+  });
+
+  // Tests for date type match modes (including PrimeReact-style aliases)
+  describe('date type match modes', () => {
+    it('should accept "is" and "isNot" for a date property', () => {
+      const filters = {
+        date: [{ value: '2025-05-01', matchMode: 'is' }],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({
+        date: [{ value: '2025-05-01', matchMode: 'is' }],
+      });
+    });
+
+    it('should accept "before" and "after" for a date property', () => {
+      const filters = {
+        date: [
+          { value: '2025-05-01', matchMode: 'before', operator: 'and' },
+          { value: '2025-06-01', matchMode: 'after', operator: 'and' },
+        ],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({
+        date: [
+          { value: '2025-05-01', matchMode: 'before', operator: 'and' },
+          { value: '2025-06-01', matchMode: 'after', operator: 'and' },
+        ],
+      });
+    });
+
+    it('should accept "dateIs" and "dateIsNot" as aliases for a date property', () => {
+      const filters = { date: [{ value: '2025-05-01', matchMode: 'dateIs' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ date: [{ value: '2025-05-01', matchMode: 'dateIs' }] });
+
+      const filtersNot = { date: [{ value: '2025-05-01', matchMode: 'dateIsNot' }] };
+      const resultNot = cleanFilters(filtersNot, mockProperties);
+      expect(resultNot).toEqual({ date: [{ value: '2025-05-01', matchMode: 'dateIsNot' }] });
+    });
+
+    it('should accept "dateBefore" and "dateAfter" as aliases for a date property', () => {
+      const filters = {
+        date: [
+          { value: '2025-05-01', matchMode: 'dateAfter', operator: 'and' },
+          { value: '2025-06-01', matchMode: 'dateBefore', operator: 'and' },
+        ],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({
+        date: [
+          { value: '2025-05-01', matchMode: 'dateAfter', operator: 'and' },
+          { value: '2025-06-01', matchMode: 'dateBefore', operator: 'and' },
+        ],
+      });
+    });
+
+    it('should reject an invalid matchMode for a date property', () => {
+      const filters = { date: [{ value: '2025-05-01', matchMode: 'contains' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.date).toBeUndefined();
     });
   });
 });

@@ -37,7 +37,7 @@ export declare class Property extends BaseProperty {
 
 export type LogicalOperator = "AND" | "OR";
 export type Comparator = "=" | "<" | ">" | "<=" | ">=" | "<>" | "IS" | "IS NOT" | "IN" | "NOT IN" | "LIKE" | "NOT LIKE" | "&&";
-export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" | "equals" | "notEquals" | "between" | "in" | "notIn" | "&&" | "lt" | "lte" | "gt" | "gte" | "is" | "isNot" | "before" | "after" | "st_contains" | "st_dwithin" | Comparator;
+export type MatchMode = "startsWith" | "endsWith" | "contains" | "notContains" | "equals" | "notEquals" | "between" | "in" | "notIn" | "&&" | "lt" | "lte" | "gt" | "gte" | "is" | "isNot" | "before" | "after" | "dateIs" | "dateIsNot" | "dateBefore" | "dateAfter" | "st_contains" | "st_dwithin" | Comparator;
 export type MappedType = "string" | "number" | "date" | "array";
 export type Geometry = {
   lng: number;

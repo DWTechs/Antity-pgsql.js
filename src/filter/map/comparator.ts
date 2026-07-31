@@ -40,12 +40,16 @@ function comparator(matchMode: MatchMode | undefined): Comparator| null {
     case "gte":
       return ">=";
     case "is":
+    case "dateIs":
       return "IS";
     case "isNot":
+    case "dateIsNot":
       return "IS NOT";
     case "before":
+    case "dateBefore":
       return "<";
     case "after":
+    case "dateAfter":
       return ">";
     case "&&":
       return "&&";

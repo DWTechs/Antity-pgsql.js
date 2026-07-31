@@ -4,7 +4,7 @@ import { COMPARATORS } from "./filter/map/comparator";
 const matchModes = {
   string: new Set(["startsWith", "contains", "endsWith", "notContains", "equals", "notEquals", "lt", "lte", "gt", "gte", "in", "notIn"]),
   number: new Set(["equals", "notEquals", "lt", "lte", "gt", "gte", "in", "notIn"]),
-  date: new Set(["is", "isNot", "dateAfter"]),
+  date: new Set(["is", "isNot", "before", "after", "dateIs", "dateIsNot", "dateBefore", "dateAfter"]),
   array: new Set(["&&"]),
 };
 

@@ -645,6 +645,10 @@ List of possible semantic match modes :
 | isNot	      |       | date \| boolean \| null | Whether the value does not equal the filter value, alias to notEquals. Renders as an `IS NOT` literal (`IS NOT NULL` / `IS NOT TRUE` / `IS NOT FALSE`) when value is `null`, `true` or `false` |
 | before      |       | date                    | Whether the date value is before the filter date |
 | after	      |       | date                    | Whether the date value is after the filter date |
+| dateIs      | is    | date                    | Alias of `is` for date fields |
+| dateIsNot   | isNot | date                    | Alias of `isNot` for date fields |
+| dateBefore  | before| date                    | Alias of `before` for date fields |
+| dateAfter   | after | date                    | Alias of `after` for date fields |
 | between     |       | date[2] \| number[2]    | Whether the value is between the filter values | 
 | st_contains |       | geometry                | Whether the geometry completely contains other geometries |
 | st_dwithin  |       | geometry                | Whether geometries are within a specified distance from another geometry |
@@ -658,7 +662,7 @@ List of compatible match modes for each property types.
 | :---------- | :---------------------- | 
 | string      | startsWith,<br>contains,<br>endsWith,<br>notContains,<br>equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte,<br>is,<br>isNot |
 | number      | equals,<br>notEquals,<br>in,<br>notIn,<br>lt,<br>lte,<br>gt,<br>gte,<br>is,<br>isNot |
-| date        | is,<br>isNot,<br>before,<br>after |
+| date        | is,<br>isNot,<br>before,<br>after,<br>dateIs,<br>dateIsNot,<br>dateBefore,<br>dateAfter |
 | boolean     | is,<br>isNot            |
 | string[]    | in                      |
 | number[]    | in,<br>between          |

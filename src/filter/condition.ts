@@ -140,7 +140,9 @@ function add(filters: Filters | null ):
  * isIsMatchMode("equals");
  */
 function isIsMatchMode(matchMode: MatchMode | undefined): boolean {
-  return matchMode === 'is' || matchMode === 'isNot' || matchMode === 'IS' || matchMode === 'IS NOT';
+  return matchMode === 'is' || matchMode === 'isNot' ||
+         matchMode === 'dateIs' || matchMode === 'dateIsNot' ||
+         matchMode === 'IS' || matchMode === 'IS NOT';
 }
 
 /**

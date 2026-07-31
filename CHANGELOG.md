@@ -1,3 +1,7 @@
+# 0.21.2 (July 29st 2026)
+
+- Add support for PrimeReact-style date filter match modes (`dateIs`, `dateIsNot`, `dateBefore`, `dateAfter`) as semantic aliases for `is`, `isNot`, `before`, `after` on `date`-typed properties.
+
 # 0.21.1 (July 19th 2026)
 
 - Improve `query.update()` dropping a column from the whole batch whenever the first row didn't provide it, even if other rows in the same batch did (e.g. rows sent with only the properties that actually changed). The column-inclusion check now looks across all rows instead of only `rows[0]`, and rows that omit a given property keep their current database value for that column instead of being forced to `NULL`.

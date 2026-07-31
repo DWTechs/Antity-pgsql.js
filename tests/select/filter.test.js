@@ -227,6 +227,74 @@ describe('filter - simple format (backward compatibility)', () => {
         expect(args).toEqual(['John', 30]);
     });
 
+    it("should generate correct SQL filter clause and arguments for filters = {date: { value: '2025-05-01', matchMode: 'dateBefore' }};", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            date: { value: '2025-05-01', matchMode: 'dateBefore' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE date < $1 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['2025-05-01']);
+    });
+
+    it("should generate correct SQL filter clause and arguments for filters = {date: { value: '2025-06-01', matchMode: 'dateAfter' }};", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            date: { value: '2025-06-01', matchMode: 'dateAfter' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE date > $1 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['2025-06-01']);
+    });
+
+    it("should generate correct SQL filter clause and arguments for filters = {date: { value: '2025-05-01', matchMode: 'dateIs' }};", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            date: { value: '2025-05-01', matchMode: 'dateIs' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE date IS $1 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['2025-05-01']);
+    });
+
+    it("should generate correct SQL filter clause and arguments for filters = {date: { value: '2025-05-01', matchMode: 'dateIsNot' }};", () => {
+        const first = 0;
+        const rows = 10;
+        const sortField = 'name';
+        const sortOrder = 'ASC';
+        const filters = {
+            date: { value: '2025-05-01', matchMode: 'dateIsNot' },
+        };
+
+        const { filterClause, args } = filter(first, rows, sortField, sortOrder, filters);
+
+        expect(filterClause).toBe(
+            ' WHERE date IS NOT $1 ORDER BY name ASC LIMIT 10 OFFSET 0'
+        );
+        expect(args).toEqual(['2025-05-01']);
+    });
+
     it('should handle empty filters and return only pagination and sorting', () => {
         const first = 5;
         const rows = 20;
