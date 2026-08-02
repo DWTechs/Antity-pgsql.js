@@ -128,7 +128,7 @@ export declare class SQLEntity extends Entity {
     };
     
     archive: (
-      rows: Row[],
+      rows: (Row | SqlValue)[],
       consumer?: { userId?: number | string, nickname?: string }
     ) => {
       query: string;

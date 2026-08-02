@@ -273,4 +273,145 @@ describe("get middleware", () => {
     const [sql] = dbClient.query.mock.calls[0];
     expect(sql).toContain('name = $1 AND age = $2');
   });
+
+  it("should compute total and strip it from rows when limit is provided", async () => {
+    const rows = [
+      { id: 1, name: 'John', age: 30, total: '2' },
+      { id: 2, name: 'Jane', age: 25, total: '2' },
+    ];
+    const dbClient = mockDbClient(rows);
+    const res = mockResponse(dbClient);
+
+    entity.get(mockRequest({ limit: 10 }), res, mockNext);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(res.locals.total).toBe(2);
+    expect(res.locals.rows[0]).not.toHaveProperty('total');
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  describe("cleanFilters edge cases", () => {
+    const entityWithExtraProps = new SQLEntity('items', [
+      {
+        key: 'name',
+        type: 'string',
+        min: 1,
+        max: 255,
+        isTypeChecked: true,
+        isFilterable: true,
+        requiredFor: [],
+        operations: ['SELECT'],
+        isPrivate: false,
+        sanitizer: null,
+        normalizer: null,
+        validator: null
+      },
+      {
+        key: 'secret',
+        type: 'string',
+        min: 1,
+        max: 255,
+        isTypeChecked: true,
+        isFilterable: false,
+        requiredFor: [],
+        operations: ['SELECT'],
+        isPrivate: false,
+        sanitizer: null,
+        normalizer: null,
+        validator: null
+      },
+      {
+        key: 'tags',
+        type: 'array',
+        min: 0,
+        max: 100,
+        isTypeChecked: true,
+        isFilterable: true,
+        requiredFor: [],
+        operations: ['SELECT'],
+        isPrivate: false,
+        sanitizer: null,
+        normalizer: null,
+        validator: null
+      }
+    ]);
+
+    it("should drop filters for an unknown property", async () => {
+      const dbClient = mockDbClient([{ name: 'John' }]);
+      const res = mockResponse(dbClient);
+
+      entityWithExtraProps.get(mockRequest({ filters: {
+        unknownProp: { value: 'x', matchMode: 'equals' },
+      } }), res, mockNext);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const [sql] = dbClient.query.mock.calls[0];
+      expect(sql).not.toContain('WHERE');
+    });
+
+    it("should drop filters for a non-filterable property", async () => {
+      const dbClient = mockDbClient([{ name: 'John' }]);
+      const res = mockResponse(dbClient);
+
+      entityWithExtraProps.get(mockRequest({ filters: {
+        secret: { value: 'x', matchMode: 'equals' },
+      } }), res, mockNext);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const [sql] = dbClient.query.mock.calls[0];
+      expect(sql).not.toContain('WHERE');
+    });
+
+    it("should drop a filter with an invalid match mode for the property type", async () => {
+      const dbClient = mockDbClient([{ name: 'John' }]);
+      const res = mockResponse(dbClient);
+
+      entityWithExtraProps.get(mockRequest({ filters: {
+        name: { value: 'John', matchMode: 'before' },
+      } }), res, mockNext);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const [sql] = dbClient.query.mock.calls[0];
+      expect(sql).not.toContain('WHERE');
+    });
+
+    it("should convert 'in' match mode to '&&' for array-typed properties", async () => {
+      const dbClient = mockDbClient([{ name: 'John' }]);
+      const res = mockResponse(dbClient);
+
+      entityWithExtraProps.get(mockRequest({ filters: {
+        tags: { value: ['a', 'b'], matchMode: 'in' },
+      } }), res, mockNext);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const [sql] = dbClient.query.mock.calls[0];
+      expect(sql).toContain('tags &&');
+    });
+
+    it("should cast an array filter of floats to numeric[]", async () => {
+      const dbClient = mockDbClient([{ name: 'John' }]);
+      const res = mockResponse(dbClient);
+
+      entityWithExtraProps.get(mockRequest({ filters: {
+        tags: { value: [1.5, 2.5], matchMode: '&&' },
+      } }), res, mockNext);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const [sql] = dbClient.query.mock.calls[0];
+      expect(sql).toContain('::numeric[]');
+    });
+
+    it("should cast an array filter of booleans to boolean[]", async () => {
+      const dbClient = mockDbClient([{ name: 'John' }]);
+      const res = mockResponse(dbClient);
+
+      entityWithExtraProps.get(mockRequest({ filters: {
+        tags: { value: [true, false], matchMode: '&&' },
+      } }), res, mockNext);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const [sql] = dbClient.query.mock.calls[0];
+      expect(sql).toContain('::boolean[]');
+    });
+  });
 });

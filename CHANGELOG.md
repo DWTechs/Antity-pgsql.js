@@ -1,3 +1,7 @@
+# 0.21.3 (August 1st 2026)
+
+- `archive()` functions now accept `rows` as either an array of plain ids (e.g. `[1, 2]`) or an array of `Row` objects (`[{ id: 1 }, { id: 2 }]`).
+
 # 0.21.2 (July 29st 2026)
 
 - Add support for PrimeReact-style date filter match modes (`dateIs`, `dateIsNot`, `dateBefore`, `dateAfter`) as semantic aliases for `is`, `isNot`, `before`, `after` on `date`-typed properties.

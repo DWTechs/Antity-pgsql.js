@@ -51,8 +51,6 @@ function comparator(matchMode: MatchMode | undefined): Comparator| null {
     case "after":
     case "dateAfter":
       return ">";
-    case "&&":
-      return "&&";
     default:
       return null;
   }

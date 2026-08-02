@@ -15,10 +15,6 @@ export class Select {
     this._cols = this._props.join(", ");
   }
 
-  public get props(): string {
-    return this._cols;
-  }
-
   public query(
     schema: string,
     table: string,

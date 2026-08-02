@@ -1,7 +1,6 @@
-import { execute as exe } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, SqlValue, Row, PGClient } from "../types";
+import type { SqlValue, Row } from "../types";
 import { log } from "@dwtechs/winstan";
 import { LOGS_PREFIX } from "../constants";
 
@@ -74,13 +73,4 @@ export class Update {
     const query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET ${setClauses.join(", ")} WHERE id IN ${$i(l, 0)}`;
     return { query, args };
   } 
-
-  public async execute(
-    query: string,
-    args: SqlValue[],
-    client: PGClient | null): Promise<PGResponse> {
-    
-    return exe( query, args, client );
-    
-  }
 };

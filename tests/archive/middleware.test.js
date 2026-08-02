@@ -204,4 +204,28 @@ describe("archive middleware", () => {
     const [[error]] = mockNext.mock.calls;
     expect(error.constructor.name).toBe('AggregateError');
   });
+
+  it("should accept rows as a plain array of ids", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest([1, 2]);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.archive(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args).toContain(1);
+    expect(args).toContain(2);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should call next(error) when rows are missing from req.body", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest(undefined);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.archive(req, res, mockNext);
+
+    expect(dbClient.query).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith({ status: 400, message: "Missing rows in req.body for archive operation" });
+  });
 });

@@ -80,4 +80,11 @@ describe("query function", () => {
     expect(args).toEqual([5]);
   });
 
+  it("should generate a valid SQL archive query from a plain array of ids", () => {
+    const consumer = { userId: 1, nickname: 'consumer' };
+    const { query, args } = entity.query.archive([1, 2], consumer);
+    expect(query).toBe(`UPDATE public.persons SET archived = true, "updaterId" = $3, "updaterName" = $4 WHERE id IN ($1, $2)`);
+    expect(args).toEqual([1, 2, 1, 'consumer']);
+  });
+
 });

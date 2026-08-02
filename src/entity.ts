@@ -242,7 +242,7 @@ export class SQLEntity extends Entity {
       return del.queryById(this.schema, this.table, ids);
     },
     archive: (
-      rows: Row[],
+      rows: (Row | SqlValue)[],
       consumer?: { userId?: number | string, nickname?: string },
     ): { query: string, args: unknown[] } => {
       return this.arc.query(this.schema, this.table, rows, consumer?.userId, consumer?.nickname);
@@ -364,18 +364,18 @@ export class SQLEntity extends Entity {
    */
   public add = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows = this.resolveRows(req);
-    if (!rows || rows.length === 0) {
+    const r = this.resolveRows(req);
+    if (!r || !isArray(r, '!0'))
       return next({ status: 400, message: "Missing rows in req.body for add operation" });
-    }
+
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    log.debug(() => `${LOGS_PREFIX}addMany(rows=${rows.length}, consumer=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}addMany(rows=${r.length}, consumer=${cId})`);
      
     const rtn = this.ins.rtn("id");
-    const chunks = chunk(rows);
+    const chunks = chunk(r);
     for (const c of chunks) {
       const { query, args } = this.ins.query(this._schema, this._table, c, cId, cName, rtn);
       let db: PGResponse;
@@ -385,9 +385,9 @@ export class SQLEntity extends Entity {
         return next(err);
       }
       // add new id to new rows
-      const r = db.rows;
+      const dbr = db.rows;
       for (let i = 0; i < c.length; i++) {
-        c[i].id = r[i].id;
+        c[i].id = dbr[i].id;
       }
     }
     l.rows = flatten(chunks);
@@ -407,7 +407,7 @@ export class SQLEntity extends Entity {
   public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const r = this.resolveRows(req);
-    if (!r || r.length === 0)
+    if (!r || !isArray(r, '!0'))
       return next({ status: 400, message: "Missing rows in req.body for update operation" });
     
     const dbClient = l.dbClient || null;
@@ -455,24 +455,22 @@ export class SQLEntity extends Entity {
    */
   public upsert = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows = this.resolveRows(req);
+    const r = this.resolveRows(req);
     const conflictTarget = req.body.conflictTarget;
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
     
-    if (!conflictTarget) {
+    if (!conflictTarget)
       return next({ status: 400, message: "Missing conflictTarget for upsert operation" });
-    }
     
-    if (!rows || rows.length === 0) {
+    if (!r || !isArray(r, '!0'))
       return next({ status: 400, message: "Missing or empty rows in req.body for upsert operation" });
-    }
     
-    log.debug(() => `${LOGS_PREFIX}upsert(rows=${rows.length}, conflictTarget=${conflictTarget}, consumer=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}upsert(rows=${r.length}, conflictTarget=${conflictTarget}, consumer=${cId})`);
     
     const rtn = this.ups.rtn("id");
-    const chunks = chunk(rows);
+    const chunks = chunk(r);
     for (const c of chunks) {
       const { query, args } = this.ups.query(this._schema, this._table, c, conflictTarget, cId, cName, rtn);
       let db: PGResponse;
@@ -482,9 +480,9 @@ export class SQLEntity extends Entity {
         return next(err);
       }
       // update ids in rows
-      const r = db.rows;
+      const dbr = db.rows;
       for (let i = 0; i < c.length; i++) {
-        c[i].id = r[i].id;
+        c[i].id = dbr[i].id;
       }
     }
     l.rows = flatten(chunks);
@@ -493,11 +491,14 @@ export class SQLEntity extends Entity {
 
   public archive = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => { 
     const l = res.locals;
-    const r = req.body.rows; // list of ids [{id: 1}, {id: 2}]
+    const r = req.body.rows; // list of ids: [1, 2] or [{id: 1}, {id: 2}]
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
-    
+
+    if (!r || !isArray(r, '!0'))
+      return next({ status: 400, message: "Missing rows in req.body for archive operation" });
+
     log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumer=${cId})`);
 
     const chunks = chunk(r);
@@ -539,15 +540,15 @@ export class SQLEntity extends Entity {
    * });
    */
   public delete = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
-    const rows = req.body?.rows ?? (req.params?.id ? [{ id: req.params.id }] : null);
+    const r = req.body?.rows ?? (req.params?.id ? [{ id: req.params.id }] : null);
 
-    if (!rows || !Array.isArray(rows) || rows.length === 0)
+    if (!r || !isArray(r, '!0'))
       return next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" });
 
     const dbClient = res.locals.dbClient || null;
-    const ids = rows.map((row: Record<string, unknown>) => row.id as number);
+    const ids = r.map((r: unknown) => (r as Record<string, unknown>).id as number);
     
-    log.debug(() => `${LOGS_PREFIX}delete ${rows.length} rows : (${ids.join(", ")})`);
+    log.debug(() => `${LOGS_PREFIX}delete ${r.length} rows : (${ids.join(", ")})`);
     
     const { query, args } = del.queryById(this._schema, this._table, ids);
     
@@ -632,9 +633,9 @@ export class SQLEntity extends Entity {
     execute(sql, [this._schema, this._table, id], dbClient)
       .then((r: PGResponse) => {
         const { rowCount, rows } = r;
-        if (!rowCount) {
+        if (!rowCount)
           return next({ status: 404, message: "History not found" });
-        }
+
         res.locals.history = rows;
         res.locals.total = rowCount;
         next();
@@ -666,15 +667,15 @@ export class SQLEntity extends Entity {
    */
   public sync = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
-    const rows = req.body.rows as Row[];
+    const r = req.body.rows as Row[];
     const idField: string = req.body.idField ?? 'id';
     const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
 
-    if (!rows || !Array.isArray(rows))
+    if (!r || !isArray(r) || !isString(idField, '!0'))
       return next({ status: 400, message: "Missing or invalid rows array for sync operation" });
 
-    log.debug(() => `${LOGS_PREFIX}sync(rows=${rows.length}, idField=${idField}, consumer=${cId})`);
+    log.debug(() => `${LOGS_PREFIX}sync(rows=${r.length}, idField=${idField}, consumer=${cId})`);
 
     // Build optional WHERE clause from filters to scope the sync
     const cleanedFilters = cleanFilters(req.body.filters, this.properties) || null;
@@ -694,10 +695,10 @@ export class SQLEntity extends Entity {
       const existingDb: PGResponse = await execute(selectIdQuery, filterArgs, txClient);
 
       const existingIds = new Set(existingDb.rows.map(r => r[idField]));
-      const incomingIds = new Set(rows.filter(r => r[idField] != null).map(r => r[idField]));
+      const incomingIds = new Set(r.filter(r => r[idField] != null).map(r => r[idField]));
 
-      toInsert = rows.filter(r => r[idField] == null || !existingIds.has(r[idField]));
-      toUpdate = rows.filter(r => r[idField] != null && existingIds.has(r[idField]));
+      toInsert = r.filter(r => r[idField] == null || !existingIds.has(r[idField]));
+      toUpdate = r.filter(r => r[idField] != null && existingIds.has(r[idField]));
       idsToDelete = ([...existingIds] as number[]).filter(id => !incomingIds.has(id));
 
       // INSERT new rows
@@ -742,7 +743,7 @@ export class SQLEntity extends Entity {
       if (!l.dbClient) txClient.release();
     }
 
-    l.rows = rows;
+    l.rows = r;
     l.sync = { inserted: toInsert.length, updated: toUpdate.length, deleted: idsToDelete.length };
     next();
   }

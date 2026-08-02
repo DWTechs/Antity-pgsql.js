@@ -304,4 +304,15 @@ describe("add method", () => {
     expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
     expect(dbClient.query).not.toHaveBeenCalled();
   });
+
+  it("should call next with 400 when req.body is not an object", async () => {
+    const dbClient = mockDbClient([]);
+    const req = { body: null };
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.add(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(dbClient.query).not.toHaveBeenCalled();
+  });
 });

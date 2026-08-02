@@ -1,7 +1,6 @@
-import { execute as exe  } from "./execute";
 import { $i } from "./i";
 import { quoteIfUppercase } from "./quote";
-import type { PGResponse, SqlValue, Row, PGClient } from "../types";
+import type { SqlValue, Row } from "../types";
 
 export class Insert {
 
@@ -70,15 +69,6 @@ export class Insert {
 
   public rtn(prop: string): string {
     return `RETURNING ${quoteIfUppercase(prop)}`;
-  }
-
-  public execute(
-    query: string,
-    args: SqlValue[],
-    client: PGClient | null): Promise<PGResponse> {
-    
-    return exe( query, args, client );
-
   }
 
 };
