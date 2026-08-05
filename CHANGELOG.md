@@ -1,3 +1,7 @@
+# 0.21.3 (August 3rd 2026)
+
+- Update @dwtechs/antity dependencies to version 0.18.3
+
 # 0.21.3 (August 1st 2026)
 
 - `archive()` functions now accept `rows` as either an array of plain ids (e.g. `[1, 2]`) or an array of `Row` objects (`[{ id: 1 }, { id: 2 }]`).
