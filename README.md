@@ -7,6 +7,7 @@
 - [Synopsis](#synopsis)
 - [Support](#support)
 - [Installation](#installation)
+- [Configuration](#configuration)
 - [Usage](#usage)
 - [API Reference](#api-reference)
 - [Contributors](#contributors)
@@ -30,6 +31,37 @@
 ```bash
 $ npm i @dwtechs/antity-pgsql
 ```
+
+
+
+## Configuration
+
+Antity-pgsql reads its PostgreSQL connection details from the process environment.
+Set these variables in your service's environment before opening any connection:
+
+| Variable  | Required | Default | Description                 |
+| --------- | -------- | ------- | --------------------------- |
+| `DB_HOST` | yes      | —       | PostgreSQL server hostname  |
+| `DB_USER` | yes      | —       | PostgreSQL user             |
+| `DB_PWD`  | yes      | —       | PostgreSQL user password    |
+| `DB_NAME` | yes      | —       | PostgreSQL database name    |
+| `DB_PORT` | no       | `5432`  | PostgreSQL server port      |
+| `DB_MAX`  | no       | `10`    | Maximum pool connections    |
+
+### Connection Pool
+
+Since 0.22.0, the underlying [pg-pool](https://www.npmjs.com/package/pg-pool)
+client is initialized **lazily** — it is opened on the first call to `execute()`
+or `SQLEntity.query.sync()`, not at module import.
+
+- Consumers that only use the query-builder surface (`SQLEntity.query.select`,
+  `filter`) without ever executing a query never open a socket.
+- Combined with `"sideEffects": false`, the library is fully tree-shakable and
+  safe to import at boot without side effects.
+- Boot sequences that call `execute()` inside `Promise.all([...init()])` will
+  surface connection failures through that promise. Pair it with
+  [`@dwtechs/servpico-express`](https://www.npmjs.com/package/@dwtechs/servpico-express)'s
+  `failFast` helper for a clean exit.
 
 
 
