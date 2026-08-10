@@ -1,4 +1,4 @@
-# 0.22.0 (August 10th 2026)
+# 0.22.0 (August 9th 2026)
 
 - **Lazy pool initialization.** `pool.ts` no longer eagerly constructs the
   pg-pool at module import. The pool is now created on the first call to
