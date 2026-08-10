@@ -1,12 +1,13 @@
 {
   "name": "@dwtechs/antity-pgsql",
-  "version": "0.21.4",
+  "version": "0.22.0",
   "description": "Open source library to add PostgreSQL support to @dwtechs/Antity entities.",
   "keywords": [
     "entities"
   ],
   "homepage": "https://github.com/DWTechs/Antity-pgsql.js",
   "type": "module",
+  "sideEffects": false,
   "main": "dist/antity-pgsql.js",
   "types": "dist/antity-pgsql.d.ts",
   "exports": {
@@ -35,6 +36,9 @@
   "files": [
     "dist/"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">= 22"
   },
@@ -43,7 +47,7 @@
     "@dwtechs/winstan": "0.7.1",
     "@dwtechs/antity": "0.18.3",
     "@dwtechs/sparray": "0.2.1",
-    "pg": "8.20.0"
+    "pg": "8.23.0"
   },
   "devDependencies": {
     "@babel/core": "7.26.0",

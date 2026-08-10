@@ -40,6 +40,7 @@ export type MatchMode =
   "notContains" |
   "equals" |
   "notEquals" |
+  "!=" |
   "between" |
   "in" |
   "notIn" |

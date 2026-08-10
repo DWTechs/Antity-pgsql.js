@@ -26,6 +26,7 @@ function comparator(matchMode: MatchMode | undefined): Comparator| null {
     case "equals": 
       return "=";
     case "notEquals":
+    case "!=":
       return "<>";
     case "in":
       return "IN";

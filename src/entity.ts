@@ -13,7 +13,7 @@ import { quoteIfUppercase } from "./crud/quote";
 import { cleanFilters } from "./filter/clean";
 import { addConditions } from "./filter/condition";
 import { execute } from "./crud/execute";
-import pool from "./pool";
+import { getPool } from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
 import type { PGResponse, SelectResponse, Filters, SqlValue, Operation, Row, LogicalOperator } from "./types";
@@ -683,7 +683,7 @@ export class SQLEntity extends Entity {
     const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
 
     // Acquire a dedicated client for the transaction
-    const txClient = l.dbClient || await pool.connect();
+    const txClient = l.dbClient || await getPool().connect();
     let toInsert: Row[] = [];
     let toUpdate: Row[] = [];
     let idsToDelete: number[] = [];
@@ -771,8 +771,8 @@ export class SQLEntity extends Entity {
     }
     
     // Properties with both INSERT and UPDATE are automatically included in UPSERT
-    if (hasInsert && hasUpdate) {
+    if (hasInsert && hasUpdate)
       this.ups.addProp(key);
-    }
+    
   }
 }

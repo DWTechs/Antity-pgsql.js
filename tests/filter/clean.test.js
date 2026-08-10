@@ -359,6 +359,39 @@ describe('cleanFilters', () => {
     });
   });
 
+  // Tests for the "!=" alias (semantic input that normalizes to "<>" in mapComparator)
+  describe('"!=" alias for "<>"', () => {
+    it('should accept "!=" as a valid matchMode for a string property', () => {
+      const filters = { name: [{ value: 'admin', matchMode: '!=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: 'admin', matchMode: '!=' }] });
+    });
+
+    it('should accept "!=" as a valid matchMode for a number property', () => {
+      const filters = { age: [{ value: 18, matchMode: '!=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ age: [{ value: 18, matchMode: '!=' }] });
+    });
+
+    it('should accept "!=" for a boolean property (boolean falls through to string type)', () => {
+      const filters = { archived: [{ value: false, matchMode: '!=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ archived: [{ value: false, matchMode: '!=' }] });
+    });
+
+    it('should reject "!=" for a date property (use isNot/dateIsNot instead)', () => {
+      const filters = { date: [{ value: '2025-05-01', matchMode: '!=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.date).toBeUndefined();
+    });
+
+    it('should reject "!=" for an array property (only && is valid)', () => {
+      const filters = { tags: [{ value: [1, 2], matchMode: '!=' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.tags).toBeUndefined();
+    });
+  });
+
   // Tests for date type match modes (including PrimeReact-style aliases)
   describe('date type match modes', () => {
     it('should accept "is" and "isNot" for a date property', () => {

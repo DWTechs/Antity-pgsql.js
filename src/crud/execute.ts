@@ -1,10 +1,10 @@
-import pool from "../pool";
+import { getPool } from "../pool";
 import perf from "./perf";
 import type { SqlValue, PGClient, PGResponse } from "../types";
 
 function execute(query: string, args: SqlValue[], clt: PGClient | null): Promise<PGResponse> {
   const time = perf.start(query, args);
-  const client = clt || pool;
+  const client = clt || getPool();
   
   return client
     .query(query, args)

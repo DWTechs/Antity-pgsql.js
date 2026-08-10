@@ -16,6 +16,7 @@ describe('mapComparator', () => {
       ['notContains', 'NOT LIKE'],
       ['equals', '='],
       ['notEquals', '<>'],
+      ['!=', '<>'],
       ['in', 'IN'],
       ['notIn', 'NOT IN'],
       ['lt', '<'],
