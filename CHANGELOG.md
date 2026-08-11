@@ -2,29 +2,19 @@
 
 - **Lazy pool initialization.** `pool.ts` no longer eagerly constructs the
   pg-pool at module import. The pool is now created on the first call to
-  `execute()` or `SQLEntity.query.sync()` (the only two paths that actually
-  need a live database connection). Behavior for correctly-configured
-  consumers is unchanged — env vars are still captured at module load, only
-  the `new Pool(...)` call itself is deferred.
-- **Fixes zombie boot on init failure.** Prior to 0.22.0, importing this
-  library eagerly opened a pg-pool handle that kept Node's event loop alive
-  indefinitely. A consumer whose `Promise.all([...init()])` rejected before
-  `listen()` would log its "cannot start" message and then hang instead of
-  exiting — because the pool's open handles blocked event-loop drain and
-  no signal handler was registered on the boot path. Boot-failure paths are
+  `execute()` or `SQLEntity.query.sync()`. The `new Pool(...)` call is deferred.
+- **Fixes zombie boot on init failure.** Prior to 0.22.0, the library eagerly
+  opened a pg-pool handle that kept Node's event loop alive indefinitely. 
+  In case of issue the service could log a "cannot start" message then hang 
+  instead of exiting — because the pool's open handles blocked event-loop drain
+  and no signal handler was registered on the boot path. Boot-failure paths are
   now free of antity-pgsql-attributable handles, so `process.exitCode = 1`
   strategies work again. Consumers using `@dwtechs/servpico-express` should
   continue to prefer `.catch(failFast)` for the explicit exit + stderr flush.
 - **Declares `sideEffects: false`.** Now that module load is genuinely
-  side-effect-free, bundlers (webpack, rollup, esbuild, Vite) can tree-shake
-  unused exports. Consumers that only use the query-*builder* surface
-  (`SQLEntity.query.select`, `filter`) without ever calling `execute()`
-  never construct a pool at all.
-- Internal-only refactor: `pool.ts` now exports a named `getPool()` function
-  instead of a default `Pool` instance. `execute()` and `entity.ts`'s
-  transactional client path (`SQLEntity.query.sync`) updated accordingly.
-  No change to the public API (`SQLEntity`, `filter`, `execute` exports
-  unchanged) — this refactor is fully transparent to consumers.
+  side-effect-free, bundlers can tree-shake unused exports. Consumers that only
+  use the query-*builder* surface (`SQLEntity.query.select`, `filter`) without
+  ever calling `execute()` never construct a pool at all.
 
 # 0.21.5 (August 8th 2026)
 
