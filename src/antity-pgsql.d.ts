@@ -165,6 +165,14 @@ export declare class SQLEntity extends Entity {
   };
   
   get(req: Request, res: Response, next: NextFunction): void;
+  /**
+   * Loads active (non-archived) rows for an in-memory cache warm-up.
+   * Always ANDs `archived IS FALSE`; caller filters are merged on top.
+   */
+  getCache(
+    filters?: Filters | null,
+    client?: PGClient | null,
+  ): Promise<Record<string, unknown>[]>;
   add(req: Request, res: Response, next: NextFunction): Promise<void>;
   update(req: Request, res: Response, next: NextFunction): Promise<void>;
   upsert(req: Request, res: Response, next: NextFunction): Promise<void>;

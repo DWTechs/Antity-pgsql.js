@@ -16,7 +16,7 @@ import { execute } from "./crud/execute";
 import { getPool } from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, SelectResponse, Filters, SqlValue, Operation, Row, LogicalOperator } from "./types";
+import type { PGResponse, SelectResponse, Filters, SqlValue, Operation, Row, LogicalOperator, PGClient } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
@@ -305,6 +305,64 @@ export class SQLEntity extends Entity {
         next();
       })
       .catch((err: Error) => next(err));
+  }
+
+  /**
+   * Loads active rows for an in-memory cache warm-up.
+   *
+   * Always excludes archived rows (`archived IS FALSE`). Extra filters from
+   * the caller are merged on top; a caller-supplied `archived` filter is
+   * overwritten — a cache of soft-deleted rows is never the intent.
+   *
+   * Unlike `get()`, an empty result returns `[]` instead of a 404. There is
+   * no LIMIT; rows are ordered by `id ASC`.
+   *
+   * @param {Filters | null} [filters=null] - Optional extra filters to AND with the archived exclusion
+   * @param {PGClient | null} [client=null] - Optional client; defaults to the pool
+   * @returns {Promise<Record<string, unknown>[]>} Matching active rows, possibly empty
+   * @throws {Error} If the entity has no filterable `archived` property
+   *
+   * @example
+   * const rows = await routeEntity.getCache();
+   * const rows = await routeEntity.getCache({ serviceId: { value: 3, matchMode: "equals" } });
+   */
+  public getCache = (
+    filters: Filters | null = null,
+    client: PGClient | null = null,
+  ): Promise<Record<string, unknown>[]> => {
+    if (!this.properties.some((p) => p.key === "archived" && p.isFilterable))
+      throw new Error(
+        `${LOGS_PREFIX}getCache requires a filterable "archived" property on entity "${this.table}"`,
+      );
+
+    // Force the soft-delete exclusion after spreading caller filters so a
+    // mistaken archived:true cannot sneak archived rows into the cache.
+    const merged: Filters = {
+      ...(filters ?? {}),
+      archived: { value: false, matchMode: "IS" },
+    };
+
+    const sortField = this.properties.some((p) => p.key === "id")
+      ? "id"
+      : null;
+
+    log.debug(
+      () =>
+        `${LOGS_PREFIX}getCache(filters=${JSON.stringify(merged)})`,
+    );
+
+    // first=0 / limit=null → no LIMIT; use execute() directly so an empty
+    // table resolves to [] instead of Select.execute's 404.
+    const { query, args } = this.sel.query(
+      this._schema,
+      this._table,
+      0,
+      null,
+      sortField,
+      "ASC",
+      merged,
+    );
+    return execute(query, args, client).then((r: PGResponse) => r.rows);
   }
 
   /**

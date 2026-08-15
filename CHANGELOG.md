@@ -1,3 +1,12 @@
+# 0.23.0 (August 13th 2026)
+
+- **`SQLEntity.getCache()`.** Boot-time / cache-warmup helper that selects every
+  active row (`archived IS FALSE`, no `LIMIT`, ordered by `id ASC`) and returns
+  `[]` when nothing matches. Extra caller filters are merged on top; a
+  caller-supplied `archived` filter is overwritten so soft-deleted rows cannot
+  enter the cache. Requires a filterable `archived` property on the entity.
+  Unlike `get()`, an empty table is not treated as a 404.
+
 # 0.22.0 (August 9th 2026)
 
 - **Lazy pool initialization.** `pool.ts` no longer eagerly constructs the
