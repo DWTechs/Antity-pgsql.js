@@ -59,7 +59,7 @@ import { LOGS_PREFIX } from '../constants';
 function cleanFilters(filters: Filters, properties: Property[]): Filters {
   for (const k in filters) {
     if (filters.hasOwnProperty(k)) {
-      const prop = properties.find(p => (p as any).key === k);
+      const prop = properties.find(p => p.key === k);
       if (!prop) {
         log.warn(() => `${LOGS_PREFIX}Filters: skipping unknown property: ${k}`);
         delete filters[k];
@@ -70,18 +70,16 @@ function cleanFilters(filters: Filters, properties: Property[]): Filters {
         delete filters[k];
         continue;
       }
-      const type = map.type((prop as any).type); // transform from entity type to valid sql filter type
+      const type = map.type(prop.type); // transform from entity type to valid sql filter type
       
       // Normalize to array format (handle both old and new formats)
       const filterValue = filters[k];
       const filterArray = isArray(filterValue) ? filterValue : [filterValue];
       // For array-typed columns, translate the user-facing "in" matchMode to the
       // PostgreSQL array overlap operator "&&", which generates: column && ARRAY[$1,$2]
-      if (type === "array") {
-        for (const f of filterArray) {
-          if (f.matchMode === "in") f.matchMode = "&&";
-        }
-      }
+      if (type === "array")
+        for (const f of filterArray)
+          if (f.matchMode === "in" && isArray(f.value)) f.matchMode = "&&";
       
       // Validate each filter in the array
       const validFilters = filterArray.filter((f) => {

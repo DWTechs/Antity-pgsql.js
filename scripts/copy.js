@@ -7,7 +7,7 @@ const src     = `${rel}build/`;
 const dest    = `${rel}dist/`; 
 const files   = [
   {
-    src:  `${rel}src/antity-pgsql.d.ts`,
+    src:  `${src}antity-pgsql.d.ts`,
     dest: `${dest}antity-pgsql.d.ts`
   },
   {

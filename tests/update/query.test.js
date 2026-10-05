@@ -219,4 +219,17 @@ describe("query function", () => {
     ]);
   });
 
+  it("should throw when rows is empty, instead of generating an invalid CASE with no WHEN clause", () => {
+    expect(() => entity.query.update([], 1, 'admin')).toThrow(
+      'rows must not be empty for update operation'
+    );
+  });
+
+  it("should throw when every row omits every tracked property and no consumer is provided, instead of generating 'SET  WHERE'", () => {
+    const chunk = [{ id: 1 }];
+    expect(() => entity.query.update(chunk)).toThrow(
+      'no columns to update'
+    );
+  });
+
 });

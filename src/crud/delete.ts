@@ -26,14 +26,13 @@ function queryById(schema: string, table: string, ids: number[]): { query: strin
  * 
  * @param {string} schema - The name of the schema.
  * @param {string} table - The name of the table to delete from.
- * @returns {string} SQL query string.
- * 
+ * @returns {string} SQL query string, parameterized: $1=schema, $2=table, $3=date threshold.
+ *
  * @example
- * const query = queryArchived('public', 'users');
+ * const query = queryByDate();
  * // Returns: 'SELECT hard_delete($1, $2, $3)'
  */
 function queryByDate(): string {
-  // SELECT hard_delete('public', 'route', NOW() - INTERVAL '1 year')
   return `SELECT hard_delete($1, $2, $3)`;
 }
 
@@ -49,7 +48,7 @@ function queryByDate(): string {
  * @throws {Error} If the database operation fails.
  * 
  * @example
- * const query = queryArchived('public', 'users');
+ * const query = queryByDate();
  * await executeArchived('public', 'users', new Date('2025-01-01'), query, dbClient);
  */
 async function executeArchived(

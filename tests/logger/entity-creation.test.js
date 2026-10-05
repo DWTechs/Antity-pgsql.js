@@ -178,10 +178,10 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = log.info.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call =>
         call[0].includes('Entity Summary:')
       );
-      
+
       expect(summaryCall[0]).toContain('├─ Property Details:');
       expect(summaryCall[0]).toContain('├─ email:');
       expect(summaryCall[0]).toContain('├─ Type: string');
@@ -189,7 +189,72 @@ describe('Logger - Entity Creation Tests', () => {
       expect(summaryCall[0]).toContain('├─ RequiredFor: POST,PUT');
       expect(summaryCall[0]).toContain('├─ IsTypeChecked: true');
       expect(summaryCall[0]).toContain('├─ IsFilterable: true');
-      expect(summaryCall[0]).toContain('├─ Validate: undefined');
+      expect(summaryCall[0]).toContain('├─ Validate: null');
+    });
+
+    test('should include IsReadOnly in property details', () => {
+      const entityName = 'users';
+      const properties = [
+        {
+          key: 'createdAt',
+          type: 'date',
+          isTypeChecked: false,
+          isFilterable: false,
+          requiredFor: [],
+          operations: ['SELECT', 'INSERT'],
+          isPrivate: false,
+          readOnly: true
+        },
+        {
+          key: 'name',
+          type: 'string',
+          isTypeChecked: false,
+          isFilterable: true,
+          requiredFor: ['POST'],
+          operations: ['SELECT', 'INSERT', 'UPDATE'],
+          isPrivate: false,
+          readOnly: false
+        }
+      ];
+
+      new SQLEntity(entityName, properties);
+
+      const summaryCall = log.info.mock.calls.find(call =>
+        call[0].includes('Entity Summary:')
+      );
+
+      expect(summaryCall[0]).toContain('├─ createdAt:');
+      expect(summaryCall[0]).toContain('├─ IsReadOnly: true');
+      expect(summaryCall[0]).toContain('├─ name:');
+      expect(summaryCall[0]).toContain('├─ IsReadOnly: false');
+    });
+
+    test('should reflect a real sanitizer/normalizer/validator, not just their presence', () => {
+      const entityName = 'users';
+      const validator = (v) => v >= 18;
+      const properties = [
+        {
+          key: 'age',
+          type: 'integer',
+          isTypeChecked: true,
+          requiredFor: [],
+          operations: ['SELECT'],
+          isPrivate: false,
+          sanitizer: (v) => v,
+          normalizer: (v) => v,
+          validator,
+        }
+      ];
+
+      new SQLEntity(entityName, properties);
+
+      const summaryCall = log.info.mock.calls.find(call =>
+        call[0].includes('Entity Summary:')
+      );
+
+      expect(summaryCall[0]).toContain(`├─ Sanitize: ${(v) => v}`);
+      expect(summaryCall[0]).toContain(`├─ Normalize: ${(v) => v}`);
+      expect(summaryCall[0]).toContain(`├─ Validate: ${validator}`);
     });
 
     test('should include CRUD mappings in summary', () => {
@@ -353,13 +418,13 @@ describe('Logger - Entity Creation Tests', () => {
       expect(summaryCall[0]).toContain('├─ Total Properties: 1');
     });
 
-    test('should handle property without constraints', () => {
+    test('should handle property without constraints, showing its actual defaulted min/max/validator (not raw undefined)', () => {
       const entityName = 'logs';
       const properties = [
         {
           key: 'message',
           type: 'string',
-          requiredFor: ['POST'], 
+          requiredFor: ['POST'],
           operations: ['SELECT', 'INSERT'],
           isPrivate: false,
           isTypeChecked: false
@@ -368,14 +433,14 @@ describe('Logger - Entity Creation Tests', () => {
 
       new SQLEntity(entityName, properties);
 
-      const summaryCall = log.info.mock.calls.find(call => 
+      const summaryCall = log.info.mock.calls.find(call =>
         call[0].includes('Entity Summary:')
       );
-      
+
       expect(summaryCall[0]).toContain('RequiredFor: POST');
-      expect(summaryCall[0]).toContain('Validate: undefined');
-      expect(summaryCall[0]).toContain('Min: undefined');
-      expect(summaryCall[0]).toContain('Max: undefined');
+      expect(summaryCall[0]).toContain('Validate: null');
+      expect(summaryCall[0]).toContain('Min: 0');
+      expect(summaryCall[0]).toContain('Max: 999999999');
     });
   });
 });

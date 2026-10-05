@@ -61,8 +61,7 @@ export type MatchMode =
   "st_dwithin" |
   Comparator;
 
-
-export type MappedType = "string" | "number" | "date" | "array";
+export type MappedType = "string" | "number" | "date" | "array" | "boolean";
 
 export type Geometry = { 
   lng: number,

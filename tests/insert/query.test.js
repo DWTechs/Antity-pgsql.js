@@ -142,4 +142,10 @@ describe("query function", () => {
     ]);
   });
 
+  it("should throw when rows is empty, instead of generating a query with no values clause", () => {
+    expect(() => entity.query.insert([])).toThrow(
+      'rows must not be empty for insert operation'
+    );
+  });
+
 });

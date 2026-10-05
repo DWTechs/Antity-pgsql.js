@@ -14,9 +14,11 @@ function type(type: Type): MappedType {
   const n = "number";
   const d = "date";
   switch (type) {
-    case "integer": 
+    case "number":
       return n;
-    case "float": 
+    case "integer":
+      return n;
+    case "float":
       return n;
     case "even": 
       return n;
@@ -64,6 +66,8 @@ function type(type: Type): MappedType {
       return s;
     case "array":
       return "array";
+    case "boolean":
+      return "boolean";
     default:
       return s;
   }

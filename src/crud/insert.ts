@@ -36,6 +36,9 @@ export class Insert {
     creatorName?: string,
     rtn: string = "",
   ): { query: string, args: SqlValue[] } {
+    if (!rows.length)
+      throw new Error('rows must not be empty for insert operation');
+
     // Augment base props template with consumer fields if provided
     const propsToUse = [...this._props]; // Original names for data access
     let nbProps = this._nbProps;

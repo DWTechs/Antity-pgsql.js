@@ -33,11 +33,13 @@ describe('type', () => {
     });
   });
 
-  describe('unrecognized types', () => {
-    it('should default to "string" for an unrecognized type', () => {
-      expect(type('boolean')).toBe('string');
+  describe('type mapped to "boolean"', () => {
+    it('should map "boolean" to "boolean"', () => {
+      expect(type('boolean')).toBe('boolean');
     });
+  });
 
+  describe('unrecognized types', () => {
     it('should default to "string" for an undefined type', () => {
       expect(type(undefined)).toBe('string');
     });

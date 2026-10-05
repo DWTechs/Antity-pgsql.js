@@ -202,7 +202,7 @@ type MatchMode =
   "equals" |
   "notEquals" |
   "!=" |
-  "between" |
+  "between" | // reserved for future use — not yet enforced by check.matchMode()
   "in" |
   "notIn" |
   "&&" | // array overlap — use with array-typed columns; generates: column && ARRAY[$1,$2]
@@ -214,8 +214,8 @@ type MatchMode =
   "isNot" |
   "before" |
   "after" |
-  "st_contains" |
-  "st_dwithin" |
+  "st_contains" | // reserved for future use — not yet enforced by check.matchMode()
+  "st_dwithin" |  // reserved for future use — not yet enforced by check.matchMode()
   Comparator; // direct SQL comparators are also accepted
 
 
@@ -712,17 +712,14 @@ List of possible semantic match modes :
 | lte         |           | string | number       | Whether the value is less than or equals to the filter value                                                                                                                                   |
 | gt          |           | string | number       | Whether the value is greater than the filter value                                                                                                                                             |
 | gte         |           | string | number       | Whether the value is greater than or equals to the filter value                                                                                                                                |
-| is          |           | date | boolean | null | Whether the value equals the filter value, alias to equals. Renders as an `IS` literal (`IS NULL` / `IS TRUE` / `IS FALSE`) when value is `null`, `true` or `false`                            |
-| isNot       |           | date | boolean | null | Whether the value does not equal the filter value, alias to notEquals. Renders as an `IS NOT` literal (`IS NOT NULL` / `IS NOT TRUE` / `IS NOT FALSE`) when value is `null`, `true` or `false` |
+| is          |           | string | number | date | boolean | null | Whether the value equals the filter value, alias to equals. Renders as an `IS` literal (`IS NULL` / `IS TRUE` / `IS FALSE`) when value is `null`, `true` or `false`                            |
+| isNot       |           | string | number | date | boolean | null | Whether the value does not equal the filter value, alias to notEquals. Renders as an `IS NOT` literal (`IS NOT NULL` / `IS NOT TRUE` / `IS NOT FALSE`) when value is `null`, `true` or `false` |
 | before      |           | date                  | Whether the date value is before the filter date                                                                                                                                               |
 | after       |           | date                  | Whether the date value is after the filter date                                                                                                                                                |
 | dateIs      | is        | date                  | Alias of `is` for date fields                                                                                                                                                                  |
 | dateIsNot   | isNot     | date                  | Alias of `isNot` for date fields                                                                                                                                                               |
 | dateBefore  | before    | date                  | Alias of `before` for date fields                                                                                                                                                              |
 | dateAfter   | after     | date                  | Alias of `after` for date fields                                                                                                                                                               |
-| between     |           | date[2] | number[2]   | Whether the value is between the filter values                                                                                                                                                 |
-| st_contains |           | geometry              | Whether the geometry completely contains other geometries                                                                                                                                      |
-| st_dwithin  |           | geometry              | Whether geometries are within a specified distance from another geometry                                                                                                                       |
 
 
 
@@ -738,10 +735,7 @@ List of compatible match modes for each property types.
 | number   | equals, notEquals, !=, in, notIn, lt, lte, gt, gte, is, isNot                                              |
 | date     | is, isNot, before, after, dateIs, dateIsNot, dateBefore, dateAfter                                         |
 | boolean  | is, isNot                                                                                                  |
-| string[] | in                                                                                                         |
-| number[] | in, between                                                                                                |
-| date[]   | between                                                                                                    |
-| geometry | st_contains, st_dwithin                                                                                    |
+| array    | in (translated to the `&&` overlap operator)                                                              |
 
 
 *Note: All types support the semantic match modes* `is`*/*`isNot` *or direct comparators* `IS`*/*`IS NOT` *when querying for* `null` *or* `not null` *values.*
@@ -799,6 +793,7 @@ Any of these can be passed into the options object for each function.
 | sanitizer     | ((v: unknown) => unknown) | null | Custom sanitizer function if sanitize is true    | null                           |
 | normalizer    | ((v: unknown) => unknown) | null | Custom Normalizer function if normalize is true  | null                           |
 | validator     | ((v: unknown) => unknown) | null | validator function if validate is true           | null                           |
+| readOnly      | boolean                          | Property is system-managed, not directly editable | false                         |
 
 
 - *Min and max parameters are not used for boolean type*

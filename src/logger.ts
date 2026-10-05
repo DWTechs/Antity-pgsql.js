@@ -31,6 +31,7 @@ import { LOGS_PREFIX } from './constants';
  * │  │   ├─ Operations: [SELECT]
  * │  │   ├─ Required: true
  * │  │   ├─ Safe: true
+ * │  │   ├─ ReadOnly: false
  * │  │   ├─ Filterable: true
  * │  │   └─ Validation: enabled
  * │  ├─ name:
@@ -38,6 +39,7 @@ import { LOGS_PREFIX } from './constants';
  * │  │   ├─ Operations: [SELECT, INSERT, UPDATE]
  * │  │   ├─ Required: true
  * │  │   ├─ Safe: true
+ * │  │   ├─ ReadOnly: false
  * │  │   ├─ Filterable: true
  * │  │   ├─ Constraints: min: 2, max: 100
  * │  │   └─ Validation: enabled
@@ -46,6 +48,7 @@ import { LOGS_PREFIX } from './constants';
  * │  │   ├─ Operations: [SELECT, INSERT, UPDATE]
  * │  │   ├─ Required: true
  * │  │   ├─ Safe: true
+ * │  │   ├─ ReadOnly: false
  * │  │   ├─ Filterable: true
  * │  │   ├─ Constraints: min: 5, max: 255
  * │  │   └─ Validation: enabled
@@ -54,6 +57,7 @@ import { LOGS_PREFIX } from './constants';
  * │  │   ├─ Operations: [SELECT, INSERT]
  * │  │   ├─ Required: true
  * │  │   ├─ Safe: false
+ * │  │   ├─ ReadOnly: true
  * │  │   ├─ Filterable: false
  * │  │   └─ Validation: enabled
  * │  └─ updated_at:
@@ -61,6 +65,7 @@ import { LOGS_PREFIX } from './constants';
  * │      ├─ Operations: [SELECT, UPDATE]
  * │      ├─ Required: false
  * │      ├─ Safe: false
+ * │      ├─ ReadOnly: true
  * │      ├─ Filterable: false
  * │      └─ Validation: enabled
  * ├─ CRUD Mappings:
@@ -112,12 +117,13 @@ function generateSummary(name: string, table: string, properties: Property[]): s
       lines.push(`│ │ ├─ Max: ${p.max}`);
       lines.push(`│ │ ├─ RequiredFor: ${p.requiredFor}`);
       lines.push(`│ │ ├─ IsPrivate: ${p.isPrivate}`);
+      lines.push(`│ │ ├─ IsReadOnly: ${p.readOnly}`);
       lines.push(`│ │ ├─ IsTypeChecked: ${p.isTypeChecked}`);
       lines.push(`│ │ ├─ IsFilterable: ${p.isFilterable}`);
       lines.push(`│ │ ├─ Operations: [${p.operations.join(', ')}]`);
-      lines.push(`│ │ ├─ Sanitize: ${p.sanitize}`);
-      lines.push(`│ │ ├─ Normalize: ${p.normalize}`);
-      lines.push(`│ │ ├─ Validate: ${p.validate}`);
+      lines.push(`│ │ ├─ Sanitize: ${p.sanitizer}`);
+      lines.push(`│ │ ├─ Normalize: ${p.normalizer}`);
+      lines.push(`│ │ ├─ Validate: ${p.validator}`);
       
     });
     
@@ -164,11 +170,9 @@ function getCrudMappings(properties: Property[]): Record<string, string[]> {
     };
     
     properties.forEach(prop => {
-      const p = prop as any; // Type assertion to access base class properties
       prop.operations.forEach(op => {
-        if (mappings[op]) {
-          mappings[op].push(p.key);
-        }
+        if (mappings[op])
+          mappings[op].push(prop.key);
       });
     });
     

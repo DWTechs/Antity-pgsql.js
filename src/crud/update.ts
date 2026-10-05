@@ -33,7 +33,9 @@ export class Update {
     updaterId?: string | number,
     updaterName?: string
   ): { query: string, args: SqlValue[] } {
-    
+    if (!rows.length)
+      throw new Error('rows must not be empty for update operation');
+
     const hasConsumer = updaterId !== undefined && updaterName !== undefined;
 
     // Augment base props template with consumer fields if provided
@@ -70,6 +72,8 @@ export class Update {
       }
       setClauses.push(`${colName} = CASE ${whenParts.join(" ")} ELSE ${colName} END`);
     }
+    if (!setClauses.length)
+      throw new Error('Update.query: no columns to update - all rows omit every tracked property with no consumer fields provided');
     const query = `UPDATE ${quoteIfUppercase(schema)}.${quoteIfUppercase(table)} SET ${setClauses.join(", ")} WHERE id IN ${$i(l, 0)}`;
     return { query, args };
   } 

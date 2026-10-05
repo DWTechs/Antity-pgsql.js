@@ -1,3 +1,5 @@
+import { LOGS_PREFIX } from "../constants";
+
 const reserved = new Set([
   'all', 'analyse', 'analyze', 'and', 'any', 'array', 'as', 'asc', 'asymmetric',
   'authorization', 'between', 'binary', 'both', 'case', 'cast', 'check', 'collate',
@@ -26,4 +28,19 @@ function quoteIfUppercase(word: string): string {
   return word;
 }
 
-export { quoteIfUppercase };
+const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * Throws if `name` isn't a safe SQL identifier (letters, digits, underscore,
+ * not starting with a digit) - guards against identifier injection for
+ * values (schema/table names) that get interpolated directly into SQL.
+ *
+ * @param {string} name - The identifier to validate
+ * @param {string} label - Human-readable label used in the thrown error
+ */
+function assertIdentifier(name: string, label: string): void {
+  if (!IDENTIFIER_RE.test(name))
+    throw new Error(`${LOGS_PREFIX}${label} must be a valid SQL identifier (letters, digits, underscore, not starting with a digit)`);
+}
+
+export { quoteIfUppercase, assertIdentifier };

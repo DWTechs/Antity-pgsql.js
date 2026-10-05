@@ -166,10 +166,27 @@ describe("upsert query function", () => {
     const rows = [
       { id: 1, name: 'John', age: 30, email: 'john@example.com' },
     ];
-    
+
     expect(() => {
       entity.query.upsert(rows, [], 1, 'consumer', '');
     }).toThrow('conflictTarget must be provided for upsert operation');
+  });
+
+  it("should throw when rows is empty, instead of generating a query with 'VALUE' and no values clause", () => {
+    expect(() => {
+      entity.query.upsert([], 'id');
+    }).toThrow('rows must not be empty for upsert operation');
+  });
+
+  it("should throw when conflictTarget covers every column and no consumer is provided, instead of generating 'DO UPDATE SET' with nothing after it", () => {
+    const rows = [
+      { name: 'John', age: 30, email: 'john@example.com' },
+    ];
+    const conflictTarget = ['name', 'age', 'email'];
+
+    expect(() => {
+      entity.query.upsert(rows, conflictTarget);
+    }).toThrow('no updatable columns remain after excluding conflictTarget columns');
   });
 
   it("should handle uppercase column names correctly", () => {

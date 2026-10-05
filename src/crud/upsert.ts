@@ -53,6 +53,9 @@ export class Upsert {
     userName?: string,
     rtn: string = "",
   ): { query: string, args: SqlValue[] } {
+    if (!rows.length)
+      throw new Error('rows must not be empty for upsert operation');
+
     if (!isArray(conflictTarget, '!0') && !isString(conflictTarget, '!0'))
       throw new Error('conflictTarget must be provided for upsert operation');
 
@@ -66,7 +69,7 @@ export class Upsert {
     }
     
     // Build the conflict target string
-    const conflictColumns = Array.isArray(conflictTarget)
+    const conflictColumns = isArray(conflictTarget)
       ? conflictTarget.map(col => quoteIfUppercase(col)).join(", ")
       : quoteIfUppercase(conflictTarget);
     
@@ -78,9 +81,9 @@ export class Upsert {
     // Add all rows to the VALUES clause
     for (const row of rows) {
       query += `${$i(nbProps, i)}, `;
-      for (const prop of this._props) {
+      for (const prop of this._props)
         args.push(row[prop]);
-      }
+
       if (userId !== undefined && userName !== undefined)
         args.push(userId, userName);
       
@@ -93,7 +96,7 @@ export class Upsert {
     // Build the UPDATE SET clause from the entity's own props only (exclude conflict
     // target columns from being updated). Audit columns are handled separately below,
     // since "creatorId"/"creatorName" must never be overwritten on an existing row.
-    const conflictTargetArray = Array.isArray(conflictTarget) ? conflictTarget : [conflictTarget];
+    const conflictTargetArray = isArray(conflictTarget) ? conflictTarget : [conflictTarget];
     const updateCols = this._quotedProps.filter((_, idx) => {
       const propName = this._props[idx];
       return !conflictTargetArray.includes(propName);
@@ -106,7 +109,10 @@ export class Upsert {
     // are written into "updaterId"/"updaterName" instead.
     if (userId !== undefined && userName !== undefined)
       setClauses.push(`"updaterId" = EXCLUDED."creatorId"`, `"updaterName" = EXCLUDED."creatorName"`);
-    
+
+    if (!setClauses.length)
+      throw new Error('Upsert.query: no updatable columns remain after excluding conflictTarget columns');
+
     query += ` ON CONFLICT (${conflictColumns}) DO UPDATE SET ${setClauses.join(", ")}`;
     
     if (rtn) 

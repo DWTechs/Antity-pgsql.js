@@ -145,27 +145,27 @@ describe('cleanFilters', () => {
 
   it('should handle boolean filters correctly', () => {
     const filters = {
-      archived: [{ value: false, matchMode: 'equals' }],
+      archived: [{ value: false, matchMode: 'is' }],
     };
 
     const result = cleanFilters(filters, mockProperties);
 
     expect(result).toEqual({
-      archived: [{ value: false, matchMode: 'equals' }],
+      archived: [{ value: false, matchMode: 'is' }],
     });
   });
 
   it('should handle filters with operator field', () => {
     const filters = {
       name: [{ value: 'cap', matchMode: 'contains', operator: 'and' }],
-      archived: [{ value: false, matchMode: 'equals' }],
+      archived: [{ value: false, matchMode: 'is' }],
     };
 
     const result = cleanFilters(filters, mockProperties);
 
     expect(result).toEqual({
       name: [{ value: 'cap', matchMode: 'contains', operator: 'and' }],
-      archived: [{ value: false, matchMode: 'equals' }],
+      archived: [{ value: false, matchMode: 'is' }],
     });
   });
 
@@ -198,13 +198,13 @@ describe('cleanFilters', () => {
 
     it('should handle old format with boolean filters', () => {
       const filters = {
-        archived: { value: false, matchMode: 'equals' },
+        archived: { value: false, matchMode: 'is' },
       };
 
       const result = cleanFilters(filters, mockProperties);
 
       expect(result).toEqual({
-        archived: [{ value: false, matchMode: 'equals' }],
+        archived: [{ value: false, matchMode: 'is' }],
       });
     });
 
@@ -226,7 +226,7 @@ describe('cleanFilters', () => {
       const filters = {
         name: { value: 'John', matchMode: 'contains' }, // old format
         age: [{ value: 30, matchMode: 'equals' }], // new format
-        archived: [{ value: false, matchMode: 'equals' }], // new format
+        archived: [{ value: false, matchMode: 'is' }], // new format
       };
 
       const result = cleanFilters(filters, mockProperties);
@@ -234,7 +234,7 @@ describe('cleanFilters', () => {
       expect(result).toEqual({
         name: [{ value: 'John', matchMode: 'contains' }],
         age: [{ value: 30, matchMode: 'equals' }],
-        archived: [{ value: false, matchMode: 'equals' }],
+        archived: [{ value: false, matchMode: 'is' }],
       });
     });
 
@@ -326,6 +326,18 @@ describe('cleanFilters', () => {
       expect(result.name).toHaveLength(1);
       expect(result.name).toEqual([{ value: 'John', matchMode: 'LIKE' }]);
     });
+
+    it('should reject "LIKE" for a number property, even though it is a valid raw comparator for strings', () => {
+      const filters = { age: [{ value: '5', matchMode: 'LIKE' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.age).toBeUndefined();
+    });
+
+    it('should reject "&&" for a string property, even though it is a valid raw comparator for arrays', () => {
+      const filters = { name: [{ value: ['a'], matchMode: '&&' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.name).toBeUndefined();
+    });
   });
 
   // Tests for array-typed columns (PostgreSQL && overlap operator)
@@ -357,6 +369,14 @@ describe('cleanFilters', () => {
       const result = cleanFilters(filters, mockProperties);
       expect(result.tags).toBeUndefined();
     });
+
+    it('should reject "in" with a scalar value for an array-typed property instead of producing invalid SQL', () => {
+      const filters = {
+        tags: [{ value: 'not-an-array', matchMode: 'in' }],
+      };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.tags).toBeUndefined();
+    });
   });
 
   // Tests for the "!=" alias (semantic input that normalizes to "<>" in mapComparator)
@@ -373,10 +393,10 @@ describe('cleanFilters', () => {
       expect(result).toEqual({ age: [{ value: 18, matchMode: '!=' }] });
     });
 
-    it('should accept "!=" for a boolean property (boolean falls through to string type)', () => {
+    it('should reject "!=" for a boolean property (boolean only supports is/isNot, not the full string matchMode set)', () => {
       const filters = { archived: [{ value: false, matchMode: '!=' }] };
       const result = cleanFilters(filters, mockProperties);
-      expect(result).toEqual({ archived: [{ value: false, matchMode: '!=' }] });
+      expect(result.archived).toBeUndefined();
     });
 
     it('should reject "!=" for a date property (use isNot/dateIsNot instead)', () => {
@@ -450,6 +470,39 @@ describe('cleanFilters', () => {
       const filters = { date: [{ value: '2025-05-01', matchMode: 'contains' }] };
       const result = cleanFilters(filters, mockProperties);
       expect(result.date).toBeUndefined();
+    });
+  });
+
+  // Null-checking match modes for types that previously lacked them
+  describe('null-checking match modes for number/string/boolean', () => {
+    it('should accept "IS" for a number property', () => {
+      const filters = { age: [{ value: null, matchMode: 'IS' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ age: [{ value: null, matchMode: 'IS' }] });
+    });
+
+    it('should accept "isNot" for a number property', () => {
+      const filters = { age: [{ value: null, matchMode: 'isNot' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ age: [{ value: null, matchMode: 'isNot' }] });
+    });
+
+    it('should accept the lowercase "is" form for a string property', () => {
+      const filters = { name: [{ value: null, matchMode: 'is' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ name: [{ value: null, matchMode: 'is' }] });
+    });
+
+    it('should accept "is"/"isNot" for a boolean property', () => {
+      const filters = { archived: [{ value: true, matchMode: 'is' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result).toEqual({ archived: [{ value: true, matchMode: 'is' }] });
+    });
+
+    it('should reject a string-only matchMode like "contains" for a boolean property', () => {
+      const filters = { archived: [{ value: 'true', matchMode: 'contains' }] };
+      const result = cleanFilters(filters, mockProperties);
+      expect(result.archived).toBeUndefined();
     });
   });
 });

@@ -1,15 +1,16 @@
 import { isString, isNumber, isObject, isArray } from '@dwtechs/checkard';
 import { chunk, flatten } from "@dwtechs/sparray";
 import { log } from "@dwtechs/winstan";
-import { Entity } from "@dwtechs/antity";
-import type { Property } from './property';
+import { Entity, STANDARD_PROP_KEYS } from "@dwtechs/antity";
+import type { Type, Method } from "@dwtechs/antity";
+import { Property } from './property';
 import { Select } from "./crud/select";
 import { Insert } from "./crud/insert";
 import { Update } from "./crud/update";
 import { Upsert } from "./crud/upsert";
 import { Archive } from "./crud/archive";
 import * as del from "./crud/delete";
-import { quoteIfUppercase } from "./crud/quote";
+import { quoteIfUppercase, assertIdentifier } from "./crud/quote";
 import { cleanFilters } from "./filter/clean";
 import { addConditions } from "./filter/condition";
 import { execute } from "./crud/execute";
@@ -23,9 +24,11 @@ type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => vo
 type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
 
+const PGSQL_STANDARD_PROP_KEYS = new Set([...STANDARD_PROP_KEYS, 'isFilterable', 'operations']);
+
 export class SQLEntity extends Entity {
-  private _table: string;
-  private _schema: string;
+  private _table!: string;
+  private _schema!: string;
   private sel: Select = new Select();
   private ins: Insert = new Insert();
   private upd: Update = new Update();
@@ -38,18 +41,48 @@ export class SQLEntity extends Entity {
     schema: string = 'public'
   ) {
     super(name, properties); // Call the constructor of the base class
-    this._table = name;
-    this._schema = schema;
+    this.table = name;
+    this.schema = schema;
     
     log.info(() => `${LOGS_PREFIX}Creating SQLEntity: "${name}"`);
     
     // properties is grouped by operation type, making it easy to retrieve and process later.
-    for (const p of properties) {
+    // Iterates the constructed `this.properties` (not the raw `properties` argument) so a
+    // caller who omits a defaulted field (e.g. `operations`) sees the same defaulted value
+    // here as everywhere else, instead of a raw `undefined` that `mapProps` can't iterate.
+    for (const p of this.properties)
       this.mapProps(p.operations, p.key);
-    }
-    
+
     // Log comprehensive entity summary
-    logSummary(name, this._table, properties);
+    logSummary(name, this._table, this.properties);
+  }
+
+  /**
+   * Builds antity-pgsql's own `Property` subclass (validating/defaulting
+   * `isFilterable`/`operations`) instead of the base class's `Property`.
+   * Overrides `Entity.createProperty` from `@dwtechs/antity`.
+   */
+  protected createProperty(p: Record<string, unknown>): Property {
+    const prop = new Property(
+      p.key as string,
+      p.type as Type,
+      p.min as number | Date | null,
+      p.max as number | Date | null,
+      p.requiredFor as Method[],
+      p.isPrivate as boolean,
+      p.isTypeChecked as boolean,
+      p.readOnly as boolean,
+      p.isFilterable as boolean,
+      p.operations as Operation[],
+      p.sanitizer as ((v: unknown) => unknown) | null,
+      p.normalizer as ((v: unknown) => unknown) | null,
+      p.validator as ((v: unknown) => boolean) | null,
+    );
+    // Copy only extra (non-standard) fields from p to prop
+    for (const k of Object.keys(p))
+      if (!PGSQL_STANDARD_PROP_KEYS.has(k))
+        prop[k] = p[k];
+    return prop;
   }
 
   /**
@@ -68,6 +101,7 @@ export class SQLEntity extends Entity {
   public set table(table: string) {
     if (!isString(table, "!0"))
       throw new Error(`${LOGS_PREFIX}table must be a string of length > 0`);
+    assertIdentifier(table, "table");
     this._table = table;
   }
 
@@ -87,6 +121,7 @@ export class SQLEntity extends Entity {
   public set schema(schema: string) {
     if (!isString(schema, "!0"))
       throw new Error(`${LOGS_PREFIX}schema must be a string of length > 0`);
+    assertIdentifier(schema, "schema");
     this._schema = schema;
   }
 

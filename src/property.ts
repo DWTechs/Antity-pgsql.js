@@ -15,11 +15,12 @@ export class Property extends BaseProperty {
     requiredFor: Method[],
     isPrivate: boolean,
     isTypeChecked: boolean,
+    readOnly: boolean,
     isFilterable: boolean,
     operations: Operation[] = [],
     sanitizer: ((v: unknown) => unknown) | null,
     normalizer: ((v: unknown) => unknown) | null,
-    validator: ((v: unknown) => unknown) | null,
+    validator: ((v: unknown) => boolean) | null,
   ) {
     super(
       key,
@@ -29,9 +30,10 @@ export class Property extends BaseProperty {
       isPrivate,
       requiredFor,
       isTypeChecked,
+      readOnly,
       sanitizer,
       normalizer,
-      validator
+      validator,
     );
     this.isFilterable = isFilterable;
     this.operations = operations;
