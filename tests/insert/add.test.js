@@ -301,7 +301,7 @@ describe("add method", () => {
 
     await entity.add(req, res, mockNext);
 
-    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
     expect(dbClient.query).not.toHaveBeenCalled();
   });
 
@@ -312,7 +312,7 @@ describe("add method", () => {
 
     await entity.add(req, res, mockNext);
 
-    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
     expect(dbClient.query).not.toHaveBeenCalled();
   });
 });

@@ -176,7 +176,7 @@ describe("get middleware", () => {
     entity.get(mockRequest(), res, mockNext);
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 404 }));
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
   });
 
   it("should call next(error) when the database operation fails", async () => {

@@ -265,7 +265,7 @@ describe("syncArraySubstack", () => {
     await sync(req, res, next);
 
     expect(next).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 400 })
+      expect.objectContaining({ statusCode: 400 })
     );
     // Validation happens before the transaction — no BEGIN should be issued
     expect(dbClient.query).not.toHaveBeenCalledWith('BEGIN');

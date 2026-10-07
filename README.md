@@ -2,7 +2,7 @@
 [![License: MIT](https://img.shields.io/npm/l/@dwtechs/antity-pgsql.svg?color=brightgreen)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/%40dwtechs%2Fantity-pgsql.svg)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
 [![last version release date](https://img.shields.io/github/release-date/DWTechs/Antity-pgsql.js)](https://www.npmjs.com/package/@dwtechs/antity-pgsql)
-![Jest:coverage](https://img.shields.io/badge/Jest:coverage-100%25-brightgreen.svg)
+![Jest:coverage](https://img.shields.io/badge/Jest:coverage-99%25-brightgreen.svg)
 
 - [Synopsis](#synopsis)
 - [Support](#support)
@@ -82,8 +82,11 @@ const customEntity = new SQLEntity("consumers", [
   // properties...
 ], "myschema");
 
-// Example with all properties
-const entity = new SQLEntity("consumers", [
+// Example. Optional fields can be omitted to get their default:
+// min/max (default range), sanitizer, normalizer, validator (none),
+// requiredFor ([]), isPrivate / isTypeChecked / readOnly (false),
+// operations ([] = the property takes part in no query) and isFilterable (not filterable).
+const consumers = new SQLEntity("consumers", [
   {
     key: "id",
     type: "integer",
@@ -93,10 +96,6 @@ const entity = new SQLEntity("consumers", [
     isFilterable: true,
     requiredFor: ["PUT"],
     operations: ["SELECT", "UPDATE"],
-    isPrivate: false,
-    sanitizer: null,
-    normalizer: null,
-    validator: null,
   },
   {
     key: "firstName",
@@ -104,13 +103,9 @@ const entity = new SQLEntity("consumers", [
     min: 0,
     max: 255,
     isTypeChecked: true,
-    isFilterable: false,
     requiredFor: ["POST", "PUT"],
     operations: ["SELECT", "UPDATE"],
-    isPrivate: false,
-    sanitizer: null,
     normalizer: normalizeName,
-    validator: null,
   },
   {
     key: "lastName",
@@ -118,13 +113,9 @@ const entity = new SQLEntity("consumers", [
     min: 0,
     max: 255,
     isTypeChecked: true,
-    isFilterable: false,
     requiredFor: ["POST", "PUT"],
     operations: ["SELECT", "UPDATE"],
-    isPrivate: false,
-    sanitizer: null,
     normalizer: normalizeName,
-    validator: null,
   },
   {
     key: "nickname",
@@ -135,28 +126,25 @@ const entity = new SQLEntity("consumers", [
     isFilterable: true,
     requiredFor: ["POST", "PUT"],
     operations: ["SELECT", "UPDATE"],
-    isPrivate: false,
-    sanitizer: null,
     normalizer: normalizeNickname,
-    validator: null,
   },
 ]);
 
-router.get("/", ..., entity.get);
+router.get("/", ..., consumers.get);
 
 // Using substacks (recommended) - combines normalize, validate, and database operation
-router.post("/", ...entity.addArraySubstack);
-router.put("/", ...entity.updateArraySubstack);
-router.put("/preferences", ...entity.syncArraySubstack);
+router.post("/", ...consumers.addArraySubstack);
+router.put("/", ...consumers.updateArraySubstack);
+router.put("/preferences", ...consumers.syncArraySubstack);
 
 // Or manually chain middlewares
-router.post("/manual", entity.normalizeArray, entity.validateArray, ..., entity.add);
-router.put("/manual", entity.normalizeArray, entity.validateArray, ..., entity.update);
+router.post("/manual", consumers.normalizeArray, consumers.validateArray, ..., consumers.add);
+router.put("/manual", consumers.normalizeArray, consumers.validateArray, ..., consumers.update);
 
-router.patch("/archive", ..., entity.archive);
-router.delete("/", ..., entity.delete);
-router.delete("/archived", ..., entity.deleteArchive);
-router.get("/:id/history", ..., entity.getHistory);
+router.patch("/archive", ..., consumers.archive);
+router.delete("/", ..., consumers.delete);
+router.delete("/archived", ..., consumers.deleteArchive);
+router.get("/:id/history", ..., consumers.getHistory);
 
 ```
 
@@ -232,6 +220,21 @@ type Filter = {
   operator?: string; // 'and' | 'or' - Used when multiple filters apply to the same property
 }
 
+type HistoryEntry = {
+  id: number;
+  tstamp: Date | string;
+  operation: string;
+  userId: number | null;
+  userName: string | null;
+  record: Record<string, unknown>; // row snapshot taken by the history trigger
+};
+
+type HistoryOptions = {
+  tables?: string[];     // audited table(s) to read, defaults to the entity's own table
+  field?: string;        // record key to match and req.params name, defaults to "id"
+  ignoreCols?: string[]; // columns that do not count as a change (updatedAt/updaterId/updaterName always ignored)
+};
+
 type PGClient = {
   query(text: string, values?: unknown[]): Promise<PGResponse>;
 };
@@ -251,8 +254,10 @@ type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => vo
 type ExpressMiddlewareAsync = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 type SubstackTuple = [ExpressMiddleware, ExpressMiddleware, ExpressMiddlewareAsync];
 
+// SQLEntity extends Entity from @dwtechs/antity: normalizeArray(), normalizeOne(),
+// validateArray(), validateOne(), getProp() and getPropsByMethod() are inherited.
 class SQLEntity {
-  constructor(name: string, properties: Property[], schema?: string);
+  constructor(name: string, properties: PropertyInit[], schema?: string);
   get name(): string;
   get table(): string;
   get schema(): string;
@@ -277,11 +282,11 @@ class SQLEntity {
       limit?: number | null,
       sortField?: string | null,
       sortOrder?: "ASC" | "DESC" | null,
-      filters?: Filters | null) => {
+      filters?: Filters | null,
+      operator?: LogicalOperator) => {
         query: string;
         args: SqlValue[];
-      },
-      operator?: LogicalOperator;
+      };
     update: (
       rows: Row[],
       consumer?: { userId?: number | string, nickname?: string }) => {
@@ -289,7 +294,7 @@ class SQLEntity {
         args: unknown[];
     };
     archive: (
-      rows: Row[],
+      rows: (Row | SqlValue)[],
       consumer?: { userId?: number | string, nickname?: string }) => {
         query: string;
         args: unknown[];
@@ -317,6 +322,7 @@ class SQLEntity {
     return: (prop: string) => string;
   };
   get: (req: Request, res: Response, next: NextFunction) => void;
+  getCache: (filters?: Filters | null, client?: PGClient | null) => Promise<Record<string, unknown>[]>;
   add: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   upsert: (req: Request, res: Response, next: NextFunction) => Promise<void>;
@@ -324,7 +330,8 @@ class SQLEntity {
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   deleteArchive: (req: Request, res: Response, next: NextFunction) => void;
-  getHistory: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  getHistory: (req: Request, res: Response, next: NextFunction) => void;
+  history: (options?: HistoryOptions) => (req: Request, res: Response, next: NextFunction) => void;
 
 }
 
@@ -343,6 +350,10 @@ function execute(
   client: PGClient | null,
 ): Promise<PGResponse>;
 
+// The pure helpers behind getHistory()/history(), for custom history endpoints
+function groupHistoryByAction(rows: HistoryEntry[]): HistoryEntry[];
+function filterMeaningfulHistory(rows: HistoryEntry[], ignoreCols?: string[]): HistoryEntry[];
+
 
 ```
 
@@ -354,7 +365,8 @@ function execute(
 - add(), update() and upsert() accept either **req.body.rows** (as an array of entities for bulk operations) or **req.body** itself (as a single entity).
 - archive() and sync() look for data to work on exclusively in the **req.body.rows** parameter (as an array).
 - get() reads req.body.first, req.body.limit, req.body.sortField, req.body.sortOrder, req.body.filters and req.body.operator instead. Page size is exclusively **req.body.limit** (a number); req.body.rows is intentionally ignored by get(), since that same key means "array of entities" for every other method above and reusing it for pagination was error-prone.
-- delete() reads req.body.rows ([{id: 1}, {id: 2}]) if present, otherwise falls back to a single req.params.id.- The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
+- delete() reads req.body.rows ([{id: 1}, {id: 2}]) if present, otherwise falls back to a single req.params.id.
+- The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
 - The sync() method accepts an optional **req.body.idField** (defaults to `'id'`) and optional **req.body.filters** to scope which existing rows are considered part of the managed set.
 
 
@@ -392,9 +404,46 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 - **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.userId` as `creatorId` and `consumer.nickname` as `creatorName` on INSERT, and as `updaterId`/`updaterName` on CONFLICT UPDATE, for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.archive()**: Generates a `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of ids, or of `Row` objects with an `id` property. Optionally appends `consumer.userId` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
-- **delete()**: Deletes rows by their IDs. Reads ids from `req.body.rows` (array of objects with `id` property: `[{id: 1}, {id: 2}]`) if present, otherwise falls back to a single `req.params.id` (e.g. a `DELETE /resource/:id` route). Calls `next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" })` if neither is provided.
+- **delete()**: Deletes rows by their IDs. Reads ids from `req.body.rows` (array of objects with `id` property: `[{id: 1}, {id: 2}]`) if present, otherwise falls back to a single `req.params.id` (e.g. a `DELETE /resource/:id` route). Calls `next({ statusCode: 400, message: "Missing rows in req.body or id in req.params for delete operation" })` if neither is provided.
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.
-- **getHistory()**: Retrieves modification history for rows from the `log.history` table. Expects `req.body.rows` to be an array of objects with `id` property. Returns all historical records for the specified entity IDs.
+- **getHistory()**: Returns the modification history of one record, read from the `log.history` table for this entity's table and schema. Reads the record id from `req.params.id` (e.g. `GET /resource/:id/history`) and calls `next({ statusCode: 400, message: "Missing id" })` without it. Stores the entries, oldest first, in `res.locals.rows` and their count in `res.locals.total`. See [History](#history).
+
+
+
+### History
+
+`getHistory` and `history(options)` turn the raw `log.history` rows written by the audit trigger into entries a revision view can show. Every entry is `{ id, tstamp, operation, userId, userName, record }`, where `record` is the row snapshot and `userId`/`userName` are the author of the write, as stored in `log.history`.
+
+- **Grouping**: rows written by the same transaction (same `tstamp`, `userId` and `record.id`) are merged into one entry, so a record and the junction-table rows rewritten with it read as a single action. Rows of different records stay apart, even when several are updated in one bulk transaction.
+- **No-op filtering**: an entry that changed nothing but ignored columns is dropped. `updatedAt`, `updaterId` and `updaterName` are always ignored; add your own with `ignoreCols`. The first entry (the `INSERT`) is always kept.
+- **404**: `next({ statusCode: 404, message: "history not found" })` when there is no history, or only the initial `INSERT`.
+- **400**: `next({ statusCode: 400, message: "Missing id" })` when the param is absent, `"Invalid id"` when it is not a non-negative integer that fits a PostgreSQL `INT` (the query casts the stored value to `INT`). The database is not queried in either case.
+
+```javascript
+// History of this entity's own table
+router.get("/:id/history", routeEntity.getHistory);
+
+// Merge junction tables into the same entries
+router.get("/:id/history", routeEntity.history({
+  tables: ["route", "route_operation", "route_method"],
+}));
+
+// History of the rows linked to a parent id: matches record.routeId against req.params.routeId
+router.get("/:routeId/history", permissionEntity.history({
+  tables: ["permission", "permission_condition"],
+  field: "routeId",
+}));
+
+// Do not count system-managed columns as a change
+router.get("/:id/history", pwdEntity.history({ ignoreCols: ["lastLoginAt", "failedAttempts"] }));
+
+// res.locals.rows  -> entries, oldest first
+// res.locals.total -> number of entries
+```
+
+**Entities backed by a view.** `log.history` records the table the audit trigger sits on. If your entity reads a view (with `INSTEAD OF` triggers writing to base tables), its own table name never appears there, so `getHistory` finds nothing and always answers 404. Pass the base table(s) instead: `history({ tables: ["role"] })`.
+
+`field` must be a valid SQL identifier (otherwise `history()` throws when the route is defined). The field name and the tables are passed to PostgreSQL as parameters, never concatenated into the query. The database client is read from `res.locals.dbClient`, falling back to the shared pool.
 
 
 
@@ -783,21 +832,23 @@ Any of these can be passed into the options object for each function.
 | ------------- | -------------------------------- | ------------------------------------------------ | ------------------------------ |
 | key           | string                           | Name of the property                             |                                |
 | type          | Type                             | Type of the property                             |                                |
-| min           | number | Date                    | Minimum value                                    | 0 | 1900-01-01                 |
-| max           | number | Date                    | Maximum value                                    | 999999999 | 2200-12-31         |
-| requiredFor   | Method[]                         | property is required for the listed methods only | ["PATCH", "PUT", "POST"]       |
-| isPrivate     | boolean                          | Property is unsafe to send in the response       | true                           |
+| min           | number \| Date                   | Minimum value (omit for the default)             | 0 \| 1900-01-01                |
+| max           | number \| Date                   | Maximum value (omit for the default)             | 999999999 \| 2200-12-31        |
+| requiredFor   | Method[]                         | Property is required for the listed methods only | []                             |
+| isPrivate     | boolean                          | Property is unsafe to send in the response       | false                          |
 | isTypeChecked | boolean                          | Type is checked during validation                | false                          |
-| isFilterable  | boolean                          | property is filterable in a SELECT operation     | true                           |
-| operations    | Operation[]                      | Property is used for the DML operations only     | ["SELECT", "INSERT", "UPDATE"] |
-| sanitizer     | ((v: unknown) => unknown) | null | Custom sanitizer function if sanitize is true    | null                           |
-| normalizer    | ((v: unknown) => unknown) | null | Custom Normalizer function if normalize is true  | null                           |
-| validator     | ((v: unknown) => unknown) | null | validator function if validate is true           | null                           |
+| isFilterable  | boolean                          | Property is filterable in a SELECT operation     | not filterable (set `true`)    |
+| operations    | Operation[]                      | DML operations the property takes part in        | [] (set the ones you need)     |
+| sanitizer     | ((v: any) => any) \| null        | Custom sanitizer, replaces the default trim      | null (omit)                    |
+| normalizer    | ((v: any) => any) \| null        | Custom normalizer, run right after sanitizing    | null (omit)                    |
+| validator     | ((v: any) => boolean) \| null    | Custom validator, replaces the built-in type check | null (omit)                 |
 | readOnly      | boolean                          | Property is system-managed, not directly editable | false                         |
 
 
 - *Min and max parameters are not used for boolean type*
 - *TypeCheck Parameter is not used for boolean, string and array types*
+- *`sanitizer`, `normalizer` and `validator` must be a function, `null` or omitted: any other value throws when the entity is created.*
+- *Fields not listed above are kept on the property as custom data, with a warning in the logs (a probable typo). `isFilterable` and `operations` are declared by `SQLEntity`, so they never warn.*
 
 
 
@@ -813,8 +864,8 @@ Any of these can be passed into the options object for each function.
 
 ## Contributors
 
-Antity.js is still in development and we would be glad to get all the help you can provide.
-To contribute please read **[contributor.md](https://github.com/DWTechs/Antity.js/blob/main/contributor.md)** for detailed installation guide.
+Antity-pgsql.js is still in development and we would be glad to get all the help you can provide.
+To contribute please read **[contributor.md](https://github.com/DWTechs/Antity-pgsql.js/blob/main/contributor.md)** for detailed installation guide.
 
 ## Stack
 

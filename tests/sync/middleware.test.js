@@ -194,7 +194,7 @@ describe("sync middleware", () => {
 
     await entity.sync(req, res, mockNext);
 
-    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
     expect(dbClient.query).not.toHaveBeenCalledWith('BEGIN');
   });
 
@@ -205,7 +205,7 @@ describe("sync middleware", () => {
 
     await entity.sync(req, res, mockNext);
 
-    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
     expect(dbClient.query).not.toHaveBeenCalledWith('BEGIN');
   });
 

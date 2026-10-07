@@ -226,6 +226,6 @@ describe("archive middleware", () => {
     await entity.archive(req, res, mockNext);
 
     expect(dbClient.query).not.toHaveBeenCalled();
-    expect(mockNext).toHaveBeenCalledWith({ status: 400, message: "Missing rows in req.body for archive operation" });
+    expect(mockNext).toHaveBeenCalledWith({ statusCode: 400, message: "Missing rows in req.body for archive operation" });
   });
 });

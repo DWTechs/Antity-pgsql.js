@@ -1,3 +1,22 @@
+# 0.25.0 (Oct 7th 2026)
+
+- Updated `@dwtechs/antity` dependency to version `0.19.2`.
+- **Errors passed to `next()` (and thrown by `select`) now use `statusCode` instead of `status`**, matching `@dwtechs/antity` and `@dwtechs/errandler-express` (which reads `statusCode` first). Affects `add`, `update`, `upsert`, `archive`, `delete`, `sync` and the 404 of `get`. Code reading `err.status` from these errors must read `err.statusCode`.
+- **Shared history logic: `SQLEntity.getHistory` reworked and `SQLEntity.history(options)` added.** The logic now lives here, once:
+  - Rows written by the same transaction (same `tstamp`/`userId`/`record.id`) are merged into one entry; entries that changed nothing but ignored columns (`updatedAt`/`updaterId`/`updaterName` always, plus `ignoreCols`) are dropped.
+  - `history({ tables, field, ignoreCols })` builds the middleware: `tables` merges junction tables (default: the entity's table), `field` matches another record key from the same-named `req.params` (default `"id"`; must be a SQL identifier and is bound as a parameter, never interpolated), `ignoreCols` adds columns that don't count as a change. `getHistory` is `history()`.
+  - Entries carry the author of each write as `userId`/`userName`, exactly as stored in `log.history` (the services used to alias them to `consumerId`/`consumerName`; the admin history mapper must read `r.userId`/`r.userName`).
+  - For an entity backed by a view, `log.history` records the base table, so the default (the entity's own table) finds nothing: pass `tables` with the base table(s).
+  - Export the pure helpers as `groupHistoryByAction` and `filterMeaningfulHistory`, and the `HistoryEntry`/`HistoryOptions` types.
+  - **Breaking vs 0.24.0**: results are now in `res.locals.rows` (was `res.locals.history`), and the 404 message is `"history not found"` (was `"History not found"`). The old query selected `consumerId`/`consumerName`; it now selects `userId`/`userName`.
+  - A non-integer id (or one above the PostgreSQL `INT` range) now answers `400 "Invalid <field>"` without querying, instead of a 500 from the SQL `CAST`.
+  - No-op filtering compares array/object values by content, so an unchanged array or JSON column no longer keeps an entry alive.
+- **Fixes the `SQLEntity` constructor typing**: it was declared as `properties: Property[]` (class instances), but callers pass plain field-definition objects, so TypeScript/`// @ts-check` consumers got `Property 'interval' is missing` and `Type 'null' is not assignable to type 'number | Date'` on every property. The constructor now takes the new exported `PropertyInit[]` type (extends antity's `PropertyInit` with optional `isFilterable`/`operations`). `Property` instances are still accepted. No runtime change.
+- `Property`'s constructor parameter order now matches `@dwtechs/antity`'s (`isPrivate` before `requiredFor`); the two had them swapped, a trap for anyone passing the same positional arguments to either class (TypeScript catches it, plain JS does not). Only matters for code calling `new Property(...)` directly (`SQLEntity` is the only caller in this package). Added a regression test.
+- `SQLEntity` declares `isFilterable`/`operations` as known property fields (overrides `Entity.knownPropKeys` from `@dwtechs/antity@0.19.2`), so the new warning for unknown property fields only fires for genuinely unknown ones.
+- Export the `PropertyInit` type.
+- Documented that optional fields (`min`, `max`, `sanitizer`, `normalizer`, `validator`) can simply be omitted to get their default; passing `null` is still accepted and means the same (no runtime change).
+
 # 0.24.0 (Sep 28th 2026)
 
 - Updated `@dwtechs/antity` dependency to version `0.19.1`.

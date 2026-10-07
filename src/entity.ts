@@ -11,13 +11,14 @@ import { Upsert } from "./crud/upsert";
 import { Archive } from "./crud/archive";
 import * as del from "./crud/delete";
 import { quoteIfUppercase, assertIdentifier } from "./crud/quote";
+import * as hist from "./crud/history";
 import { cleanFilters } from "./filter/clean";
 import { addConditions } from "./filter/condition";
 import { execute } from "./crud/execute";
 import { getPool } from "./pool";
 import { logSummary } from "./logger";
 import { LOGS_PREFIX } from './constants';  
-import type { PGResponse, SelectResponse, Filters, SqlValue, Operation, Row, LogicalOperator, PGClient } from "./types";
+import type { PropertyInit, HistoryEntry, HistoryOptions, PGResponse, SelectResponse, Filters, SqlValue, Operation, Row, LogicalOperator, PGClient } from "./types";
 import type { Request, Response, NextFunction } from 'express';
 
 type ExpressMiddleware = (req: Request, res: Response, next: NextFunction) => void;
@@ -37,7 +38,7 @@ export class SQLEntity extends Entity {
 
   constructor(
     name: string, 
-    properties: Property[],
+    properties: PropertyInit[],
     schema: string = 'public'
   ) {
     super(name, properties); // Call the constructor of the base class
@@ -58,6 +59,14 @@ export class SQLEntity extends Entity {
   }
 
   /**
+   * Declares `isFilterable`/`operations` as known fields so the base `Entity`
+   * only warns about genuinely unknown ones (probable typos).
+   */
+  protected get knownPropKeys(): ReadonlySet<string> {
+    return PGSQL_STANDARD_PROP_KEYS;
+  }
+
+  /**
    * Builds antity-pgsql's own `Property` subclass (validating/defaulting
    * `isFilterable`/`operations`) instead of the base class's `Property`.
    * Overrides `Entity.createProperty` from `@dwtechs/antity`.
@@ -68,8 +77,8 @@ export class SQLEntity extends Entity {
       p.type as Type,
       p.min as number | Date | null,
       p.max as number | Date | null,
-      p.requiredFor as Method[],
       p.isPrivate as boolean,
+      p.requiredFor as Method[],
       p.isTypeChecked as boolean,
       p.readOnly as boolean,
       p.isFilterable as boolean,
@@ -458,8 +467,8 @@ export class SQLEntity extends Entity {
   public add = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const r = this.resolveRows(req);
-    if (!r || !isArray(r, '!0'))
-      return next({ status: 400, message: "Missing rows in req.body for add operation" });
+    if (!isArray(r, '!0'))
+      return next({ statusCode: 400, message: "Missing rows in req.body for add operation" });
 
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.userId;
@@ -500,8 +509,8 @@ export class SQLEntity extends Entity {
   public update = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const l = res.locals;
     const r = this.resolveRows(req);
-    if (!r || !isArray(r, '!0'))
-      return next({ status: 400, message: "Missing rows in req.body for update operation" });
+    if (!isArray(r, '!0'))
+      return next({ statusCode: 400, message: "Missing rows in req.body for update operation" });
     
     const dbClient = l.dbClient || null;
     const cId = l.consumer?.userId;
@@ -555,10 +564,10 @@ export class SQLEntity extends Entity {
     const cName = l.consumer?.nickname;
     
     if (!conflictTarget)
-      return next({ status: 400, message: "Missing conflictTarget for upsert operation" });
+      return next({ statusCode: 400, message: "Missing conflictTarget for upsert operation" });
     
-    if (!r || !isArray(r, '!0'))
-      return next({ status: 400, message: "Missing or empty rows in req.body for upsert operation" });
+    if (!isArray(r, '!0'))
+      return next({ statusCode: 400, message: "Missing or empty rows in req.body for upsert operation" });
     
     log.debug(() => `${LOGS_PREFIX}upsert(rows=${r.length}, conflictTarget=${conflictTarget}, consumer=${cId})`);
     
@@ -589,8 +598,8 @@ export class SQLEntity extends Entity {
     const cId = l.consumer?.userId;
     const cName = l.consumer?.nickname;
 
-    if (!r || !isArray(r, '!0'))
-      return next({ status: 400, message: "Missing rows in req.body for archive operation" });
+    if (!isArray(r, '!0'))
+      return next({ statusCode: 400, message: "Missing rows in req.body for archive operation" });
 
     log.debug(() => `${LOGS_PREFIX}archive(rows=${r.length}, consumer=${cId})`);
 
@@ -635,8 +644,8 @@ export class SQLEntity extends Entity {
   public delete = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => {
     const r = req.body?.rows ?? (req.params?.id ? [{ id: req.params.id }] : null);
 
-    if (!r || !isArray(r, '!0'))
-      return next({ status: 400, message: "Missing rows in req.body or id in req.params for delete operation" });
+    if (!isArray(r, '!0'))
+      return next({ statusCode: 400, message: "Missing rows in req.body or id in req.params for delete operation" });
 
     const dbClient = res.locals.dbClient || null;
     const ids = r.map((r: unknown) => (r as Record<string, unknown>).id as number);
@@ -683,58 +692,81 @@ export class SQLEntity extends Entity {
   }
 
   /**
-   * Retrieves the history for a specific row by its ID.
-   * 
-   * @param {Request} req - Express request object. Expected to contain `id` in req.params.
-   * @param {Response} res - Express response object. Uses res.locals to access dbClient.
-   * @param {NextFunction} next - Express next function for middleware chaining.
-   * @returns {void}
-   * @throws {Error} If database query fails or ID is missing.
-   * 
+   * Builds a middleware returning the modification history of one record,
+   * read from `log.history`.
+   *
+   * - Reads the record id from `req.params[field]` (`req.params.id` by default).
+   * - Rows written by the same transaction (same tstamp / consumer / record id) are merged
+   *   into one entry, so a record and its junction-table rows read as a single action.
+   * - Entries that changed nothing but ignored columns are dropped (see `HistoryOptions.ignoreCols`).
+   * - Responds 404 when there is no history, or only the initial INSERT.
+   *
+   * @param {HistoryOptions} [options] - `tables` (defaults to this entity's table; pass the base table(s)
+   * when the entity reads a view, since `log.history` records the tables the audit trigger sits on),
+   * `field` (record key to match and `req.params` name, defaults to `"id"`) and `ignoreCols`.
+   * @returns {ExpressMiddleware} Express middleware. On success `res.locals.rows` holds the
+   * entries (oldest first, each `{ id, tstamp, operation, userId, userName, record }`)
+   * and `res.locals.total` their count.
+   * @throws {Error} If `field` is not a valid SQL identifier.
+   *
    * @example
-   * // In an Express route
-   * app.get('/users/:id/history', userEntity.getHistory, (req, res) => {
-   *   res.json({ history: res.locals.history, total: res.locals.total });
-   * });
-   * 
-   * // Request params:
-   * // { id: 1 }
-   * 
-   * // res.locals will contain:
-   * // { history: [...], total: 5 }
+   * // history of a route and its junction tables
+   * router.get('/:id/history', routeEntity.history({
+   *   tables: ['route', 'route_operation', 'route_method'],
+   * }));
+   *
+   * // history of the rows linked to a parent id
+   * router.get('/:routeId/history', permissionEntity.history({
+   *   tables: ['permission', 'permission_condition'],
+   *   field: 'routeId',
+   * }));
    */
-  public getHistory = ( req: Request, res: Response, next: NextFunction ): void => {
-    const id = req.params.id;
-    const dbClient = res.locals.dbClient || null;
-    
-    if (!id) {
-      next({ status: 400, message: "Missing id" });
-      return;
-    }
-    
-    log.debug(() => `${LOGS_PREFIX}getHistory(schema=${this._schema}, table=${this._table}, id=${id})`);
-    
-    const sql = `
-      SELECT id, tstamp, operation, "consumerId", "consumerName"
-      FROM log.history
-      WHERE "schemaName" = $1 
-        AND "tableName" = $2
-        AND CAST(record->>'id' AS INT) = $3
-      ORDER BY tstamp ASC
-    `;
-    
-    execute(sql, [this._schema, this._table, id], dbClient)
-      .then((r: PGResponse) => {
-        const { rowCount, rows } = r;
-        if (!rowCount)
-          return next({ status: 404, message: "History not found" });
+  public history = (options: HistoryOptions = {}): ExpressMiddleware => {
+    const field = options.field ?? "id";
+    assertIdentifier(field, "history field");
+    const ignoreCols = options.ignoreCols ?? [];
 
-        res.locals.history = rows;
-        res.locals.total = rowCount;
-        next();
-      })
-      .catch((err: Error) => next(err));
+    return (req: Request, res: Response, next: NextFunction): void => {
+      const value = req.params[field];
+      if (!value) {
+        next({ statusCode: 400, message: `Missing ${field}` });
+        return;
+      }
+      // The query casts the stored value to INT; anything else would surface as a 500.
+      if (!/^\d+$/.test(String(value)) || Number(value) > 2147483647) {
+        next({ statusCode: 400, message: `Invalid ${field}` });
+        return;
+      }
+
+      const tables = options.tables ?? [this._table];
+      log.debug(() => `${LOGS_PREFIX}history(schema=${this._schema}, tables=${tables.join(",")}, ${field}=${value})`);
+
+      hist.query(this._schema, tables, field, value, res.locals.dbClient || null)
+        .then((r: PGResponse) => {
+          if (!r.rowCount)
+            return next({ statusCode: 404, message: "history not found" });
+          const rows = hist.filterMeaningful(hist.groupByAction(r.rows as HistoryEntry[]), ignoreCols);
+          if (rows.length === 1 && rows[0]!.operation === "INSERT")
+            return next({ statusCode: 404, message: "history not found" });
+          res.locals.rows = rows;
+          res.locals.total = rows.length;
+          next();
+        })
+        .catch((err: Error) => next(err));
+    };
   }
+
+  /**
+   * Middleware returning the modification history of the record whose id is in
+   * `req.params.id`, read from this entity's own table. Shorthand for `history()`;
+   * use `history(options)` to include junction tables, match another field or ignore columns.
+   *
+   * @example
+   * app.get('/users/:id/history', userEntity.getHistory, (req, res) => {
+   *   res.json({ history: res.locals.rows, total: res.locals.total });
+   * });
+   */
+  public getHistory = this.history();
 
   /**
    * Syncs the database table with the provided rows.
@@ -766,7 +798,7 @@ export class SQLEntity extends Entity {
     const cName = l.consumer?.nickname;
 
     if (!r || !isArray(r) || !isString(idField, '!0'))
-      return next({ status: 400, message: "Missing or invalid rows array for sync operation" });
+      return next({ statusCode: 400, message: "Missing or invalid rows array for sync operation" });
 
     log.debug(() => `${LOGS_PREFIX}sync(rows=${r.length}, idField=${idField}, consumer=${cId})`);
 

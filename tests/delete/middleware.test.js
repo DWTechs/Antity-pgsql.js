@@ -168,7 +168,7 @@ describe("delete middleware", () => {
     await entity.delete(req, res, mockNext);
 
     expect(mockNext).toHaveBeenCalledWith({
-      status: 400,
+      statusCode: 400,
       message: "Missing rows in req.body or id in req.params for delete operation",
     });
   });
@@ -180,7 +180,7 @@ describe("delete middleware", () => {
     await entity.delete(req, res, mockNext);
 
     expect(mockNext).toHaveBeenCalledWith({
-      status: 400,
+      statusCode: 400,
       message: "Missing rows in req.body or id in req.params for delete operation",
     });
   });

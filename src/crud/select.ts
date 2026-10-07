@@ -46,7 +46,7 @@ export class Select {
     return exe(query, args, client)
       .then((r: PGResponse) => {
         if (!r.rowCount)
-          throw { status: 404, message: "Resource not found" }; 
+          throw { statusCode: 404, message: "Resource not found" }; 
         const f = r.rows[0];
         if (f.total) {
           r.total = Number(f.total); // total number of rows without first and rows limits. Useful for pagination. Do not confuse with rowcount
