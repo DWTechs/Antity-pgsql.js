@@ -1,0 +1,214 @@
+import { SQLEntity } from '../../dist/antity-pgsql.js';
+
+describe("restore middleware", () => {
+  const entity = new SQLEntity('persons', [
+    {
+      key: 'id',
+      type: 'number',
+      min: 1,
+      max: 255,
+      isTypeChecked: true,
+      isFilterable: true,
+      requiredFor: [],
+      operations: ['SELECT', 'DELETE'],
+      isPrivate: false,
+      sanitizer: null,
+      normalizer: null,
+      validator: null
+    },
+    {
+      key: 'name',
+      type: 'string',
+      min: 1,
+      max: 255,
+      isTypeChecked: true,
+      isFilterable: true,
+      requiredFor: ['POST', 'PUT'],
+      operations: ['SELECT', 'INSERT', 'UPDATE'],
+      isPrivate: false,
+      sanitizer: null,
+      normalizer: val => val.toLowerCase(),
+      validator: null
+    },
+    {
+      key: 'age',
+      type: 'integer',
+      min: 0,
+      max: 120,
+      isTypeChecked: true,
+      isFilterable: true,
+      requiredFor: ['PUT'],
+      operations: ['SELECT', 'UPDATE'],
+      isPrivate: false,
+      sanitizer: null,
+      normalizer: null,
+      validator: null
+    },
+    {
+      key: 'archived',
+      type: 'boolean',
+      isTypeChecked: true,
+      isFilterable: true,
+      requiredFor: [],
+      operations: ['SELECT'],
+      isPrivate: false,
+      sanitizer: null,
+      normalizer: null,
+      validator: null
+    }
+  ]);
+
+  const mockDbClient = () => ({
+    query: jest.fn().mockResolvedValue({
+      rows: [],
+      rowCount: 0
+    })
+  });
+
+  const mockRequest = (rows) => ({
+    body: { rows }
+  });
+
+  const mockResponse = (dbClient, consumerId, consumerName) => ({
+    locals: {
+      dbClient,
+      consumer: { userId: consumerId, nickname: consumerName }
+    }
+  });
+
+  /** @type {jest.Mock} */
+  const mockNext = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should execute UPDATE query with archived = false and call next() without error", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest([{ id: 1 }, { id: 2 }]);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    expect(dbClient.query).toHaveBeenCalledTimes(1);
+    const [sql] = dbClient.query.mock.calls[0];
+    expect(sql).toContain("SET archived = false");
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should set archived to false and include consumer id and nickname in query args", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest([{ id: 10 }, { id: 20 }]);
+    const res = mockResponse(dbClient, 123, 'adminUser');
+
+    await entity.restore(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args).toContain(123);
+    expect(args).toContain('adminUser');
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should overwrite existing archived=true with false", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest([{ id: 1, archived: true }, { id: 2, archived: true }]);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args.filter(arg => arg === true)).toHaveLength(0);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should omit consumer id and nickname from query args when undefined", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest([{ id: 1 }]);
+    const res = mockResponse(dbClient, undefined, undefined);
+
+    await entity.restore(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args).toEqual([1]);
+    expect(args).not.toContain(undefined);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should split rows into multiple chunks and execute one query per chunk", async () => {
+    const inputRows = Array.from({ length: 150 }, (_, i) => ({ id: i + 1 }));
+    const dbClient = mockDbClient();
+    const req = mockRequest(inputRows);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    expect(dbClient.query.mock.calls.length).toBeGreaterThan(1);
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should call next(error) when the database operation fails", async () => {
+    const dbError = new Error('Database connection failed');
+    const dbClient = { query: jest.fn().mockRejectedValue(dbError) };
+    const req = mockRequest([{ id: 1 }, { id: 2 }]);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledWith(dbError);
+  });
+
+  it("should call next(error) when the database fails on a subsequent chunk", async () => {
+    const inputRows = Array.from({ length: 150 }, (_, i) => ({ id: i + 1 }));
+    const dbError = new Error('Connection lost');
+    const dbClient = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        .mockRejectedValueOnce(dbError)
+    };
+    const req = mockRequest(inputRows);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledWith(dbError);
+  });
+
+  it("should call next(error) when dbClient is null and the pool is unavailable", async () => {
+    const req = mockRequest([{ id: 1 }]);
+    const res = mockResponse(null, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const [[error]] = mockNext.mock.calls;
+    expect(error.constructor.name).toBe('AggregateError');
+  });
+
+  it("should accept rows as a plain array of ids", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest([1, 2]);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    const [, args] = dbClient.query.mock.calls[0];
+    expect(args).toContain(1);
+    expect(args).toContain(2);
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it("should call next(error) when rows are missing from req.body", async () => {
+    const dbClient = mockDbClient();
+    const req = mockRequest(undefined);
+    const res = mockResponse(dbClient, 1, 'testConsumer');
+
+    await entity.restore(req, res, mockNext);
+
+    expect(dbClient.query).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith({ statusCode: 400, message: "Missing rows in req.body for restore operation" });
+  });
+});

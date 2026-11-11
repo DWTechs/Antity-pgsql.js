@@ -1,3 +1,9 @@
+# 0.26.0 (Nov 10th 2026)
+
+- **`SQLEntity.restore` and `SQLEntity.query.restore()`.** Adds the symmetric counterpart to `archive` / `query.archive()`:
+  - `query.restore(rows, consumer?)` generates `UPDATE <schema>.<table> SET archived = false WHERE id IN (...)` (and appends `"updaterId"` / `"updaterName"` when `consumer` is provided). Accepts an array of ids (`[1, 2]`) or row objects (`[{ id: 1 }, { id: 2 }]`).
+  - `restore(req, res, next)` Express middleware reads `req.body.rows`, batches queries with `chunk()`, and calls `next({ statusCode: 400, message: "Missing rows in req.body for restore operation" })` when `req.body.rows` is missing or empty.
+
 # 0.25.0 (Oct 7th 2026)
 
 - Updated `@dwtechs/antity` dependency to version `0.19.2`.

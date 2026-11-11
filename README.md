@@ -142,6 +142,7 @@ router.post("/manual", consumers.normalizeArray, consumers.validateArray, ..., c
 router.put("/manual", consumers.normalizeArray, consumers.validateArray, ..., consumers.update);
 
 router.patch("/archive", ..., consumers.archive);
+router.patch("/restore", ..., consumers.restore);
 router.delete("/", ..., consumers.delete);
 router.delete("/archived", ..., consumers.deleteArchive);
 router.get("/:id/history", ..., consumers.getHistory);
@@ -299,6 +300,12 @@ class SQLEntity {
         query: string;
         args: unknown[];
     };
+    restore: (
+      rows: (Row | SqlValue)[],
+      consumer?: { userId?: number | string, nickname?: string }) => {
+        query: string;
+        args: unknown[];
+    };
     insert: (
       rows: Row[],
       consumer?: { userId?: number | string, nickname?: string },
@@ -328,6 +335,7 @@ class SQLEntity {
   upsert: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   sync: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+  restore: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   deleteArchive: (req: Request, res: Response, next: NextFunction) => void;
   getHistory: (req: Request, res: Response, next: NextFunction) => void;
@@ -361,9 +369,9 @@ function filterMeaningfulHistory(rows: HistoryEntry[], ignoreCols?: string[]): H
 
 ### Middleware Methods for Express.js
 
-- get(), add(), update(), upsert(), sync(), archive(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
+- get(), add(), update(), upsert(), sync(), archive(), restore(), delete(), deleteArchive() and getHistory() methods are made to be used as Express.js middlewares.
 - add(), update() and upsert() accept either **req.body.rows** (as an array of entities for bulk operations) or **req.body** itself (as a single entity).
-- archive() and sync() look for data to work on exclusively in the **req.body.rows** parameter (as an array).
+- archive(), restore() and sync() look for data to work on exclusively in the **req.body.rows** parameter (as an array).
 - get() reads req.body.first, req.body.limit, req.body.sortField, req.body.sortOrder, req.body.filters and req.body.operator instead. Page size is exclusively **req.body.limit** (a number); req.body.rows is intentionally ignored by get(), since that same key means "array of entities" for every other method above and reusing it for pagination was error-prone.
 - delete() reads req.body.rows ([{id: 1}, {id: 2}]) if present, otherwise falls back to a single req.params.id.
 - The upsert() method additionally requires **req.body.conflictTarget** to specify which column(s) define uniqueness.
@@ -403,6 +411,7 @@ Using substacks simplifies your route definitions and ensures consistent data pr
 - **query.update()**: Generates an UPDATE query using CASE statements. Accepts an array of `Row` objects with `id` property. Optionally appends `consumer.userId` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking.
 - **query.upsert()**: Generates an INSERT ... ON CONFLICT ... DO UPDATE query. (See [Upsert](#upsert-insert-or-update) section below.) Accepts an array of `Row` objects and a `conflictTarget` (single column name or array of column names) that defines uniqueness. If a conflict occurs on the specified column(s), the row is updated; otherwise, it is inserted. Properties are automatically included if they have both INSERT and UPDATE operations. Consumer fields are appended directly to the query arguments — row objects are **not mutated**. Optionally appends `consumer.userId` as `creatorId` and `consumer.nickname` as `creatorName` on INSERT, and as `updaterId`/`updaterName` on CONFLICT UPDATE, for audit tracking. Supports `RETURNING` clause via the `rtn` parameter.
 - **query.archive()**: Generates a `UPDATE ... SET archived = true WHERE id IN (...)` query. Accepts an array of ids, or of `Row` objects with an `id` property. Optionally appends `consumer.userId` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
+- **query.restore()**: Generates a `UPDATE ... SET archived = false WHERE id IN (...)` query. Accepts an array of ids, or of `Row` objects with an `id` property. Optionally appends `consumer.userId` as `updaterId` and `consumer.nickname` as `updaterName` for audit tracking. Does not require an `archived` field in the rows — it is set directly in the SQL.
 - **sync()**: Atomically synchronises the table with the provided rows inside a single PostgreSQL transaction. Missing rows are inserted, existing rows are updated, and rows absent from the list are deleted. Accepts optional `idField` (default `'id'`) and `filters` to restrict the scope of managed rows. Stores the result in `res.locals.rows` and a summary `{ inserted, updated, deleted }` in `res.locals.sync`.
 - **delete()**: Deletes rows by their IDs. Reads ids from `req.body.rows` (array of objects with `id` property: `[{id: 1}, {id: 2}]`) if present, otherwise falls back to a single `req.params.id` (e.g. a `DELETE /resource/:id` route). Calls `next({ statusCode: 400, message: "Missing rows in req.body or id in req.params for delete operation" })` if neither is provided.
 - **deleteArchive()**: Deletes archived rows that were archived before a specific date using a PostgreSQL SECURITY DEFINER function. Expects `req.body.date` to be a Date object.

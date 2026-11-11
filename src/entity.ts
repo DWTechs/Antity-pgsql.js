@@ -291,6 +291,12 @@ export class SQLEntity extends Entity {
     ): { query: string, args: unknown[] } => {
       return this.arc.query(this.schema, this.table, rows, consumer?.userId, consumer?.nickname);
     },
+    restore: (
+      rows: (Row | SqlValue)[],
+      consumer?: { userId?: number | string, nickname?: string },
+    ): { query: string, args: unknown[] } => {
+      return this.arc.query(this.schema, this.table, rows, consumer?.userId, consumer?.nickname, false);
+    },
     deleteArchive: (): string => {
       return del.queryByDate();
     },
@@ -606,6 +612,31 @@ export class SQLEntity extends Entity {
     const chunks = chunk(r);
     for (const c of chunks) {
       const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName);
+      try {
+        await execute(query, args, dbClient);
+      } catch (err: unknown) {
+        return next(err);
+      }
+    }
+    next();
+
+  }
+
+  public restore = async ( req: Request, res: Response, next: NextFunction ): Promise<void> => { 
+    const l = res.locals;
+    const r = req.body.rows; // list of ids: [1, 2] or [{id: 1}, {id: 2}]
+    const dbClient = l.dbClient || null;
+    const cId = l.consumer?.userId;
+    const cName = l.consumer?.nickname;
+
+    if (!isArray(r, '!0'))
+      return next({ statusCode: 400, message: "Missing rows in req.body for restore operation" });
+
+    log.debug(() => `${LOGS_PREFIX}restore(rows=${r.length}, consumer=${cId})`);
+
+    const chunks = chunk(r);
+    for (const c of chunks) {
+      const { query, args } = this.arc.query(this._schema, this._table, c, cId, cName, false);
       try {
         await execute(query, args, dbClient);
       } catch (err: unknown) {
